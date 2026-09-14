@@ -1,0 +1,118 @@
+// Prisma Schema for AURA Haute Joaillerie
+// Core Materiality: 14K Gold & BIS 925 Sterling Silver
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  IN_FABRICATION
+  DISPATCHED
+  DELIVERED
+  CANCELLED
+}
+
+model Category {
+  id          String    @id @default(cuid())
+  name        String    @unique
+  slug        String    @unique
+  description String?
+  heroImage   String?
+  products    Product[]
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model Product {
+  id             String      @id @default(cuid())
+  name           String
+  slug           String      @unique
+  subtitle       String?
+  price          Float       // Selling price in INR or USD
+  originalPrice  Float?      // Strike-through MRP
+  currency       String      @default("INR")
+  description    String
+  editorialNote  String?
+  edition        String?     // e.g. "Artisan Batch // 150 Castings"
+  
+  // 14K Gold Materiality
+  material       String      // e.g. "14K Champagne Gold Vermeil over BIS 925 Silver"
+  goldPurity     String      @default("14K Gold") // 14K Gold Vermeil or Solid 14K
+  colorTone      String      @default("Champagne Gold") // Soft champagne vs raw silver
+  metalColorHex  String      @default("#E6CA97") // Visual swatch color
+  occasionVibe   String      @default("Everyday Wear") // Minimalist, Statement, Bridal, Everyday Wear, Layering
+  
+  dimensions     String?     // e.g. "Inner Diameter: 62mm"
+  weight         String?     // e.g. "24.6 grams solid"
+  craftsmanship  String?     // Lost-wax casting narrative
+  images         String      // Stored as JSON string array [main, video/model, close-up]
+  modelImage     String?     // Relative size photo on model
+  videoUrl       String?     // Slow-motion jewelry light loop
+  
+  featured       Boolean     @default(false)
+  inStock        Boolean     @default(true)
+  inventory      Int         @default(5) // Low stock urgency triggers if < 3
+  isEngravable   Boolean     @default(false)
+  
+  hallmark       String?     @default("BIS Hallmarked 925 Pure Silver")
+  warranty       String?     @default("Lifetime Anti-Tarnish Warranty")
+  
+  // Cross-sell & Relations
+  pairsWithId    String?     // Upsell product ID for cart drawer
+  categoryId     String
+  category       Category    @relation(fields: [categoryId], references: [id])
+  
+  orderItems     OrderItem[]
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  phone     String?
+  orders    Order[]
+  createdAt DateTime @default(now())
+}
+
+model Order {
+  id              String      @id @default(cuid())
+  orderNumber     String      @unique
+  customerEmail   String
+  customerName    String
+  customerPhone   String?
+  shippingAddress String
+  city            String
+  state           String?
+  postalCode      String
+  country         String      @default("India")
+  paymentMethod   String      @default("UPI") // UPI, CARD, COD, NETBANKING
+  total           Float
+  currency        String      @default("INR")
+  status          OrderStatus @default(CONFIRMED)
+  engravingText   String?
+  
+  userId          String?
+  user            User?       @relation(fields: [userId], references: [id])
+  items           OrderItem[]
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+}
+
+model OrderItem {
+  id        String   @id @default(cuid())
+  orderId   String
+  order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId String
+  product   Product  @relation(fields: [productId], references: [id])
+  quantity  Int      @default(1)
+  price     Float
+}
