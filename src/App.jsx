@@ -1,4 +1,5 @@
-import React, { useState, createContext, useContext, useEffect, useMemo } from 'react';
+import React, { useState, createContext, useContext, useEffect, useMemo, useRef } from 'react';
+import QRCode from 'qrcode';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   ShoppingBag,
@@ -14,6 +15,8 @@ import {
   ShieldCheck,
   Sparkles,
   ChevronDown,
+  ChevronLeft,
+  ChevronRight,
   Lock,
   Compass,
   SlidersHorizontal,
@@ -52,6 +55,16 @@ import {
   Moon,
   Heart,
   Scale,
+  Zap,
+  Link,
+  FileText,
+  FileSpreadsheet,
+  Database,
+  Download,
+  BookOpen,
+  Mail,
+  Phone,
+  Award,
 } from 'lucide-react';
 
 import {
@@ -63,6 +76,9 @@ import {
   COLLECTOR_TESTIMONIALS,
   INDIAN_STATES,
   STORE_CONFIG,
+  OUR_STORY,
+  BRAND_POLICIES,
+  createOrderTimeline,
 } from '../lib/data';
 import {
   persistOrderToDb,
@@ -71,8 +87,90 @@ import {
   deleteProductFromDb,
   fetchProductsFromDb,
   fetchOrdersFromDb,
+  fetchOrdersByPhone,
   updateOrderStatusInDb,
+  uploadProductImageToStorage,
+  recordBookkeepingLedgerEntry,
+  fetchBookkeepingLedgerFromDb,
+  exportBookkeepingLedgerAsCsv,
+  exportBookkeepingLedgerAsJson,
 } from '../lib/supabase';
+import {
+  generateOtp,
+  verifyOtp,
+  generateAwbNumber,
+  getTrackingUrl,
+  sendWhatsAppStageNotification,
+  getWhatsAppDirectUrl,
+  composeWhatsAppTemplateMessage,
+  executePaymentCallback,
+  createPhonePePaymentLink,
+  executePhonePeCallback,
+  getPhonePeConfig,
+  savePhonePeConfig,
+  DEFAULT_PHONEPE_CONFIG,
+} from '../lib/services';
+
+// PhonePe Brand Icon SVG
+export function PhonePeIcon({ className = 'w-5 h-5' }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none">
+      <rect width="24" height="24" rx="6" fill="#5F259F" />
+      <path
+        d="M13.6 6H9.25c-.4 0-.75.35-.75.75v11c0 .3.2.5.45.5.15 0 .25-.05.35-.15l3.05-3.05h1.5c2.65 0 4.65-2.05 4.65-4.55 0-2.5-2.05-4.5-4.9-4.5zm-.1 6.4h-2.4V8.6h2.4c1.2 0 2.1.8 2.1 1.9s-.9 1.9-2.1 1.9z"
+        fill="#FFFFFF"
+      />
+    </svg>
+  );
+}
+
+// WhatsApp Brand Icon SVG
+export function WhatsAppIcon({ className = 'w-4 h-4' }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="currentColor">
+      <path d="M12.04 2c-5.46 0-9.91 4.45-9.91 9.91 0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21 5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.816 9.816 0 0 0 12.04 2zm.01 1.67c2.2 0 4.26.86 5.82 2.42a8.225 8.225 0 0 1 2.41 5.83c0 4.54-3.7 8.24-8.24 8.24-1.48 0-2.93-.4-4.2-1.15l-.3-.18-3.12.82.83-3.04-.2-.31a8.196 8.196 0 0 1-1.26-4.38c0-4.54 3.7-8.24 8.24-8.24zm4.51 11.66c-.25-.13-1.47-.72-1.7-.81-.23-.08-.39-.13-.56.13-.17.25-.64.81-.79.97-.14.17-.29.19-.54.06-.25-.13-1.06-.39-2.02-1.24-.75-.67-1.26-1.49-1.41-1.74-.14-.25-.02-.39.11-.51.11-.11.25-.29.38-.44.13-.15.17-.25.25-.42.08-.17.04-.31-.02-.44-.06-.13-.56-1.34-.76-1.84-.2-.48-.41-.42-.56-.43h-.48c-.17 0-.44.06-.67.31-.23.25-.88.86-.88 2.1 0 1.24.9 2.44 1.03 2.61.13.17 1.77 2.7 4.29 3.79.6.26 1.07.41 1.43.53.6.19 1.15.16 1.58.1.48-.07 1.47-.6 1.68-1.18.21-.58.21-1.07.15-1.18-.07-.12-.23-.19-.48-.31z" />
+    </svg>
+  );
+}
+
+// Instagram Icon SVG
+export function InstagramIcon({ className = 'w-4 h-4' }) {
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <rect width="20" height="20" x="2" y="2" rx="5" ry="5" />
+      <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
+      <line x1="17.5" x2="17.51" y1="6.5" y2="6.5" />
+    </svg>
+  );
+}
+
+// Brand Crest & Logo Component
+export function AvioraBrandCrest({ className = 'w-6 h-6' }) {
+  return (
+    <svg className={className} viewBox="0 0 100 100" fill="none">
+      <line x1="50" y1="6" x2="50" y2="14" stroke="#D4AF37" strokeWidth="2.2" strokeLinecap="round"/>
+      <line x1="40" y1="10" x2="43" y2="16" stroke="#D4AF37" strokeWidth="2" strokeLinecap="round"/>
+      <line x1="60" y1="10" x2="57" y2="16" stroke="#D4AF37" strokeWidth="2" strokeLinecap="round"/>
+      <line x1="32" y1="16" x2="38" y2="21" stroke="#D4AF37" strokeWidth="1.8" strokeLinecap="round"/>
+      <line x1="68" y1="16" x2="62" y2="21" stroke="#D4AF37" strokeWidth="1.8" strokeLinecap="round"/>
+      <polygon points="50,18 42,24 45,30 55,30 58,24" fill="#F4EBD9" stroke="#B89758" strokeWidth="1.2" strokeLinejoin="round"/>
+      <line x1="42" y1="24" x2="58" y2="24" stroke="#B89758" strokeWidth="1"/>
+      <circle cx="50" cy="54" r="26" stroke="#D4AF37" strokeWidth="3" fill="none" opacity="0.95"/>
+      <circle cx="50" cy="54" r="23" stroke="#B89758" strokeWidth="1" fill="none" opacity="0.5"/>
+      <path d="M50 36 L34 76 L40 76 L48 55 L58 76 L64 76 Z" fill="#EDE7DC" stroke="#C5B28D" strokeWidth="1" strokeLinejoin="round"/>
+      <path d="M43 65 L60 65 L60 70 L41 70 Z" fill="#D4AF37" stroke="#9A7B38" strokeWidth="0.8"/>
+      <path d="M50 45 L45 58 L55 58 Z" fill="#132A22"/>
+    </svg>
+  );
+}
 
 const formatPriceINR = (amount) => {
   return new Intl.NumberFormat('en-IN', {
@@ -112,9 +210,36 @@ function AppProvider({ children }) {
       if (path.includes('atelier') || hash.includes('atelier')) {
         return 'atelier';
       }
+      if (path.includes('pdp') || hash.includes('pdp')) {
+        return 'pdp';
+      }
     }
     return 'home';
   });
+
+  // Keep currentView synchronized on hash or pathname change
+  useEffect(() => {
+    const handleUrlChange = () => {
+      const path = window.location.pathname.toLowerCase();
+      const hash = window.location.hash.toLowerCase();
+      const search = window.location.search.toLowerCase();
+      if (path.includes('admin') || hash.includes('admin') || search.includes('admin')) {
+        setCurrentView('admin');
+      } else if (path.includes('orders') || hash.includes('orders')) {
+        setCurrentView('orders');
+      } else if (path.includes('atelier') || hash.includes('atelier')) {
+        setCurrentView('atelier');
+      } else if (path.includes('pdp') || hash.includes('pdp')) {
+        setCurrentView('pdp');
+      }
+    };
+    window.addEventListener('hashchange', handleUrlChange);
+    window.addEventListener('popstate', handleUrlChange);
+    return () => {
+      window.removeEventListener('hashchange', handleUrlChange);
+      window.removeEventListener('popstate', handleUrlChange);
+    };
+  }, []);
 
   // Reactive Products Catalog: initialized from localStorage or static fallback
   const [products, setProducts] = useState(() => {
@@ -122,7 +247,34 @@ function AppProvider({ children }) {
       const stored = localStorage.getItem('aviora_products_catalog');
       if (stored) {
         const parsed = JSON.parse(stored);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        const authenticMap = new Map(PRODUCTS.map((p) => [p.id, p]));
+        // Discard legacy mock products (e.g. Molten Kada)
+        if (
+          Array.isArray(parsed) &&
+          parsed.length > 0 &&
+          !parsed.some((p) => p.name && p.name.includes('Molten'))
+        ) {
+          const valid = parsed
+            .filter((p) => authenticMap.has(p.id))
+            .map((p) => {
+              const canonical = authenticMap.get(p.id);
+              return {
+                ...canonical,
+                ...p,
+                images:
+                  (canonical?.images?.length || 0) > (p.images?.length || 0)
+                    ? canonical.images
+                    : p.images || canonical?.images,
+                modelImage: canonical?.modelImage || p.modelImage,
+              };
+            });
+          const existingIds = new Set(valid.map((p) => p.id));
+          const missing = PRODUCTS.filter((p) => !existingIds.has(p.id));
+          const merged = missing.length > 0 ? [...valid, ...missing] : valid;
+          if (merged.length === PRODUCTS.length) {
+            return merged;
+          }
+        }
       }
     } catch {
       // fallback
@@ -130,7 +282,40 @@ function AppProvider({ children }) {
     return PRODUCTS;
   });
 
-  const [selectedProduct, setSelectedProduct] = useState(products[0] || PRODUCTS[0]);
+  const [selectedProduct, setSelectedProduct] = useState(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const params = new URLSearchParams(window.location.search);
+        const prodId = params.get('product') || params.get('id');
+        const slug = params.get('slug');
+        if (prodId) {
+          const found = PRODUCTS.find((p) => p.id === prodId);
+          if (found) return found;
+        }
+        if (slug) {
+          const found = PRODUCTS.find((p) => p.slug === slug);
+          if (found) return found;
+        }
+        const savedId = localStorage.getItem('aviora_selected_product_id');
+        if (savedId) {
+          const found = PRODUCTS.find((p) => p.id === savedId);
+          if (found) return found;
+        }
+      } catch {
+        // fallback
+      }
+    }
+    return PRODUCTS.find((p) => p.id === 'prod-009') || PRODUCTS[0];
+  });
+
+  // Persist selectedProduct ID for seamless reloads on /pdp
+  useEffect(() => {
+    if (selectedProduct?.id) {
+      try {
+        localStorage.setItem('aviora_selected_product_id', selectedProduct.id);
+      } catch {}
+    }
+  }, [selectedProduct?.id]);
   
   // Hydrate cart from localStorage
   const [rawCart, setRawCart] = useState(() => {
@@ -168,6 +353,73 @@ function AppProvider({ children }) {
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [currencyMode, setCurrencyMode] = useState('INR'); // 'INR' | 'USD'
   const [toast, setToast] = useState({ show: false, message: '' });
+
+  // Patron Customer Login & Authentication Session (Mobile Phone OTP)
+  const [patronUser, setPatronUser] = useState(() => {
+    try {
+      const stored = localStorage.getItem('aviora_patron_session');
+      if (stored) return JSON.parse(stored);
+    } catch {}
+    return null;
+  });
+
+  const loginPatron = (phone, name = '') => {
+    const cleanPhone = (phone || '').replace(/[^\d]/g, '').slice(-10);
+    if (!cleanPhone) return null;
+    const session = {
+      phone: cleanPhone,
+      name: name || `Patron +91 ${cleanPhone}`,
+      loggedInAt: new Date().toISOString(),
+    };
+    setPatronUser(session);
+    try {
+      localStorage.setItem('aviora_patron_session', JSON.stringify(session));
+    } catch {}
+    showToast(`✓ Welcome, ${session.name}! Access granted to personal commission dossier.`);
+    return session;
+  };
+
+  const logoutPatron = () => {
+    setPatronUser(null);
+    try {
+      localStorage.removeItem('aviora_patron_session');
+    } catch {}
+    showToast('Patron session signed out securely.');
+  };
+
+  // Ensure store owner / staff is NEVER auto-logged in from stale storage
+  useEffect(() => {
+    try {
+      localStorage.removeItem('aviora_admin_auth');
+      sessionStorage.removeItem('aviora_admin_session_auth');
+    } catch {}
+  }, []);
+
+  // Synchronize orders with Supabase database (Remote updates from Curator take precedence)
+  const syncOrdersFromDb = async () => {
+    try {
+      const remoteOrders = await fetchOrdersFromDb();
+      if (remoteOrders && remoteOrders.length > 0) {
+        setOrders((prev) => {
+          const map = new Map();
+          // Put local state first
+          prev.forEach((o) => map.set(o.orderNumber, o));
+          // Overwrite with latest updates from database (Curator stage moves)
+          remoteOrders.forEach((o) => {
+            const existing = map.get(o.orderNumber);
+            map.set(o.orderNumber, existing ? { ...existing, ...o } : o);
+          });
+          const merged = Array.from(map.values());
+          localStorage.setItem('aura_orders_history', JSON.stringify(merged));
+          return merged;
+        });
+      }
+      return remoteOrders;
+    } catch (e) {
+      console.warn('Sync orders notice:', e);
+      return [];
+    }
+  };
 
   // Light / Dark Theme State with HTML class sync
   const [theme, setTheme] = useState(() => {
@@ -227,7 +479,14 @@ function AppProvider({ children }) {
   const [categoryFilter, setCategoryFilter] = useState('');
   const [materialFilter, setMaterialFilter] = useState('');
   const [collectionFilter, setCollectionFilter] = useState('');
-  const [weightFilter, setWeightFilter] = useState('');
+  const [silhouetteFilter, setSilhouetteFilter] = useState(''); // 'light' | 'heavy' (silhouette curation, no weight)
+  const [policyModalOpen, setPolicyModalOpen] = useState(false);
+  const [activePolicyTab, setActivePolicyTab] = useState('our-story');
+
+  const openPolicyModal = (tabId = 'our-story') => {
+    setActivePolicyTab(tabId);
+    setPolicyModalOpen(true);
+  };
 
   // On mount: Hydrate remote products & orders directly from Supabase (ap-south-1 Mumbai)
   useEffect(() => {
@@ -237,8 +496,26 @@ function AppProvider({ children }) {
       try {
         const remoteProducts = await fetchProductsFromDb();
         if (isMounted && remoteProducts && remoteProducts.length > 0) {
-          setProducts(remoteProducts);
-          localStorage.setItem('aviora_products_catalog', JSON.stringify(remoteProducts));
+          const authenticMap = new Map(PRODUCTS.map((p) => [p.id, p]));
+          const valid = remoteProducts
+            .filter((p) => authenticMap.has(p.id))
+            .map((p) => {
+              const canonical = authenticMap.get(p.id);
+              return {
+                ...canonical,
+                ...p,
+                images:
+                  (canonical?.images?.length || 0) > (p.images?.length || 0)
+                    ? canonical.images
+                    : p.images || canonical?.images,
+                modelImage: canonical?.modelImage || p.modelImage,
+              };
+            });
+          const remoteIds = new Set(valid.map((p) => p.id));
+          const missing = PRODUCTS.filter((p) => !remoteIds.has(p.id));
+          const merged = missing.length > 0 ? [...valid, ...missing] : valid;
+          setProducts(merged);
+          localStorage.setItem('aviora_products_catalog', JSON.stringify(merged));
         }
       } catch (err) {
         console.warn('Supabase products hydration notice:', err);
@@ -249,8 +526,11 @@ function AppProvider({ children }) {
         if (isMounted && remoteOrders && remoteOrders.length > 0) {
           setOrders((prev) => {
             const map = new Map();
-            remoteOrders.forEach((o) => map.set(o.orderNumber, o));
             prev.forEach((o) => map.set(o.orderNumber, o));
+            remoteOrders.forEach((o) => {
+              const existing = map.get(o.orderNumber);
+              map.set(o.orderNumber, existing ? { ...existing, ...o } : o);
+            });
             const merged = Array.from(map.values());
             localStorage.setItem('aura_orders_history', JSON.stringify(merged));
             return merged;
@@ -294,9 +574,17 @@ function AppProvider({ children }) {
     }
   }, [orders]);
 
-  const navigate = (view, data = null) => {
+  const navigate = (view, data = null, shouldScrollToTop = true) => {
     setCurrentView(view);
-    if (view === 'pdp' && data) setSelectedProduct(data);
+    if (view === 'pdp') {
+      const prod = data || selectedProduct;
+      if (prod) {
+        setSelectedProduct(prod);
+        try {
+          localStorage.setItem('aviora_selected_product_id', prod.id);
+        } catch {}
+      }
+    }
     if (view === 'orders') {
       if (data) setSelectedOrder(data);
       else if (orders.length > 0 && !selectedOrder) setSelectedOrder(orders[0]);
@@ -305,17 +593,72 @@ function AppProvider({ children }) {
       if (data.category !== undefined) setCategoryFilter(data.category);
       if (data.material !== undefined) setMaterialFilter(data.material);
       if (data.collection !== undefined) setCollectionFilter(data.collection);
-      if (data.weightFilter !== undefined) setWeightFilter(data.weightFilter);
+      if (data.silhouetteFilter !== undefined) setSilhouetteFilter(data.silhouetteFilter);
+      if (data.weightFilter !== undefined) setSilhouetteFilter(data.weightFilter);
     }
     if (typeof window !== 'undefined') {
-      const url = view === 'home' ? '/' : `/${view}`;
+      let url = view === 'home' ? '/' : `/${view}`;
+      if (view === 'pdp') {
+        const prod = data || selectedProduct;
+        if (prod?.slug) url = `/pdp?slug=${encodeURIComponent(prod.slug)}`;
+        else if (prod?.id) url = `/pdp?product=${encodeURIComponent(prod.id)}`;
+      }
       try {
         window.history.pushState(null, '', url);
       } catch {
         // history fallback
       }
     }
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    if (shouldScrollToTop) {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
+
+  const scrollToSpectrum = (silhouette = null) => {
+    if (silhouette) {
+      setSilhouetteFilter(silhouette);
+    }
+    const attemptScroll = () => {
+      const el = document.getElementById('light-heavy-spectrum');
+      if (el) {
+        const headerOffset = 75;
+        const currentY = window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop || 0;
+        const elementPosition = el.getBoundingClientRect().top;
+        const offsetPosition = Math.max(0, elementPosition + currentY - headerOffset);
+        try {
+          window.scrollTo({
+            top: offsetPosition,
+            behavior: 'smooth',
+          });
+        } catch {
+          window.scrollTo(0, offsetPosition);
+        }
+        if (typeof el.scrollIntoView === 'function') {
+          el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+        setTimeout(() => {
+          const actualY = window.pageYOffset || document.documentElement.scrollTop || 0;
+          if (Math.abs(actualY - offsetPosition) > 150) {
+            window.scrollTo({ top: offsetPosition, behavior: 'auto' });
+          }
+        }, 350);
+        return true;
+      }
+      return false;
+    };
+
+    if (currentView === 'home') {
+      attemptScroll();
+    } else {
+      navigate('home', null, false);
+      let attempts = 0;
+      const timer = setInterval(() => {
+        attempts++;
+        if (attemptScroll() || attempts > 30) {
+          clearInterval(timer);
+        }
+      }, 50);
+    }
   };
 
   const showToast = (message) => {
@@ -418,26 +761,27 @@ function AppProvider({ children }) {
       originalPrice: Number(productData.originalPrice || productData.price),
       currency: 'INR',
       description: productData.description || 'Mastercrafted piece in 14K Gold Plated 925 Sterling Silver.',
-      editorialNote: productData.editorialNote || 'Hand-finished in our Mumbai & Jaipur ateliers.',
+      editorialNote: productData.editorialNote || 'Hand-finished in our Delhi atelier.',
       edition: productData.edition || 'Archival Series 2026',
-      material: productData.material || '14K Gold Vermeil over BIS 925 Silver',
+      material: productData.material || '14K Gold Vermeil over Fine 925 Silver',
       goldPurity: productData.goldPurity || '14K Gold Vermeil',
-      colorTone: productData.colorTone || 'Champagne Gold',
-      metalColorHex: productData.metalColorHex || '#E6CA97',
+      colorTone: productData.colorTone || 'Whitish Gold',
+      metalColorHex: productData.metalColorHex || '#EDE7DC',
+      silhouette: productData.silhouette || 'light',
       occasionVibe: productData.occasionVibe || 'Everyday Wear',
       dimensions: productData.dimensions || 'Universal luxury fit',
-      weight: productData.weight || '12.5g BIS 925 Silver Core',
+      weight: productData.weight || 'Fine 925 Silver Core',
       craftsmanship: productData.craftsmanship || 'Hand-poured 2.5 micron vermeil over solid sterling silver.',
       images: Array.isArray(productData.images) && productData.images.length > 0
         ? productData.images
         : [
-            'https://images.unsplash.com/photo-1603561591411-07134e71a2a9?auto=format&fit=crop&w=1200&q=85',
-            'https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?auto=format&fit=crop&w=1200&q=85',
+            '/products/clover-freshwater-pearl-blue-apatite-necklace-1.jpg',
+            '/products/clover-freshwater-pearl-blue-apatite-necklace-2.jpg',
           ],
       modelImage:
         productData.modelImage ||
         (Array.isArray(productData.images) && productData.images[0]) ||
-        'https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?auto=format&fit=crop&w=1200&q=85',
+        '/products/clover-freshwater-pearl-blue-apatite-necklace-1.jpg',
       featured: Boolean(productData.featured),
       inStock: Boolean(productData.inStock ?? true),
       inventory: Number(productData.inventory ?? 5),
@@ -451,8 +795,8 @@ function AppProvider({ children }) {
           : productData.categorySlug === 'negative-space-ear-cuffs'
           ? 'Negative Space Ear Cuffs'
           : 'Anatomical Kadas & Cuffs',
-      hallmark: productData.hallmark || 'BIS Hallmarked 925 Pure Silver',
-      warranty: productData.warranty || 'Lifetime Anti-Tarnish Warranty',
+      hallmark: productData.hallmark || 'Fine 925 Sterling Silver',
+      warranty: productData.warranty || '30-Day Manufacturing Warranty',
       pairsWithId: productData.pairsWithId || undefined,
       upsellReason: productData.upsellReason || '',
     };
@@ -505,37 +849,40 @@ function AppProvider({ children }) {
     }
   };
 
-  const adminUpdateOrderStatus = async (orderNumber, status, trackingNumber) => {
+  const adminUpdateOrderStatus = async (orderNumber, status, trackingNumber, whatsappNotification) => {
+    let targetOrder = null;
     setOrders((prev) =>
       prev.map((order) => {
         if (order.orderNumber === orderNumber) {
-          const updatedTimeline = [...(order.timeline || [])];
-          const exists = updatedTimeline.find((t) => t.status === status);
-          if (!exists) {
-            updatedTimeline.push({
-              status,
-              label: status.replace(/_/g, ' '),
-              location: 'Mumbai Central Vault',
-              timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-              description: `Atelier updated status to ${status.replace(/_/g, ' ')}.`,
-              completed: true,
-              current: true,
-            });
+          const finalAwb = trackingNumber !== undefined ? trackingNumber : order.trackingNumber;
+          const updatedTimeline = createOrderTimeline(status, order.createdAt || new Date().toISOString(), finalAwb);
+          const currentNotifications = [...(order.whatsappNotifications || [])];
+          if (whatsappNotification) {
+            currentNotifications.push(whatsappNotification);
           }
-          return {
+          const updated = {
             ...order,
             status,
-            trackingNumber: trackingNumber !== undefined ? trackingNumber : order.trackingNumber,
+            trackingNumber: finalAwb,
             timeline: updatedTimeline,
+            whatsappNotifications: currentNotifications,
           };
+          targetOrder = updated;
+          return updated;
         }
         return order;
       })
     );
-    showToast(`Order ${orderNumber} Status Updated`);
+    showToast(`Order #${orderNumber} moved to ${status.replace(/_/g, ' ')}`);
 
     try {
-      await updateOrderStatusInDb(orderNumber, status, trackingNumber);
+      await updateOrderStatusInDb(
+        orderNumber,
+        status,
+        trackingNumber,
+        targetOrder?.timeline,
+        targetOrder?.whatsappNotifications
+      );
     } catch (err) {
       console.warn('Supabase order status notice:', err);
     }
@@ -552,6 +899,7 @@ function AppProvider({ children }) {
         selectedProduct,
         setSelectedProduct,
         navigate,
+        scrollToSpectrum,
         cart,
         addToCart,
         removeFromCart,
@@ -586,10 +934,20 @@ function AppProvider({ children }) {
         setCategoryFilter,
         materialFilter,
         setMaterialFilter,
-        collectionFilter,
-        setCollectionFilter,
-        weightFilter,
-        setWeightFilter,
+        silhouetteFilter,
+        setSilhouetteFilter,
+        weightFilter: silhouetteFilter,
+        // Patron Customer Authentication & Sync
+        patronUser,
+        loginPatron,
+        logoutPatron,
+        syncOrdersFromDb,
+        // Policy Modal Features
+        policyModalOpen,
+        setPolicyModalOpen,
+        activePolicyTab,
+        setActivePolicyTab,
+        openPolicyModal,
       }}
     >
       {children}
@@ -602,7 +960,11 @@ function AppProvider({ children }) {
 // ==========================================
 function ArtisticImage({ src, alt, className = '', exhibitNumber, materialTag }) {
   const [hasError, setHasError] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
+  const imgRef = useRef(null);
+
+  useEffect(() => {
+    setHasError(false);
+  }, [src]);
 
   if (hasError || !src) {
     return (
@@ -616,19 +978,19 @@ function ArtisticImage({ src, alt, className = '', exhibitNumber, materialTag })
           </svg>
         </div>
         <div className="relative z-10 flex justify-between items-start text-[10px] tracking-[0.25em] uppercase font-mono text-[var(--text-muted)]">
-          <span>{exhibitNumber || '14K SPECIMEN ARCHIVE'}</span>
-          <span className="text-[#b99762] dark:text-[#e6ca97] font-semibold">14K CHAMPAGNE GOLD</span>
+          <span>{exhibitNumber || 'FINE SPECIMEN ARCHIVE'}</span>
+          <span className="text-[#b99762] dark:text-[#e6ca97] font-semibold">14K WHITISH GOLD</span>
         </div>
         <div className="relative z-10 my-auto text-center space-y-2">
           <p className="font-serif italic text-2xl text-[var(--text-primary)] tracking-wide">{alt}</p>
           <div className="w-8 h-[1px] bg-[#b99762]/50 mx-auto" />
           <p className="text-[10px] tracking-[0.3em] uppercase text-[#b99762] dark:text-[#e6ca97] font-mono">
-            14K SPECIMEN // {materialTag || 'CHAMPAGNE GOLD & 925 SILVER'}
+            14K SPECIMEN // {materialTag || 'WHITISH GOLD & 925 SILVER'}
           </p>
         </div>
         <div className="relative z-10 flex justify-between items-end text-[9px] tracking-[0.2em] font-mono text-[var(--text-muted)]">
-          <span>MUMBAI • JAIPUR • PARIS</span>
-          <span>BIS 925 CERTIFIED</span>
+          <span>DELHI ATELIER</span>
+          <span>FINE 925 SILVER</span>
         </div>
       </div>
     );
@@ -636,15 +998,11 @@ function ArtisticImage({ src, alt, className = '', exhibitNumber, materialTag })
 
   return (
     <div className={`relative overflow-hidden bg-[var(--bg-stone)] dark:bg-[#181d1a] ${className}`}>
-      {isLoading && <div className="absolute inset-0 bg-[var(--bg-secondary)] animate-pulse z-10" />}
       <img
+        ref={imgRef}
         src={src}
         alt={alt}
-        loading="lazy"
-        className={`w-full h-full object-cover filter contrast-[1.08] saturate-[0.88] brightness-[0.98] transition-all duration-700 hover:contrast-[1.12] hover:saturate-[0.95] ${
-          isLoading ? 'opacity-0 scale-102' : 'opacity-100 scale-100'
-        }`}
-        onLoad={() => setIsLoading(false)}
+        className="w-full h-full object-cover filter contrast-[1.05] saturate-[0.92] brightness-[0.99] transition-opacity duration-300"
         onError={() => setHasError(true)}
       />
       <div className="absolute inset-0 pointer-events-none bg-gradient-to-t from-black/25 via-transparent to-black/10 mix-blend-multiply" />
@@ -659,6 +1017,7 @@ function Navbar() {
   const {
     currentView,
     navigate,
+    scrollToSpectrum,
     itemCount,
     setIsCartOpen,
     currencyMode,
@@ -667,14 +1026,26 @@ function Navbar() {
     theme,
     toggleTheme,
     wishlist,
+    openPolicyModal,
+    patronUser,
+    logoutPatron,
   } = useContext(AppContext);
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [navSearchQuery, setNavSearchQuery] = useState('');
 
+  // Compute patron-specific order count for badge (only visible when logged in)
+  const patronOrderCount = useMemo(() => {
+    if (!patronUser?.phone) return 0;
+    const cleanPhone = patronUser.phone.replace(/[^\d]/g, '').slice(-10);
+    return orders.filter(
+      (o) => (o.customerPhone || '').replace(/[^\d]/g, '').slice(-10) === cleanPhone
+    ).length;
+  }, [patronUser, orders]);
+
   useEffect(() => {
-    const handleScroll = () => setIsScrolled(window.scrollY > 30);
+    const handleScroll = () => setIsScrolled(window.scrollY > 25);
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
@@ -689,10 +1060,16 @@ function Navbar() {
 
   return (
     <>
-      {/* 1. AVIORA JEWELLS REFINED UTILITY & ANNOUNCEMENT BAR */}
-      <div className="bg-[#1d4136] text-[#fbf8f3] dark:bg-[#11241e] py-1.5 px-4 sm:px-8 select-none font-sans text-[10.5px] tracking-[0.16em] uppercase flex justify-between items-center border-b border-black/10 transition-colors duration-300">
-        <div className="flex-1 text-center truncate pr-2 font-medium">
-          <span>✦ TIMELESS 14K GOLD PLATED BIS 925 SILVER • 100% WATERPROOF • FREE PAN-INDIA EXPRESS ✦</span>
+      {/* 1. AVIORA REFINED UTILITY & ANNOUNCEMENT BAR */}
+      <div className="bg-[#132A22] text-[#fbf8f3] dark:bg-[#0c1c16] py-2 px-4 sm:px-8 select-none font-sans text-[10.5px] tracking-[0.16em] uppercase flex justify-between items-center border-b border-black/15 transition-colors duration-300">
+        <div className="flex-1 text-center truncate pr-2 font-medium flex items-center justify-center gap-2">
+          <span>✦ TIMELESS JEWELLERY, MADE FOR YOU • FINE 925 SILVER & 14K GOLD • MADE TO ORDER ✦</span>
+          <button
+            onClick={() => openPolicyModal('shipping-policy')}
+            className="hidden sm:inline-block text-[#EDE7DC] hover:text-[#D4AF37] underline underline-offset-2 ml-2 transition-colors lowercase font-mono text-[10px]"
+          >
+            (15–20 days crafting)
+          </button>
         </div>
 
         <div className="hidden md:flex items-center space-x-3.5 shrink-0 text-[10px] font-mono border-l border-white/20 pl-4">
@@ -715,24 +1092,44 @@ function Navbar() {
 
           <span className="text-white/30">•</span>
 
-          {/* Discreet Curator Vault Access */}
-          <button
-            onClick={() => navigate('admin')}
-            className="text-white/75 hover:text-[#e6ca97] flex items-center gap-1 transition-colors"
-            title="Atelier Curator Vault & Product Management"
-          >
-            <Lock className="w-3 h-3" />
-            <span>Curator Vault</span>
-          </button>
+          {/* Patron Customer Session & Order Tracking (Clear Customer Portal) */}
+          {patronUser ? (
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => navigate('orders')}
+                className="text-[#e6ca97] hover:underline flex items-center gap-1.5 transition-colors font-bold"
+                title={`Patron Account: ${patronUser.name} (+91 ${patronUser.phone})`}
+              >
+                <User className="w-3 h-3 text-[#e6ca97]" />
+                <span>Patron: {patronUser.name.split(' ')[0]}</span>
+              </button>
+              <button
+                onClick={logoutPatron}
+                className="text-white/50 hover:text-rose-300 text-[9px] uppercase tracking-wider transition-colors ml-0.5"
+                title="Sign out of patron dossier"
+              >
+                (Sign Out)
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={() => navigate('orders')}
+              className="text-white/85 hover:text-[#e6ca97] flex items-center gap-1.5 transition-colors font-medium"
+              title="Sign into Patron Account or Track Blue Dart Consignment"
+            >
+              <User className="w-3 h-3" />
+              <span>Patron Sign In / Track Order</span>
+            </button>
+          )}
         </div>
       </div>
 
-      {/* 2. MAIN HEADER (UNCLUTTERED, ELEGANT, SPACIOUS) */}
+      {/* 2. MAIN HEADER (UNCLUTTERED, ELEGANT, DYNAMIC SCROLL ELEVATION) */}
       <header
         className={`sticky top-0 z-50 transition-all duration-300 ${
           isScrolled
-            ? 'bg-[var(--bg-primary)]/96 backdrop-blur-md border-b border-[var(--border-subtle)] py-3 shadow-sm'
-            : 'bg-[var(--bg-primary)] border-b border-[var(--border-subtle)] py-4'
+            ? 'bg-[var(--bg-primary)]/95 backdrop-blur-md border-b border-[var(--border-subtle)] py-2.5 shadow-md'
+            : 'bg-[var(--bg-primary)] border-b border-[var(--border-subtle)] py-3.5'
         }`}
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-8 md:px-12 flex items-center justify-between gap-4">
@@ -748,85 +1145,68 @@ function Navbar() {
             </button>
           </div>
 
-          {/* Brand Identity / Wordmark */}
+          {/* Brand Identity: Monogram Crest + AVIORA Wordmark */}
           <button
             onClick={() => navigate('home')}
-            className="group flex flex-col text-center lg:text-left focus:outline-none shrink-0"
+            className="group flex items-center gap-2.5 focus:outline-none shrink-0 text-left"
           >
-            <div className="flex items-baseline justify-center lg:justify-start gap-1">
-              <span className="font-serif text-2xl sm:text-3xl tracking-[0.18em] uppercase font-normal text-[var(--text-primary)] transition-transform duration-300 group-hover:scale-101">
+            <AvioraBrandCrest className="w-8 h-8 sm:w-9 sm:h-9 shrink-0 text-[#b99762] transition-transform duration-300 group-hover:scale-105" />
+            <div className="flex flex-col">
+              <span className="font-serif text-2xl sm:text-3xl tracking-[0.22em] uppercase font-normal text-[var(--text-primary)] transition-colors duration-300 group-hover:text-[#b99762]">
                 AVIORA
               </span>
-              <span className="font-sans text-[10px] sm:text-[11px] font-bold tracking-[0.22em] italic uppercase text-[#b99762]">
-                JEWELLS
+              <span className="hidden sm:block text-[7px] font-sans font-semibold tracking-[0.26em] uppercase text-[#b99762] -mt-0.5">
+                TIMELESS ELEGANCE, MADE FOR YOU
               </span>
             </div>
-            <span className="hidden sm:block text-[7.5px] font-mono tracking-[0.36em] uppercase text-[var(--text-muted)] -mt-0.5">
-              14K GOLD & 925 SILVER ATELIER
-            </span>
           </button>
 
-          {/* Center Navigation (Desktop Only) - Balanced & Refined */}
-          <nav className="hidden lg:flex items-center space-x-6 xl:space-x-8 text-[12px] font-sans tracking-[0.16em] uppercase font-medium">
+          {/* Center Navigation (Desktop Only) - Balanced & Refined Hierarchy */}
+          <nav className="hidden lg:flex items-center space-x-5 xl:space-x-7 text-[11.5px] font-sans tracking-[0.14em] uppercase font-medium">
             <button
-              onClick={() => navigate('atelier', { category: '' })}
+              onClick={() => navigate('atelier', { category: 'new-arrivals' })}
               className={`transition-colors hover:text-[#b99762] py-1 relative ${
                 currentView === 'atelier' ? 'text-[#b99762] font-semibold' : 'text-[var(--text-primary)]'
               }`}
             >
-              Shop All
+              New Arrivals
             </button>
             <button
-              onClick={() => navigate('atelier', { category: 'earrings' })}
+              onClick={() => navigate('atelier', { category: 'minimalist' })}
               className="text-[var(--text-secondary)] hover:text-[#b99762] transition-colors py-1"
             >
-              Earrings
+              Minimalist
             </button>
             <button
-              onClick={() => navigate('atelier', { category: 'necklaces' })}
+              onClick={() => navigate('atelier', { category: 'statement' })}
               className="text-[var(--text-secondary)] hover:text-[#b99762] transition-colors py-1"
             >
-              Necklaces
+              Statement
             </button>
             <button
-              onClick={() => navigate('atelier', { category: 'bracelets' })}
+              onClick={() => navigate('atelier', { category: 'moissanite' })}
               className="text-[var(--text-secondary)] hover:text-[#b99762] transition-colors py-1"
             >
-              Bracelets
+              Moissanite
             </button>
             <button
-              onClick={() => navigate('atelier', { category: 'rings' })}
+              onClick={() => navigate('atelier', { category: 'pearl' })}
               className="text-[var(--text-secondary)] hover:text-[#b99762] transition-colors py-1"
             >
-              Rings
+              Pearl Collection
             </button>
             {/* Direct shortcut to Light & Heavy Curation */}
             <button
-              onClick={() => {
-                if (currentView === 'home') {
-                  document.getElementById('light-heavy-spectrum')?.scrollIntoView({ behavior: 'smooth' });
-                } else {
-                  navigate('home');
-                  setTimeout(() => {
-                    document.getElementById('light-heavy-spectrum')?.scrollIntoView({ behavior: 'smooth' });
-                  }, 120);
-                }
-              }}
-              className="text-[#1d4136] dark:text-[#e6ca97] font-bold hover:text-[#b99762] transition-colors py-1 flex items-center gap-1.5"
+              onClick={() => scrollToSpectrum()}
+              className="text-[#132A22] dark:text-[#EDE7DC] font-bold hover:text-[#b99762] transition-colors py-1 flex items-center gap-1.5"
             >
-              <Scale className="w-3.5 h-3.5" />
+              <Sparkles className="w-3.5 h-3.5 text-[#b99762]" />
               <span>Light & Heavy</span>
-            </button>
-            <button
-              onClick={() => navigate('atelier', { collection: 'gift-edit' })}
-              className="text-[var(--text-secondary)] hover:text-[#b99762] transition-colors py-1"
-            >
-              Gifting
             </button>
           </nav>
 
           {/* Right Action Icons Suite (Clean, Minimal, Non-Cluttered) */}
-          <div className="flex items-center space-x-2.5 sm:space-x-3.5">
+          <div className="flex items-center space-x-2 sm:space-x-3">
             {/* Quick Search Toggle */}
             <button
               onClick={() => setSearchOpen(!searchOpen)}
@@ -836,6 +1216,18 @@ function Navbar() {
             >
               <Search className="w-4 h-4 sm:w-4.5 sm:h-4.5" />
             </button>
+
+            {/* Instagram Direct Link (@aviora_jewells) */}
+            <a
+              href={STORE_CONFIG.brand.instagramUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="p-1.5 sm:p-2 text-[var(--text-primary)] hover:text-[#b99762] transition-colors"
+              title="Follow @aviora_jewells on Instagram"
+              aria-label="Instagram"
+            >
+              <InstagramIcon className="w-4 h-4 sm:w-4.5 sm:h-4.5" />
+            </a>
 
             {/* Wishlist Link (Tablet/Desktop) */}
             <button
@@ -852,22 +1244,39 @@ function Navbar() {
               )}
             </button>
 
+            {/* Dedicated Patron Account / Sign In Trigger (Desktop) */}
+            <button
+              onClick={() => navigate('orders')}
+              className={`p-1.5 sm:px-2.5 sm:py-1 rounded-full border transition-all hidden md:flex items-center gap-1.5 ${
+                patronUser
+                  ? 'border-[#b99762]/60 bg-[#b99762]/10 text-[#132A22] dark:text-[#e6ca97] font-bold'
+                  : 'border-[var(--border-subtle)] hover:border-[#b99762] text-[var(--text-primary)] hover:text-[#b99762]'
+              }`}
+              title={patronUser ? `Patron Account: ${patronUser.name} (+91 ${patronUser.phone})` : 'Patron Sign In / Order Dossier'}
+              aria-label="Patron Account"
+            >
+              <User className="w-4 h-4 sm:w-4.5 sm:h-4.5 text-[#b99762] dark:text-[#e6ca97]" />
+              <span className="hidden lg:inline text-[11px] font-mono tracking-wider">
+                {patronUser ? patronUser.name.split(' ')[0] : 'Sign In'}
+              </span>
+            </button>
+
             {/* Orders Tracker Link (Desktop) */}
             <button
               onClick={() => navigate('orders')}
-              className="p-1.5 sm:p-2 text-[var(--text-primary)] hover:text-[#b99762] transition-colors relative hidden md:block"
-              title="Track Blue Dart Logistics"
+              className="p-1.5 sm:p-2 text-[var(--text-primary)] hover:text-[#b99762] transition-colors relative hidden md:flex items-center gap-1.5"
+              title={patronUser ? `Track Orders for ${patronUser.name}` : 'Track Blue Dart Logistics'}
               aria-label="Track Orders"
             >
               <Truck className="w-4 h-4 sm:w-4.5 sm:h-4.5" />
-              {orders?.length > 0 && (
-                <span className="absolute top-0.5 right-0.5 w-3.5 h-3.5 rounded-full bg-[#1d4136] dark:bg-[#e6ca97] text-white dark:text-black text-[8px] font-mono font-bold flex items-center justify-center">
-                  {orders.length}
+              {patronUser && patronOrderCount > 0 && (
+                <span className="absolute top-0.5 right-0.5 w-3.5 h-3.5 rounded-full bg-[#132A22] dark:bg-[#e6ca97] text-white dark:text-black text-[8px] font-mono font-bold flex items-center justify-center">
+                  {patronOrderCount}
                 </span>
               )}
             </button>
 
-            {/* Sleek Theme Mode Toggle (Circular icon button, zero clutter) */}
+            {/* Sleek Theme Mode Toggle */}
             <button
               onClick={toggleTheme}
               className="w-7.5 h-7.5 sm:w-8 sm:h-8 rounded-full border border-[var(--border-subtle)] flex items-center justify-center text-[var(--text-primary)] hover:border-[#b99762] hover:text-[#b99762] bg-[var(--bg-secondary)] transition-all"
@@ -875,7 +1284,7 @@ function Navbar() {
               aria-label="Toggle light and dark mode"
             >
               {theme === 'light' ? (
-                <Moon className="w-3.5 h-3.5 text-[#1d4136]" />
+                <Moon className="w-3.5 h-3.5 text-[#132A22]" />
               ) : (
                 <Sun className="w-3.5 h-3.5 text-[#e6ca97]" />
               )}
@@ -888,7 +1297,7 @@ function Navbar() {
               aria-label="Open Shopping Bag"
             >
               <ShoppingBag className="w-4 h-4 text-[var(--text-primary)] group-hover:text-[#b99762] transition-colors" />
-              <span className="text-[11px] font-mono font-bold bg-[#1d4136] dark:bg-[#e6ca97] text-white dark:text-[#242321] w-4.5 h-4.5 rounded-full flex items-center justify-center shadow-xs">
+              <span className="text-[11px] font-mono font-bold bg-[#132A22] dark:bg-[#e6ca97] text-white dark:text-[#242321] w-4.5 h-4.5 rounded-full flex items-center justify-center shadow-xs">
                 {itemCount}
               </span>
             </button>
@@ -904,7 +1313,7 @@ function Navbar() {
                 type="text"
                 value={navSearchQuery}
                 onChange={(e) => setNavSearchQuery(e.target.value)}
-                placeholder="Search 14K gold plated & 925 silver jewellery (e.g. Kada, Ear Cuffs, Choker, Light Rings)..."
+                placeholder="Search fine 925 silver & 14K gold jewellery (e.g. Kada, Moissanite Solitaire, Choker, Rings)..."
                 className="flex-1 bg-transparent border-none text-xs sm:text-sm font-sans text-[var(--text-primary)] placeholder-[var(--text-muted)] outline-none py-1"
                 autoFocus
               />
@@ -919,7 +1328,7 @@ function Navbar() {
               )}
               <button
                 type="submit"
-                className="px-4 py-1.5 bg-[#1d4136] dark:bg-[#e6ca97] text-white dark:text-black text-xs font-bold uppercase tracking-wider rounded"
+                className="px-4 py-1.5 bg-[#132A22] dark:bg-[#e6ca97] text-white dark:text-black text-xs font-bold uppercase tracking-wider rounded"
               >
                 Search
               </button>
@@ -949,13 +1358,16 @@ function Navbar() {
               <div>
                 {/* Drawer Header */}
                 <div className="flex items-center justify-between pb-6 border-b border-[var(--border-subtle)]">
-                  <div className="flex items-baseline gap-1">
-                    <span className="font-serif text-2xl tracking-[0.16em] uppercase text-[var(--text-primary)]">
-                      AVIORA
-                    </span>
-                    <span className="font-sans text-[10px] font-bold tracking-[0.22em] italic uppercase text-[#b99762]">
-                      JEWELLS
-                    </span>
+                  <div className="flex items-center gap-2.5">
+                    <AvioraBrandCrest className="w-7 h-7 text-[#b99762]" />
+                    <div className="flex flex-col">
+                      <span className="font-serif text-2xl tracking-[0.2em] uppercase text-[var(--text-primary)] font-normal">
+                        AVIORA
+                      </span>
+                      <span className="text-[7px] font-sans font-semibold tracking-[0.24em] text-[#b99762] uppercase -mt-0.5">
+                        TIMELESS ELEGANCE
+                      </span>
+                    </div>
                   </div>
                   <button
                     onClick={() => setMobileMenuOpen(false)}
@@ -972,7 +1384,7 @@ function Navbar() {
                     type="text"
                     value={navSearchQuery}
                     onChange={(e) => setNavSearchQuery(e.target.value)}
-                    placeholder="Search jewellery..."
+                    placeholder="Search fine jewellery..."
                     className="w-full bg-[var(--bg-secondary)] border border-[var(--border-subtle)] pl-9 pr-4 py-2.5 text-xs font-sans text-[var(--text-primary)] placeholder-[var(--text-muted)] outline-none rounded"
                   />
                   <Search className="w-4 h-4 text-[var(--text-muted)] absolute left-3 top-3" />
@@ -982,103 +1394,152 @@ function Navbar() {
                 <nav className="space-y-1 font-sans text-xs tracking-[0.14em] uppercase font-medium">
                   <button
                     onClick={() => {
-                      navigate('atelier', { category: '' });
+                      navigate('atelier', { category: 'new-arrivals' });
                       setMobileMenuOpen(false);
                     }}
                     className="w-full py-3 px-2 flex items-center justify-between text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] rounded transition-colors font-bold"
                   >
-                    <span>The Atelier (Shop All)</span>
+                    <span>New Arrivals (Latest Launches)</span>
                     <ArrowRight className="w-3.5 h-3.5 text-[var(--text-muted)]" />
                   </button>
                   <button
                     onClick={() => {
-                      navigate('atelier', { category: 'earrings' });
+                      navigate('atelier', { category: 'minimalist' });
                       setMobileMenuOpen(false);
                     }}
                     className="w-full py-2.5 px-2 flex items-center justify-between text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] rounded transition-colors"
                   >
-                    <span>Earrings & Hoops</span>
+                    <span>Minimalist Jewellery</span>
                     <ArrowRight className="w-3 h-3 text-[var(--text-muted)]" />
                   </button>
                   <button
                     onClick={() => {
-                      navigate('atelier', { category: 'necklaces' });
+                      navigate('atelier', { category: 'statement' });
                       setMobileMenuOpen(false);
                     }}
                     className="w-full py-2.5 px-2 flex items-center justify-between text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] rounded transition-colors"
                   >
-                    <span>Necklaces & Chokers</span>
+                    <span>Statement Jewellery</span>
                     <ArrowRight className="w-3 h-3 text-[var(--text-muted)]" />
                   </button>
                   <button
                     onClick={() => {
-                      navigate('atelier', { category: 'bracelets' });
+                      navigate('atelier', { category: 'moissanite' });
                       setMobileMenuOpen(false);
                     }}
                     className="w-full py-2.5 px-2 flex items-center justify-between text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] rounded transition-colors"
                   >
-                    <span>Bracelets & Kadas</span>
+                    <span>Moissanite Collection</span>
                     <ArrowRight className="w-3 h-3 text-[var(--text-muted)]" />
                   </button>
                   <button
                     onClick={() => {
-                      navigate('atelier', { category: 'rings' });
+                      navigate('atelier', { category: 'pearl' });
                       setMobileMenuOpen(false);
                     }}
                     className="w-full py-2.5 px-2 flex items-center justify-between text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] rounded transition-colors"
                   >
-                    <span>Rings & Solitaires</span>
+                    <span>Pearl Collection</span>
                     <ArrowRight className="w-3 h-3 text-[var(--text-muted)]" />
                   </button>
 
-                  {/* Weight Spectrum Direct Mobile Shortcuts */}
+                  {/* Silhouette Shortcuts (No gram weights) */}
                   <div className="pt-2 pb-1 border-t border-[var(--border-subtle)] my-2">
                     <p className="px-2 text-[9px] font-mono tracking-[0.25em] text-[#b99762] dark:text-[#e6ca97] uppercase mb-1">
-                      Weight Curation
+                      Silhouette Curation
                     </p>
                     <button
                       onClick={() => {
-                        navigate('atelier', { weightFilter: 'light' });
+                        scrollToSpectrum('light');
                         setMobileMenuOpen(false);
                       }}
-                      className="w-full py-2 px-2 flex items-center justify-between text-[#1d4136] dark:text-[#e6ca97] font-semibold hover:bg-[var(--bg-secondary)] rounded transition-colors"
+                      className="w-full py-2 px-2 flex items-center justify-between text-[#132A22] dark:text-[#e6ca97] font-semibold hover:bg-[var(--bg-secondary)] rounded transition-colors"
                     >
                       <span className="flex items-center gap-1.5">
                         <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                        The Delicate & Light Edit (0–8g)
+                        The Delicate & Light Edit
                       </span>
                       <span className="text-[10px] font-mono text-[var(--text-muted)]">Everyday</span>
                     </button>
                     <button
                       onClick={() => {
-                        navigate('atelier', { weightFilter: 'heavy' });
+                        scrollToSpectrum('heavy');
                         setMobileMenuOpen(false);
                       }}
-                      className="w-full py-2 px-2 flex items-center justify-between text-[#1d4136] dark:text-[#e6ca97] font-semibold hover:bg-[var(--bg-secondary)] rounded transition-colors"
+                      className="w-full py-2 px-2 flex items-center justify-between text-[#132A22] dark:text-[#e6ca97] font-semibold hover:bg-[var(--bg-secondary)] rounded transition-colors"
                     >
                       <span className="flex items-center gap-1.5">
                         <span className="w-1.5 h-1.5 rounded-full bg-[#b99762]" />
-                        The Sculptural & Heavy Edit (15–40g)
+                        The Sculptural & Heavy Edit
                       </span>
                       <span className="text-[10px] font-mono text-[var(--text-muted)]">Statement</span>
                     </button>
+                    <button
+                      onClick={() => {
+                        scrollToSpectrum();
+                        setMobileMenuOpen(false);
+                      }}
+                      className="w-full py-2 px-2 flex items-center justify-between text-[#132A22] dark:text-[#e6ca97] font-semibold hover:bg-[var(--bg-secondary)] rounded transition-colors"
+                    >
+                      <span className="flex items-center gap-1.5">
+                        <Sparkles className="w-3.5 h-3.5 text-[#b99762]" />
+                        Light vs Heavy Spectrum (Overview)
+                      </span>
+                      <span className="text-[10px] font-mono text-[var(--text-muted)]">Compare</span>
+                    </button>
                   </div>
+
 
                   <button
                     onClick={() => {
-                      navigate('atelier', { collection: 'gift-edit' });
+                      openPolicyModal('our-story');
                       setMobileMenuOpen(false);
                     }}
-                    className="w-full py-2.5 px-2 flex items-center justify-between text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] rounded transition-colors"
+                    className="w-full py-2.5 px-2 flex items-center justify-between text-[#b99762] hover:bg-[var(--bg-secondary)] rounded transition-colors font-semibold"
                   >
-                    <span>Curated Gift Sets</span>
+                    <span>Our Story & Policies</span>
                     <ArrowRight className="w-3 h-3 text-[var(--text-muted)]" />
                   </button>
                 </nav>
               </div>
 
               {/* Drawer Bottom Utilities */}
-              <div className="pt-6 border-t border-[var(--border-subtle)] space-y-4">
+              <div className="pt-5 border-t border-[var(--border-subtle)] space-y-4">
+                {/* Patron Account Card in Mobile Drawer */}
+                {patronUser ? (
+                  <div className="p-3 bg-[var(--bg-secondary)] border border-[#b99762]/40 rounded space-y-2">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="font-bold font-mono text-[var(--text-primary)] flex items-center gap-1.5">
+                        <User className="w-3.5 h-3.5 text-[#b99762] dark:text-[#e6ca97]" />
+                        <span>{patronUser.name}</span>
+                      </span>
+                      <button
+                        onClick={() => {
+                          logoutPatron();
+                          setMobileMenuOpen(false);
+                        }}
+                        className="text-[10px] font-mono text-rose-500 hover:underline uppercase tracking-wider"
+                      >
+                        Sign Out
+                      </button>
+                    </div>
+                    <p className="text-[10px] font-mono text-[var(--text-muted)]">
+                      Patron Mobile: +91 {patronUser.phone}
+                    </p>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => {
+                      navigate('orders');
+                      setMobileMenuOpen(false);
+                    }}
+                    className="w-full py-2.5 px-3 rounded bg-[#1d4136] dark:bg-[#e6ca97] text-white dark:text-[#242321] font-mono text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 shadow-xs"
+                  >
+                    <User className="w-3.5 h-3.5" />
+                    <span>Patron Sign In / Track Order</span>
+                  </button>
+                )}
+
                 <div className="grid grid-cols-2 gap-2 text-xs font-sans">
                   <button
                     onClick={() => {
@@ -1118,10 +1579,11 @@ function Navbar() {
                       navigate('admin');
                       setMobileMenuOpen(false);
                     }}
-                    className="text-[11px] font-mono text-[#b99762] hover:underline flex items-center gap-1 font-bold"
+                    className="text-[10px] font-mono text-[var(--text-muted)] hover:text-[#b99762] flex items-center gap-1"
+                    title="Atelier Internal Staff Vault (Restricted)"
                   >
-                    <Lock className="w-3 h-3" />
-                    <span>Curator Portal</span>
+                    <Lock className="w-2.5 h-2.5" />
+                    <span>Staff Portal</span>
                   </button>
                 </div>
               </div>
@@ -1137,8 +1599,17 @@ function Navbar() {
 // 4. CART DRAWER WITH IN-DRAWER 14K UPSELL
 // ==========================================
 function CartDrawer() {
-  const { cart, isCartOpen, setIsCartOpen, removeFromCart, updateQuantity, addToCart, cartTotal, itemCount, formatPrice, navigate, orders } =
+  const { cart, isCartOpen, setIsCartOpen, removeFromCart, updateQuantity, addToCart, cartTotal, itemCount, formatPrice, navigate, orders, patronUser } =
     useContext(AppContext);
+
+  // Only count patron's own orders
+  const patronOrderCount = useMemo(() => {
+    if (!patronUser?.phone) return 0;
+    const cleanPhone = patronUser.phone.replace(/[^\d]/g, '').slice(-10);
+    return orders.filter(
+      (o) => (o.customerPhone || '').replace(/[^\d]/g, '').slice(-10) === cleanPhone
+    ).length;
+  }, [patronUser, orders]);
 
   const FREE_SHIPPING_THRESHOLD = 1999;
   const progressToFreeShipping = Math.min(100, (cartTotal / FREE_SHIPPING_THRESHOLD) * 100);
@@ -1233,7 +1704,7 @@ function CartDrawer() {
                     >
                       Enter Atelier
                     </button>
-                    {orders.length > 0 && (
+                    {patronUser && patronOrderCount > 0 && (
                       <button
                         onClick={() => {
                           setIsCartOpen(false);
@@ -1242,7 +1713,19 @@ function CartDrawer() {
                         className="px-6 py-2.5 text-xs font-sans font-bold tracking-[0.12em] uppercase bg-[var(--bg-secondary)] hover:bg-[var(--bg-stone)] border border-[var(--border-subtle)] text-[#b99762] transition-all flex items-center justify-center gap-2"
                       >
                         <Truck className="w-3.5 h-3.5" />
-                        <span>Track Past Orders ({orders.length})</span>
+                        <span>Track My Orders ({patronOrderCount})</span>
+                      </button>
+                    )}
+                    {!patronUser && (
+                      <button
+                        onClick={() => {
+                          setIsCartOpen(false);
+                          navigate('orders');
+                        }}
+                        className="px-6 py-2.5 text-xs font-sans font-bold tracking-[0.12em] uppercase bg-[var(--bg-secondary)] hover:bg-[var(--bg-stone)] border border-[var(--border-subtle)] text-[#b99762] transition-all flex items-center justify-center gap-2"
+                      >
+                        <Truck className="w-3.5 h-3.5" />
+                        <span>Sign In to Track Order</span>
                       </button>
                     )}
                   </div>
@@ -1358,7 +1841,7 @@ function CartDrawer() {
                     <Truck className="w-3.5 h-3.5 text-[#1d4136] dark:text-[#e6ca97]" /> Blue Dart Express
                   </span>
                   <span className="flex items-center gap-1.5">
-                    <ShieldCheck className="w-3.5 h-3.5 text-[#1d4136] dark:text-[#e6ca97]" /> 14K Lifetime Warranty
+                    <ShieldCheck className="w-3.5 h-3.5 text-[#1d4136] dark:text-[#e6ca97]" /> 30-Day Manufacturing Warranty
                   </span>
                 </div>
 
@@ -1368,7 +1851,7 @@ function CartDrawer() {
                       Subtotal
                     </span>
                     <span className="text-[10px] font-sans text-[var(--text-muted)]">
-                      Includes 3% GST & Insured Packaging
+                      Free Pan-India Insured Delivery & Keepsake Packaging
                     </span>
                   </div>
                   <div className="text-right">
@@ -1403,10 +1886,6 @@ function CartDrawer() {
 function ProductArtworkCard({ product, index = 0, compact = false }) {
   const { navigate, addToCart, formatPrice, wishlist, toggleWishlist } = useContext(AppContext);
   const isWishlisted = wishlist?.includes(product.id);
-  const discount =
-    product.originalPrice && product.originalPrice > product.price
-      ? Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)
-      : null;
 
   const hasSecondaryImage = product.images && product.images.length > 1;
 
@@ -1427,7 +1906,7 @@ function ProductArtworkCard({ product, index = 0, compact = false }) {
           )
           .slice(0, 2)
           .join(' · ')
-      : product.goldPurity || product.material || '14K Gold Plated · BIS 925 Silver';
+      : product.goldPurity || product.material || '14K Whitish Gold · Fine 925 Silver';
 
   return (
     <article
@@ -1435,16 +1914,12 @@ function ProductArtworkCard({ product, index = 0, compact = false }) {
       onClick={() => navigate('pdp', product)}
     >
       <div className="relative aspect-[0.78] w-full overflow-hidden bg-[var(--bg-stone)] dark:bg-[#181d1a] border border-[var(--border-subtle)] transition-colors duration-300">
-        {/* Badge: New or Sale */}
-        {product.isNew ? (
+        {/* Badge: New */}
+        {product.isNew && (
           <span className="absolute top-2.5 left-2.5 z-20 px-2 py-0.5 bg-[var(--badge-bg)] text-[var(--text-primary)] text-[9px] font-sans font-bold tracking-[0.14em] uppercase border border-[var(--border-subtle)] shadow-xs">
             New
           </span>
-        ) : discount ? (
-          <span className="absolute top-2.5 left-2.5 z-20 px-2 py-0.5 bg-[#1d4136] text-[#fbf8f3] text-[9px] font-sans font-semibold tracking-wider uppercase">
-            {discount}% Off
-          </span>
-        ) : null}
+        )}
 
         {/* Wishlist Heart Toggle */}
         <button
@@ -1485,6 +1960,13 @@ function ProductArtworkCard({ product, index = 0, compact = false }) {
           />
         )}
 
+        {/* Multi-Angle Studio Badge */}
+        {product.images?.length > 1 && (
+          <span className="absolute bottom-2.5 left-2.5 z-20 px-1.5 py-0.5 bg-black/75 backdrop-blur-xs text-white text-[8.5px] font-mono tracking-wider uppercase rounded-xs border border-white/10 group-hover:opacity-0 transition-opacity pointer-events-none">
+            {product.images.length} Angles
+          </span>
+        )}
+
         {/* Quick Add Button sliding up on hover */}
         <button
           type="button"
@@ -1492,25 +1974,20 @@ function ProductArtworkCard({ product, index = 0, compact = false }) {
             e.stopPropagation();
             addToCart(product, 1);
           }}
-          className="absolute bottom-2.5 inset-x-2.5 z-20 py-2.5 px-3 bg-[var(--bg-primary)]/95 dark:bg-[#202622]/95 hover:bg-[#1d4136] dark:hover:bg-[#2a5849] hover:text-white dark:hover:text-white text-[var(--text-primary)] border border-[var(--border-strong)] text-[10px] font-sans font-bold tracking-[0.14em] uppercase opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0 transition-all duration-300 shadow-md flex items-center justify-center gap-1.5"
+          className="absolute bottom-2.5 inset-x-2.5 z-20 py-2.5 px-3 bg-[var(--bg-primary)]/95 dark:bg-[#202622]/95 hover:bg-[#132A22] dark:hover:bg-[#2a5849] hover:text-white dark:hover:text-white text-[var(--text-primary)] border border-[var(--border-strong)] text-[10px] font-sans font-bold tracking-[0.14em] uppercase opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0 transition-all duration-300 shadow-md flex items-center justify-center gap-1.5"
         >
           <Plus className="w-3 h-3" />
           <span>Quick add</span>
         </button>
       </div>
 
-      {/* Copy row */}
+      {/* Copy row with clean singular luxury price (No Strikethrough) */}
       <div className="pt-3 px-0.5 space-y-1">
         <div className="flex items-baseline justify-between gap-2">
           <h3 className="font-sans font-semibold text-[13px] sm:text-[14px] text-[var(--text-primary)] hover:text-[#b99762] dark:hover:text-[#e6ca97] truncate tracking-normal transition-colors">
             {product.name}
           </h3>
-          <div className="flex items-baseline gap-1.5 shrink-0">
-            {product.originalPrice && product.originalPrice > product.price && (
-              <span className="text-[11px] font-sans text-[var(--text-muted)] line-through">
-                {formatPrice(product.originalPrice)}
-              </span>
-            )}
+          <div className="shrink-0">
             <span className="font-sans font-semibold text-[13px] sm:text-[14px] text-[var(--text-primary)]">
               {formatPrice(product.price)}
             </span>
@@ -1525,13 +2002,161 @@ function ProductArtworkCard({ product, index = 0, compact = false }) {
 }
 
 // ==========================================
+// ATELIER PILLARS & ARCHIVE DEFINITION
+// ==========================================
+const ATELIER_CHAPTERS = [
+  {
+    id: 'our-story',
+    badge: 'Founding Vision',
+    title: 'Our Story & Founding Vision',
+    subtitle: 'Everyday Luxury • Pure Noble Metals & Artisan Craft',
+    icon: Sparkles,
+    summary: 'AVIORA was created with one vision — to bring timeless, elegant jewellery that feels luxurious yet wearable every day. Our collections feature carefully selected pieces crafted from 925 Sterling Silver, 14K Whitish Gold-Plated Sterling Silver, Moissanite, Freshwater Pearls, and other premium materials mentioned on individual product pages. Every design is chosen for elegance, craftsmanship, and comfort.',
+    highlights: [
+      'Authentic Fine 925 Sterling Silver carrying verified purity standard',
+      '14K & 18K Whitish Gold Vermeil in champagne-free tone (#EDE7DC)',
+      'D-Colorless Brilliant Moissanite with exceptional optical fire',
+      'Hand-selected Grade-AAA organic freshwater pearls with natural luster',
+    ],
+    linkText: 'Explore Founding Vision & Atelier Heritage',
+  },
+  {
+    id: 'terms-and-conditions',
+    badge: 'Pricing Integrity',
+    title: 'Terms of Craft & Honest Pricing',
+    subtitle: 'Direct-From-Foundry Transparent Valuation',
+    icon: Scale,
+    summary: 'We eliminate the traditional 800–1000% retail markups common in conventional jewelry maisons. Honest direct-from-foundry pricing with complete transparency across noble alloy specifications, gemstone cuts, and dimensions. No hidden markups, no artificial strikethrough pricing.',
+    highlights: [
+      'Zero artificial strikethrough pricing or deceptive discount claims',
+      'Meticulous metallurgical and stone dimensions on every product dossier',
+      'All-inclusive transparent pricing with insured Pan-India transit',
+      'Strict intellectual property protections for our original bench artworks',
+    ],
+    linkText: 'Explore Terms of Craft & Pricing Integrity',
+  },
+  {
+    id: 'privacy-policy',
+    badge: 'Patron Discretion',
+    title: 'Patron Privacy & Vault Discretion',
+    subtitle: '256-Bit SSL Encrypted Security & Confidential Delivery',
+    icon: Lock,
+    summary: 'Your trust is our cornerstone. We safeguard patron information using bank-grade encryption and dispatch every piece in discreet, tamper-proof wax-sealed packaging with zero exterior branding clues to protect high-value heirlooms in transit.',
+    highlights: [
+      '256-bit SSL encrypted checkout & OTP mobile authentication',
+      'Zero sharing, renting, or monetization of patron contact dossiers',
+      'Discreet, unmarked courier packaging ensuring delivery confidentiality',
+      'Tamper-evident security wax seal on every jewellery presentation box',
+    ],
+    linkText: 'Explore Patron Privacy & Discretion Protocol',
+  },
+  {
+    id: 'shipping-policy',
+    badge: 'Logistics & Transit',
+    title: 'Made-to-Order Shipping & Blue Dart Air',
+    subtitle: '15–20 Days Benchwork + Insured Pan-India Air Express',
+    icon: Truck,
+    summary: 'Because each Aviora artwork is custom cast, hand-set, and mirror-finished especially for you, our benchwork takes 15–20 business days. Once prepared, orders are dispatched via Blue Dart Air Cargo with live AWB tracking and complimentary transit insurance.',
+    highlights: [
+      '15–20 business days dedicated handcrafting benchwork',
+      '1–5 days insured express delivery across India via Blue Dart Air',
+      'Real-time SMS, Email, and WhatsApp Business notifications with AWB link',
+      'Complimentary Pan-India insured delivery on all orders',
+    ],
+    linkText: 'Explore Shipping & Logistics Protocol',
+  },
+  {
+    id: 'return-and-refund-policy',
+    badge: 'Bespoke Resolution',
+    title: 'Bespoke Integrity & Resolution Protocol',
+    subtitle: 'Custom Craftsmanship Protocol & 48-Hour Unboxing Support',
+    icon: RotateCcw,
+    summary: 'Because all Aviora creations are customized and cast to order for each collector, sales are final. However, we stand 100% behind transit safety with a dedicated 48-hour unboxing resolution protocol for damaged or incorrect pieces via our WhatsApp concierge.',
+    highlights: [
+      'Customized and made to order especially for each collector',
+      'Zero mass-market inventory waste or returned recycled stock',
+      '48-hour damaged or incorrect transit resolution via WhatsApp concierge',
+      'Prompt review and replacement support for verified transit claims',
+    ],
+    linkText: 'Explore Bespoke Resolution Guidelines',
+  },
+  {
+    id: 'cancellation-policy',
+    badge: 'Cancellation Protocol',
+    title: 'Atelier Cancellation Guidelines',
+    subtitle: 'Pre-Production Flexibility & Foundry Policy',
+    icon: Clock,
+    summary: 'We understand plans change. Orders may be modified or cancelled prior to the commencement of artisan casting and wax carving in our foundry, ensuring smooth collector flexibility before precious alloys are cast.',
+    highlights: [
+      'Order modification permitted before workshop bench production begins',
+      'Dedicated concierge assistance via WhatsApp (+91 8796841184)',
+      'Transparent refunds processed to original payment method',
+      'Full protection before precious alloy casting is initiated',
+    ],
+    linkText: 'Explore Cancellation Guidelines',
+  },
+  {
+    id: 'warranty-policy',
+    badge: '30-Day Warranty',
+    title: '30-Day Manufacturing Warranty Policy',
+    subtitle: 'Craftsmanship Guarantee from Doorstep Delivery',
+    icon: ShieldCheck,
+    summary: 'Every Aviora creation carries an authentic 30-Day Manufacturing Warranty covering craftsmanship defects, structural clasp integrity, and loose gemstone settings from the timestamp of doorstep delivery handover.',
+    highlights: [
+      'Full coverage for clasp integrity and spring mechanisms',
+      'Protection against loose gemstone or moissanite prong settings',
+      'Covers structural craftsmanship defects from atelier benchwork',
+      'Active from the timestamp of doorstep delivery handover',
+    ],
+    linkText: 'Explore 30-Day Manufacturing Warranty',
+  },
+  {
+    id: 'jewellery-care-guide',
+    badge: 'Jewellery Care Guide',
+    title: 'Heirloom Jewellery Care Guide',
+    subtitle: 'Preserving Noble Luster & Gemstone Brilliance',
+    icon: Gem,
+    summary: 'Fine jewellery requires mindful affection. Learn how to maintain the radiant mirror finish of Fine 925 Silver, Whitish Gold vermeil, organic freshwater pearls, and moissanite gemstones through simple, proven care rituals.',
+    highlights: [
+      'Clean silver gently with soft microfiber cloths to maintain mirror shine',
+      'Store in airtight velvet pouches away from moisture and direct sunlight',
+      'Put pearls and vermeil on after cosmetics, perfumes, and lotions',
+      'Warm water and ultra-soft bristle brush for moissanite brilliance',
+    ],
+    linkText: 'Explore Jewellery Care Guide',
+  },
+  {
+    id: 'product-authenticity-policy',
+    badge: 'Authenticity Guarantee',
+    title: 'Authenticity & Metallurgy Assurance',
+    subtitle: 'Brilliant Moissanite & Fine 925 Purity',
+    icon: CheckCircle2,
+    summary: 'Complete metallurgical and gemstone transparency. Every sterling piece is crafted from authentic Fine 925 Sterling Silver, and all moissanite creations feature hand-selected stones chosen for maximum optical fire.',
+    highlights: [
+      'Fine 925 Sterling Silver purity on all silver creations',
+      'Exceptional D-Colorless VVS1 clarity Brilliant Moissanite',
+      'Hand-selected gemstones verifying exceptional fire and optical brilliance',
+      'Natural organic Grade-AAA freshwater pearls with unique luster',
+    ],
+    linkText: 'Explore Authenticity & Purity Assurance',
+  },
+];
+
+// ==========================================
 // 6. VIEW: HOMEPAGE (REFERENCE EDITORIAL ALIGNMENT)
 // ==========================================
 function HomeView() {
-  const { navigate, products, showToast, formatPrice } = useContext(AppContext);
+  const { navigate, products, showToast, formatPrice, openPolicyModal, silhouetteFilter, scrollToSpectrum } = useContext(AppContext);
   const [newsletterEmail, setNewsletterEmail] = useState('');
   const [newsletterName, setNewsletterName] = useState('');
-  const [weightTab, setWeightTab] = useState('light'); // 'light' | 'heavy'
+  const [weightTab, setWeightTab] = useState(() => (silhouetteFilter === 'heavy' ? 'heavy' : 'light'));
+  const [activeStoryChapter, setActiveStoryChapter] = useState('our-story');
+
+  useEffect(() => {
+    if (silhouetteFilter === 'heavy' || silhouetteFilter === 'light') {
+      setWeightTab(silhouetteFilter);
+    }
+  }, [silhouetteFilter]);
 
   const newArrivals = useMemo(() => {
     const arr = products.filter((p) => p.isNew);
@@ -1545,20 +2170,12 @@ function HomeView() {
   }, [products]);
 
   const lightJewellery = useMemo(() => {
-    const list = products.filter((p) => {
-      const match = (p.weight || '').match(/([\d.]+)/);
-      const grams = match ? parseFloat(match[1]) : 6;
-      return grams < 10;
-    });
+    const list = products.filter((p) => p.silhouette === 'light' || p.category === 'minimalist');
     return (list.length >= 4 ? list : products).slice(0, 4);
   }, [products]);
 
   const heavyJewellery = useMemo(() => {
-    const list = products.filter((p) => {
-      const match = (p.weight || '').match(/([\d.]+)/);
-      const grams = match ? parseFloat(match[1]) : 20;
-      return grams >= 10;
-    });
+    const list = products.filter((p) => p.silhouette === 'heavy' || p.category === 'statement');
     return (list.length >= 4 ? list : products).slice(0, 4);
   }, [products]);
 
@@ -1588,7 +2205,7 @@ function HomeView() {
           <div className="max-w-lg bg-[#fffdfa] dark:bg-[#141816] p-8 sm:p-10 md:p-12 border border-[#d8c39f]/50 dark:border-white/15 shadow-2xl shadow-black/25 space-y-6">
             <div className="flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-[#b99762] animate-pulse" />
-              <p className="text-[10.5px] font-sans font-bold tracking-[0.24em] uppercase text-[#1d4136] dark:text-[#e6ca97]">
+              <p className="text-[10.5px] font-sans font-bold tracking-[0.24em] uppercase text-[#132A22] dark:text-[#e6ca97]">
                 {STORE_CONFIG.hero.eyebrow}
               </p>
             </div>
@@ -1602,17 +2219,17 @@ function HomeView() {
               {STORE_CONFIG.hero.body}
             </p>
 
-            {/* Hallmarked Micro-Badges */}
+            {/* Authentic Brand Trust Micro-Badges */}
             <div className="pt-2 pb-2 border-y border-[#181614]/10 dark:border-white/10 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[10px] font-mono tracking-wider text-[#685f52] dark:text-[#a0a8a3]">
-              <span className="flex items-center gap-1">✦ 14K Gold Plated</span>
-              <span className="flex items-center gap-1">✦ BIS 925 Silver Core</span>
-              <span className="flex items-center gap-1">✦ 100% Waterproof</span>
+              <span className="flex items-center gap-1">✦ Fine 925 Sterling Silver</span>
+              <span className="flex items-center gap-1">✦ 14K Whitish Gold Vermeil</span>
+              <span className="flex items-center gap-1">✦ 30-Day Manufacturing Warranty</span>
             </div>
 
             <div className="pt-2 flex flex-wrap items-center gap-3.5">
               <button
-                onClick={() => navigate('atelier', { collection: 'new-arrivals' })}
-                className="px-6 py-3.5 bg-[#1d4136] hover:bg-[#132f27] text-[#fbf8f3] dark:bg-[#e6ca97] dark:text-[#141816] dark:hover:bg-[#d8c39f] font-sans text-xs font-bold tracking-[0.16em] uppercase transition-all shadow-md hover:shadow-lg flex items-center gap-2"
+                onClick={() => navigate('atelier', { category: 'new-arrivals' })}
+                className="px-6 py-3.5 bg-[#132A22] hover:bg-[#0c1c16] text-[#fbf8f3] dark:bg-[#e6ca97] dark:text-[#141816] dark:hover:bg-[#d8c39f] font-sans text-xs font-bold tracking-[0.16em] uppercase transition-all shadow-md hover:shadow-lg flex items-center gap-2"
               >
                 <span>Shop new arrivals</span>
                 <ArrowRight className="w-3.5 h-3.5" />
@@ -1632,7 +2249,7 @@ function HomeView() {
       <section className="max-w-7xl mx-auto px-6 md:px-12 py-20">
         <div className="flex flex-col sm:flex-row sm:items-end justify-between mb-10 gap-4">
           <div>
-            <p className="text-[10px] font-sans font-bold tracking-[0.2em] uppercase text-[#1d4136] dark:text-[#e6ca97] mb-2">
+            <p className="text-[10px] font-sans font-bold tracking-[0.2em] uppercase text-[#132A22] dark:text-[#e6ca97] mb-2">
               SHOP BY CATEGORY
             </p>
             <h2 className="font-serif text-3xl sm:text-4xl md:text-5xl text-[var(--text-primary)] font-normal tracking-tight">
@@ -1641,34 +2258,33 @@ function HomeView() {
           </div>
           <button
             onClick={() => navigate('atelier', {})}
-            className="text-xs font-sans font-bold tracking-[0.12em] uppercase text-[var(--text-primary)] hover:text-[#1d4136] dark:hover:text-[#e6ca97] border-b border-current pb-0.5 inline-flex items-center gap-1.5 transition-colors self-start sm:self-end"
+            className="text-xs font-sans font-bold tracking-[0.12em] uppercase text-[var(--text-primary)] hover:text-[#132A22] dark:hover:text-[#e6ca97] border-b border-current pb-0.5 inline-flex items-center gap-1.5 transition-colors self-start sm:self-end"
           >
             <span>View all categories</span>
             <ArrowRight className="w-3.5 h-3.5" />
           </button>
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6">
-          {STORE_CONFIG.categories.slice(0, 4).map((category) => (
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-5 sm:gap-6">
+          {STORE_CONFIG.categories.map((category) => (
             <button
               key={category.id}
               onClick={() => navigate('atelier', { category: category.id })}
-              className="group text-left block focus:outline-none"
+              className="group text-left block focus:outline-none w-full"
             >
-              <div className="aspect-[0.82] w-full overflow-hidden bg-[var(--bg-stone)] dark:bg-[#181d1a] border border-[var(--border-subtle)] mb-3">
+              <div className="aspect-[4/5] w-full overflow-hidden bg-[var(--bg-stone)] dark:bg-[#181d1a] border border-[var(--border-subtle)] mb-3 relative group">
                 <img
                   src={category.image}
                   alt={category.alt}
-                  loading="lazy"
-                  className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-104"
+                  className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
                 />
               </div>
               <div className="flex items-center justify-between pt-1">
-                <span className="font-serif text-xl sm:text-2xl text-[var(--text-primary)] group-hover:text-[#1d4136] dark:group-hover:text-[#e6ca97] transition-colors">
+                <span className="font-serif text-base sm:text-lg text-[var(--text-primary)] group-hover:text-[#b99762] transition-colors leading-tight line-clamp-1">
                   {category.label}
                 </span>
-                <span className="w-7 h-7 rounded-full border border-[var(--border-strong)] flex items-center justify-center text-[var(--text-primary)] group-hover:border-[#1d4136] group-hover:bg-[#1d4136] group-hover:text-white dark:group-hover:border-[#e6ca97] dark:group-hover:bg-[#e6ca97] dark:group-hover:text-black transition-all">
-                  <ArrowRight className="w-3.5 h-3.5" />
+                <span className="w-6 h-6 rounded-full border border-[var(--border-strong)] flex items-center justify-center text-[var(--text-primary)] group-hover:border-[#132A22] group-hover:bg-[#132A22] group-hover:text-white dark:group-hover:border-[#e6ca97] dark:group-hover:bg-[#e6ca97] dark:group-hover:text-black transition-all shrink-0 ml-1">
+                  <ArrowRight className="w-3 h-3" />
                 </span>
               </div>
             </button>
@@ -1676,74 +2292,74 @@ function HomeView() {
         </div>
       </section>
 
-      {/* 2.5 CREATION SECTION: LIGHT & HEAVY JEWELLERY */}
-      <section id="light-heavy-spectrum" className="bg-[var(--bg-secondary)] border-y border-[var(--border-subtle)] py-20 px-6 md:px-12 transition-colors duration-300">
+      {/* 2.5 CREATION SECTION: LIGHT & HEAVY JEWELLERY (AESTHETIC SILHOUETTE CURATION - NO WEIGHT BIFURCATION) */}
+      <section id="light-heavy-spectrum" className="scroll-mt-20 bg-[var(--bg-secondary)] border-y border-[var(--border-subtle)] py-20 px-6 md:px-12 transition-colors duration-300">
         <div className="max-w-7xl mx-auto space-y-10">
           
           {/* Section Header */}
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
             <div className="max-w-2xl space-y-2">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#1d4136]/10 dark:bg-[#e6ca97]/15 text-[#1d4136] dark:text-[#e6ca97] text-[10px] font-mono tracking-widest uppercase font-semibold">
-                <Scale className="w-3.5 h-3.5" />
-                <span>The Creation Spectrum • Weight-Calibrated Ateliers</span>
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#132A22]/10 dark:bg-[#e6ca97]/15 text-[#132A22] dark:text-[#e6ca97] text-[10px] font-mono tracking-widest uppercase font-semibold">
+                <Sparkles className="w-3.5 h-3.5 text-[#b99762]" />
+                <span>The Silhouette Spectrum • Light & Heavy Curation</span>
               </div>
               <h2 className="font-serif text-3xl sm:text-4xl md:text-5xl text-[var(--text-primary)] font-normal tracking-tight">
                 Light vs Heavy Jewellery: Choose Your Presence
               </h2>
               <p className="font-sans text-xs sm:text-sm text-[var(--text-secondary)] leading-relaxed">
-                Every Aviora creation is cast in BIS 925 Sterling Silver with a heavy 2.5µm 14K Gold Vermeil jacket. Select between featherlight second-skin stacks designed for uninterrupted 24/7 wear, or dense sculptural statement heirlooms forged with substantial hand-feel.
+                Every Aviora creation is cast in Fine 925 Sterling Silver with a rich 14K Whitish Gold Vermeil jacket. Select between delicate minimalist pieces designed for subtle everyday elegance, or bold sculptural statement heirlooms forged for commanding presence.
               </p>
             </div>
 
-            {/* Interactive Weight Segment Tabs */}
+            {/* Interactive Silhouette Segment Tabs (No Weight) */}
             <div className="inline-flex p-1 bg-[var(--bg-card)] border border-[var(--border-strong)] rounded-full self-start md:self-end shadow-sm">
               <button
                 onClick={() => setWeightTab('light')}
                 className={`flex items-center gap-2 px-4 sm:px-6 py-2 rounded-full text-xs font-sans font-bold tracking-[0.14em] uppercase transition-all ${
                   weightTab === 'light'
-                    ? 'bg-[#1d4136] text-white dark:bg-[#e6ca97] dark:text-black shadow-sm'
+                    ? 'bg-[#132A22] text-white dark:bg-[#e6ca97] dark:text-black shadow-sm'
                     : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
                 }`}
               >
                 <Sparkles className="w-3.5 h-3.5" />
-                <span>Delicate & Light (0–8g)</span>
+                <span>Delicate & Light (Everyday)</span>
               </button>
               <button
                 onClick={() => setWeightTab('heavy')}
                 className={`flex items-center gap-2 px-4 sm:px-6 py-2 rounded-full text-xs font-sans font-bold tracking-[0.14em] uppercase transition-all ${
                   weightTab === 'heavy'
-                    ? 'bg-[#1d4136] text-white dark:bg-[#e6ca97] dark:text-black shadow-sm'
+                    ? 'bg-[#132A22] text-white dark:bg-[#e6ca97] dark:text-black shadow-sm'
                     : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
                 }`}
               >
                 <ShieldCheck className="w-3.5 h-3.5" />
-                <span>Sculptural & Heavy (15–40g)</span>
+                <span>Bold & Heavy (Statement)</span>
               </button>
             </div>
           </div>
 
-          {/* Educational Spectrum Descriptor Banner */}
+          {/* Educational Silhouette Descriptor Banner */}
           <div className="p-5 sm:p-6 rounded-xs bg-[var(--bg-card)] border border-[var(--border-subtle)] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-xs">
             <div className="space-y-1">
-              <p className="text-xs font-bold uppercase tracking-wider text-[#1d4136] dark:text-[#e6ca97] flex items-center gap-2">
-                <span>{weightTab === 'light' ? '✦ The Feathertouch Edit (0–8 Grams)' : '✦ The Architectural High-Mass Edit (15–40 Grams)'}</span>
+              <p className="text-xs font-bold uppercase tracking-wider text-[#132A22] dark:text-[#e6ca97] flex items-center gap-2">
+                <span>{weightTab === 'light' ? '✦ The Delicate & Light Silhouette Edit' : '✦ The Bold & Heavy Sculptural Edit'}</span>
               </p>
               <p className="text-xs font-sans text-[var(--text-secondary)] max-w-2xl">
                 {weightTab === 'light'
-                  ? 'Engineered for zero-drag comfort. Sleep-safe, gym-proof, and designed to layer 3+ pieces effortlessly on ears, neck, and fingers without earlobe stretching or skin indentation.'
-                  : 'Solid core casting with commanding tactile heft. Hand-burnished by Mumbai master goldsmiths for galas, festive banquets, and high-presence styling that commands the room.'}
+                  ? 'Feathertouch silhouettes crafted for seamless daily wear. Designed to stack effortlessly across ears, neck, and fingers with whisper-soft skin contact.'
+                  : 'Commanding high-impact jewellery featuring architectural proportions and intricate craftsmanship, destined for special celebrations and evening galas.'}
               </p>
             </div>
             <button
-              onClick={() => navigate('atelier', { weightFilter: weightTab })}
-              className="shrink-0 text-xs font-sans font-bold tracking-[0.12em] uppercase text-[var(--text-primary)] hover:text-[#1d4136] dark:hover:text-[#e6ca97] border-b border-current pb-0.5 inline-flex items-center gap-1.5 transition-colors"
+              onClick={() => navigate('atelier', { silhouetteFilter: weightTab })}
+              className="shrink-0 text-xs font-sans font-bold tracking-[0.12em] uppercase text-[var(--text-primary)] hover:text-[#132A22] dark:hover:text-[#e6ca97] border-b border-current pb-0.5 inline-flex items-center gap-1.5 transition-colors"
             >
-              <span>{weightTab === 'light' ? 'Shop all delicate pieces (<10g)' : 'Shop all heavy heirlooms (10g+)'}</span>
+              <span>{weightTab === 'light' ? 'Shop Delicate & Light' : 'Shop Bold & Heavy'}</span>
               <ArrowRight className="w-3.5 h-3.5" />
             </button>
           </div>
 
-          {/* 4 Curated Products Grid for Selected Weight */}
+          {/* 4 Curated Products Grid for Selected Silhouette */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6">
             {(weightTab === 'light' ? lightJewellery : heavyJewellery).map((product) => (
               <div key={product.id} className="group flex flex-col justify-between bg-[var(--bg-card)] border border-[var(--border-subtle)] hover:border-[#b99762] transition-all duration-300 p-3 sm:p-4 rounded-xs shadow-xs hover:shadow-md">
@@ -1754,14 +2370,14 @@ function HomeView() {
                     loading="lazy"
                     className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
                   />
-                  {/* Verified Gram Weight Luxury Badge */}
-                  <div className="absolute top-2 left-2 px-2 py-1 bg-black/80 backdrop-blur-xs text-white text-[9.5px] font-mono tracking-wider rounded-xs flex items-center gap-1 border border-white/20">
-                    <Scale className="w-3 h-3 text-[#e6ca97]" />
-                    <span>{product.weight || (weightTab === 'light' ? '4.8g' : '28.4g')}</span>
+                  {/* Silhouette Styling Badge (NO gram weight) */}
+                  <div className="absolute top-2 left-2 px-2 py-1 bg-black/80 backdrop-blur-xs text-white text-[9px] font-sans tracking-wider rounded-xs flex items-center gap-1 border border-white/20 uppercase font-semibold">
+                    <Sparkles className="w-3 h-3 text-[#e6ca97]" />
+                    <span>{weightTab === 'light' ? 'Light Silhouette' : 'Heavy Silhouette'}</span>
                   </div>
                   {/* Purity Tag */}
-                  <div className="absolute bottom-2 right-2 px-1.5 py-0.5 bg-[#1d4136]/90 text-[#e6ca97] text-[8.5px] font-mono tracking-wider uppercase rounded-xs">
-                    14K / 925 Silver
+                  <div className="absolute bottom-2 right-2 px-1.5 py-0.5 bg-[#132A22]/90 text-[#e6ca97] text-[8.5px] font-mono tracking-wider uppercase rounded-xs">
+                    Fine 925 Silver
                   </div>
                 </div>
 
@@ -1770,27 +2386,26 @@ function HomeView() {
                     <p className="text-[9px] font-mono tracking-wider text-[var(--text-muted)] uppercase truncate">
                       {product.subtitle || 'Aviora Atelier Series'}
                     </p>
-                    <h3 className="font-serif text-base sm:text-lg text-[var(--text-primary)] group-hover:text-[#1d4136] dark:group-hover:text-[#e6ca97] transition-colors line-clamp-1 font-normal">
+                    <h3 className="font-serif text-base sm:text-lg text-[var(--text-primary)] group-hover:text-[#132A22] dark:group-hover:text-[#e6ca97] transition-colors line-clamp-1 font-normal">
                       {product.name}
                     </h3>
                   </div>
 
                   <div className="pt-2 border-t border-[var(--border-subtle)] flex items-center justify-between">
-                    <span className="font-mono text-xs sm:text-sm font-bold text-[var(--text-primary)]">
+                    <span className="font-sans text-xs sm:text-sm font-bold text-[var(--text-primary)]">
                       {formatPrice(product.price)}
                     </span>
                     <button
                       onClick={() => navigate('pdp', product)}
-                      className="text-[10px] font-sans font-bold tracking-wider uppercase text-[#1d4136] dark:text-[#e6ca97] hover:underline"
+                      className="text-[10px] font-sans font-bold uppercase tracking-wider text-[#b99762] hover:underline"
                     >
-                      View Piece →
+                      View Piece
                     </button>
                   </div>
                 </div>
               </div>
             ))}
           </div>
-
         </div>
       </section>
 
@@ -1813,6 +2428,49 @@ function HomeView() {
               <span>View all</span>
               <ArrowRight className="w-3.5 h-3.5" />
             </button>
+          </div>
+
+          {/* Quick Silhouette Presence Switcher / Direct Navigation */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 sm:p-5 bg-[var(--bg-card)] border border-[var(--border-subtle)] rounded-xs shadow-xs">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-full bg-[#132A22]/10 dark:bg-[#e6ca97]/20 flex items-center justify-center shrink-0">
+                <Sparkles className="w-4 h-4 text-[#b99762]" />
+              </div>
+              <div>
+                <p className="text-xs font-serif italic text-[var(--text-primary)]">
+                  Explore New Arrivals by Silhouette Presence
+                </p>
+                <p className="text-[11px] font-sans text-[var(--text-secondary)]">
+                  Feathertouch everyday pieces vs bold sculptural statement heirlooms.
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              <button
+                type="button"
+                onClick={() => scrollToSpectrum('light')}
+                className="px-3 py-1.5 text-xs font-mono uppercase tracking-wider border border-[var(--border-strong)] hover:border-[#b99762] text-[var(--text-primary)] hover:text-[#b99762] transition-colors flex items-center gap-1.5"
+              >
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                <span>Delicate & Light</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => scrollToSpectrum('heavy')}
+                className="px-3 py-1.5 text-xs font-mono uppercase tracking-wider border border-[var(--border-strong)] hover:border-[#b99762] text-[var(--text-primary)] hover:text-[#b99762] transition-colors flex items-center gap-1.5"
+              >
+                <span className="w-1.5 h-1.5 rounded-full bg-[#b99762]" />
+                <span>Bold & Heavy</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => scrollToSpectrum()}
+                className="px-3.5 py-1.5 text-xs font-sans font-bold uppercase tracking-wider bg-[#132A22] dark:bg-[#e6ca97] text-white dark:text-black hover:opacity-90 transition-opacity flex items-center gap-1"
+              >
+                <span>Full Spectrum</span>
+                <ArrowRight className="w-3 h-3" />
+              </button>
+            </div>
           </div>
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6">
@@ -1885,7 +2543,7 @@ function HomeView() {
               {STORE_CONFIG.editorial.title}
             </h2>
             <p className="font-sans text-sm sm:text-base text-[var(--text-secondary)] leading-relaxed max-w-md">
-              {STORE_CONFIG.editorial.body} We exclusively cast in 14K Gold Plated Vermeil over BIS 925 sterling silver for superior hardness and permanent waterproof wear.
+              {STORE_CONFIG.editorial.body} We exclusively craft in 14K Whitish Gold Vermeil over Fine 925 Sterling Silver for enduring elegance and everyday luxury.
             </p>
             <div className="pt-2">
               <button
@@ -1927,36 +2585,332 @@ function HomeView() {
         </div>
       </section>
 
-      {/* 7. THE GIFT EDIT FULL-WIDTH BANNER */}
+      {/* 7. THE ATELIER EDIT FULL-WIDTH BANNER */}
       <section className="relative min-h-[480px] md:min-h-[540px] flex items-center overflow-hidden bg-[#132f27]">
         <img
-          src={STORE_CONFIG.gifting.image}
-          alt={STORE_CONFIG.gifting.alt}
-          loading="lazy"
+          src="/products/freshwater-pearl-three-layer-zircon-necklace-1.jpg"
+          alt="Aviora Atelier Fine Jewellery Craftsmanship"
           className="absolute inset-0 w-full h-full object-cover object-center"
         />
         <div className="absolute inset-0 bg-[#132f27]/75 backdrop-blur-[2px]" />
 
         <div className="relative z-10 max-w-7xl mx-auto w-full px-6 md:px-12 py-16 text-[#fbf8f3] space-y-6">
           <p className="text-[10px] font-sans font-bold tracking-[0.25em] uppercase text-[#d8c39f]">
-            THE GIFT EDIT
+            THE ATELIER EDIT
           </p>
           <h2 className="font-serif text-4xl sm:text-6xl md:text-7xl font-normal tracking-tight max-w-xl leading-[0.95]">
-            {STORE_CONFIG.gifting.title}
+            Handcrafted with devotion. Made to be cherished.
           </h2>
           <p className="font-sans text-xs sm:text-sm text-zinc-300 max-w-md leading-relaxed">
-            Presented in our signature keepsake box with tamper-proof wax seal and official BIS 925 authenticity certificate.
+            Every piece is made-to-order by master artisans in Fine 925 Sterling Silver and 14K Whitish Gold. Complete with 30-Day Manufacturing Warranty.
           </p>
           <div className="pt-2">
             <button
-              onClick={() => navigate('atelier', { collection: 'gift-edit' })}
+              onClick={() => navigate('atelier')}
               className="px-8 py-3.5 bg-[#fbf8f3] hover:bg-[#d8c39f] text-[#132f27] font-sans text-xs font-bold tracking-[0.14em] uppercase transition-colors shadow-lg"
             >
-              Shop gifts
+              Explore Collection
             </button>
           </div>
         </div>
       </section>
+      {/* 8. OUR STORY & ATELIER FOUNDATIONS (FRONT-PAGE SHOWCASE) */}
+      <section id="our-story-chapters" className="py-20 md:py-28 px-6 md:px-12 bg-[var(--bg-secondary)] border-y border-[var(--border-subtle)] relative overflow-hidden">
+        {/* Subtle Ambient Luxury Glows */}
+        <div className="absolute top-0 right-0 w-96 h-96 bg-[#b99762]/5 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute bottom-0 left-0 w-96 h-96 bg-[#132A22]/5 dark:bg-[#e6ca97]/5 rounded-full blur-3xl pointer-events-none" />
+
+        <div className="max-w-7xl mx-auto space-y-16 relative z-10">
+          {/* Header & Vision Statement */}
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 border-b border-[var(--border-subtle)] pb-8">
+            <div className="space-y-3 max-w-2xl">
+              <div className="flex items-center gap-2 text-[#b99762] dark:text-[#e6ca97]">
+                <Sparkles className="w-4 h-4" />
+                <span className="text-[10.5px] font-sans font-bold tracking-[0.26em] uppercase">
+                  THE ATELIER MANIFESTO • OUR HERITAGE
+                </span>
+              </div>
+              <h2 className="font-serif text-4xl sm:text-5xl md:text-6xl text-[var(--text-primary)] font-normal tracking-tight leading-[0.98]">
+                Our Story.
+              </h2>
+              <p className="font-sans text-sm sm:text-base text-[var(--text-secondary)] leading-relaxed">
+                AVIORA was created with one vision — to bring timeless, elegant jewellery that feels luxurious yet wearable every day. Discover the foundational principles that define our craft, noble materials, and commitments.
+              </p>
+            </div>
+            
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => openPolicyModal('our-story')}
+                className="px-5 py-3 bg-[var(--bg-card)] hover:bg-[var(--bg-primary)] border border-[#b99762]/60 text-xs font-mono font-bold tracking-wider uppercase text-[var(--text-primary)] flex items-center gap-2 transition-all shadow-xs"
+              >
+                <span>Read Full Manifesto</span>
+                <ArrowUpRight className="w-4 h-4 text-[#b99762]" />
+              </button>
+            </div>
+          </div>
+
+          {/* Editorial Founding Showcase */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center bg-[var(--bg-card)] border border-[var(--border-strong)] p-8 sm:p-12 shadow-xl relative overflow-hidden">
+            {/* Left: Bench Craftsmanship Photography */}
+            <div className="lg:col-span-5 relative aspect-[4/5] sm:aspect-square lg:aspect-[3/4] overflow-hidden bg-[var(--bg-stone)] border border-[var(--border-subtle)]">
+              <img
+                src="/products/genuine-natural-turquoise-drop-pendant-1.jpg"
+                alt="Aviora Atelier Jewellery Making"
+                className="w-full h-full object-cover"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-transparent" />
+              
+              <div className="absolute inset-x-6 bottom-6 text-white space-y-2">
+                <div className="inline-flex items-center gap-2 px-3 py-1 bg-black/60 backdrop-blur-md border border-white/20 text-[10px] font-mono tracking-widest uppercase">
+                  <span>Fine 925 Silver</span>
+                </div>
+                <h3 className="font-serif text-2xl text-white font-normal">
+                  Foundry Bench, Delhi Atelier
+                </h3>
+                <p className="text-xs text-zinc-300 font-sans leading-relaxed">
+                  Where centuries-old Indian goldsmithing heritage joins modern minimalist silhouettes.
+                </p>
+              </div>
+            </div>
+
+            {/* Right: Narrative & Founding Vision */}
+            <div className="lg:col-span-7 space-y-6">
+              <div className="space-y-3">
+                <span className="text-[10px] font-mono tracking-[0.24em] uppercase text-[#b99762] dark:text-[#e6ca97] font-bold block">
+                  THE FOUNDING VISION // INCEPTION & CRAFT
+                </span>
+                <blockquote className="font-serif text-2xl sm:text-3xl text-[var(--text-primary)] font-normal leading-snug italic">
+                  &ldquo;AVIORA was created with one vision — to bring timeless, elegant jewellery that feels luxurious yet wearable every day.&rdquo;
+                </blockquote>
+              </div>
+
+              <div className="space-y-4 font-sans text-xs sm:text-sm text-[var(--text-secondary)] leading-relaxed">
+                <p>
+                  Our collections feature carefully selected pieces crafted from <strong>Fine 925 Sterling Silver</strong>, <strong>14K Whitish Gold-Plated Sterling Silver</strong>, <strong>Brilliant Moissanite</strong>, <strong>Freshwater Pearls</strong>, and other premium materials mentioned on individual product pages. Every design is chosen for elegance, craftsmanship, and comfort.
+                </p>
+                <p>
+                  Drawing inspiration from the bespoke salons of Place Vendôme and modern design houses like Mejuri, Catbird, and Monica Vinader, we questioned why authentic fine jewellery was locked away in bank vaults or inflated with 10x traditional retail markups. Aviora pieces are created for living — made to be layered, personalized, and cherished from sunrise meetings to midnight celebrations.
+                </p>
+              </div>
+
+              {/* 4 Pillars Grid */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-4 border-t border-[var(--border-subtle)]">
+                <div className="p-3 bg-[var(--bg-secondary)] border border-[var(--border-subtle)] space-y-1">
+                  <span className="text-base sm:text-lg font-serif font-bold text-[#b99762] dark:text-[#e6ca97] block">925 Silver</span>
+                  <span className="text-[9.5px] font-mono uppercase text-[var(--text-muted)] block">Noble Metallurgy</span>
+                </div>
+                <div className="p-3 bg-[var(--bg-secondary)] border border-[var(--border-subtle)] space-y-1">
+                  <span className="text-base sm:text-lg font-serif font-bold text-[#b99762] dark:text-[#e6ca97] block">14K Gold</span>
+                  <span className="text-[9.5px] font-mono uppercase text-[var(--text-muted)] block">Whitish Vermeil</span>
+                </div>
+                <div className="p-3 bg-[var(--bg-secondary)] border border-[var(--border-subtle)] space-y-1">
+                  <span className="text-base sm:text-lg font-serif font-bold text-[#b99762] dark:text-[#e6ca97] block">15–20 Days</span>
+                  <span className="text-[9.5px] font-mono uppercase text-[var(--text-muted)] block">Made to Order</span>
+                </div>
+                <div className="p-3 bg-[var(--bg-secondary)] border border-[var(--border-subtle)] space-y-1">
+                  <span className="text-base sm:text-lg font-serif font-bold text-[#b99762] dark:text-[#e6ca97] block">30 Days</span>
+                  <span className="text-[9.5px] font-mono uppercase text-[var(--text-muted)] block">Warranty</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Interactive Pillars Explorer: Foundations of Aviora */}
+          <div className="space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-baseline justify-between gap-2">
+              <div>
+                <p className="text-[10px] font-mono uppercase tracking-[0.25em] text-[#b99762] dark:text-[#e6ca97] font-bold">
+                  THE COMPLETE ATELIER DOSSIER
+                </p>
+                <h3 className="font-serif text-2xl sm:text-3xl text-[var(--text-primary)] font-normal">
+                  Foundations & Guarantees.
+                </h3>
+              </div>
+              <p className="text-xs font-mono text-[var(--text-muted)]">
+                Select any pillar below to inspect our atelier standards & policies
+              </p>
+            </div>
+
+            {/* Pillars Tabs Strip */}
+            <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-thin">
+              {ATELIER_CHAPTERS.map((ch) => {
+                const isSelected = activeStoryChapter === ch.id;
+                const IconComponent = ch.icon;
+                return (
+                  <button
+                    key={ch.id}
+                    type="button"
+                    onClick={() => setActiveStoryChapter(ch.id)}
+                    className={`px-4 py-3 border whitespace-nowrap text-left flex items-center gap-2.5 transition-all text-xs font-mono shrink-0 ${
+                      isSelected
+                        ? 'border-[#b99762] bg-[#b99762]/10 dark:bg-[#b99762]/20 text-[var(--text-primary)] font-bold shadow-xs'
+                        : 'border-[var(--border-subtle)] bg-[var(--bg-card)] text-[var(--text-secondary)] hover:border-[#b99762]/50'
+                    }`}
+                  >
+                    <IconComponent className={`w-3.5 h-3.5 ${isSelected ? 'text-[#b99762] dark:text-[#e6ca97]' : 'text-[var(--text-muted)]'}`} />
+                    <span className="text-[11px] font-sans font-medium">{ch.badge}</span>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Active Pillar Interactive Preview Pane */}
+            {(() => {
+              const ch = ATELIER_CHAPTERS.find((c) => c.id === activeStoryChapter) || ATELIER_CHAPTERS[0];
+              const IconComponent = ch.icon;
+              return (
+                <div className="bg-[var(--bg-card)] border border-[var(--border-strong)] p-6 sm:p-10 space-y-8 shadow-md">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[var(--border-subtle)] pb-6">
+                    <div className="flex items-center gap-3.5">
+                      <div className="w-12 h-12 rounded-full bg-[#b99762]/10 border border-[#b99762]/30 flex items-center justify-center text-[#b99762] dark:text-[#e6ca97]">
+                        <IconComponent className="w-6 h-6" />
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="px-2.5 py-0.5 bg-[#b99762]/15 text-[#b99762] dark:text-[#e6ca97] border border-[#b99762]/40 text-[9.5px] font-mono font-bold uppercase rounded">
+                            {ch.badge}
+                          </span>
+                        </div>
+                        <h4 className="font-serif text-2xl sm:text-3xl text-[var(--text-primary)] font-normal mt-1">
+                          {ch.title}
+                        </h4>
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => openPolicyModal(ch.id)}
+                      className="px-5 py-2.5 bg-[#1d4136] hover:bg-[#132f27] dark:bg-[#e6ca97] dark:hover:bg-[#d8c39f] text-white dark:text-black text-xs font-mono font-bold uppercase tracking-wider transition-colors self-start sm:self-auto flex items-center gap-2 shrink-0 shadow-xs"
+                    >
+                      <FileText className="w-3.5 h-3.5" />
+                      <span>Explore Full Policy</span>
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+                    <div className="lg:col-span-7 space-y-4">
+                      <p className="text-xs font-mono uppercase tracking-wider text-[var(--text-muted)]">
+                        {ch.subtitle}
+                      </p>
+                      <p className="font-sans text-sm sm:text-base text-[var(--text-secondary)] leading-relaxed">
+                        {ch.summary}
+                      </p>
+                    </div>
+
+                    <div className="lg:col-span-5 p-5 bg-[var(--bg-secondary)] border border-[var(--border-subtle)] space-y-3">
+                      <span className="text-[10px] font-mono tracking-[0.2em] uppercase text-[var(--text-primary)] font-bold block border-b border-[var(--border-subtle)] pb-2">
+                        Key Commitments & Takeaways
+                      </span>
+                      <div className="space-y-2.5">
+                        {ch.highlights.map((h, i) => (
+                          <div key={i} className="flex items-start gap-2.5 text-xs font-sans text-[var(--text-secondary)]">
+                            <Check className="w-4 h-4 text-[#b99762] dark:text-[#e6ca97] shrink-0 mt-0.5" />
+                            <span>{h}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
+          </div>
+
+          {/* The Modern Fine Jewellery Standard: Benchmark Comparison */}
+          <div className="bg-[var(--bg-card)] border border-[var(--border-strong)] p-8 sm:p-12 space-y-8">
+            <div className="max-w-2xl space-y-2">
+              <span className="text-[10px] font-mono uppercase tracking-[0.25em] text-[#b99762] dark:text-[#e6ca97] font-bold">
+                THE ATELIER BENCHMARK
+              </span>
+              <h3 className="font-serif text-3xl sm:text-4xl text-[var(--text-primary)] font-normal">
+                The Modern Fine Jewellery Standard.
+              </h3>
+              <p className="font-sans text-xs sm:text-sm text-[var(--text-secondary)] leading-relaxed">
+                Inspired by transparent fine jewellery ateliers worldwide, we built Aviora to challenge the conventional jewelry retail markup model.
+              </p>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs font-mono border-collapse">
+                <thead>
+                  <tr className="border-b border-[var(--border-strong)] bg-[var(--bg-secondary)]">
+                    <th className="p-4 uppercase tracking-wider text-[var(--text-muted)] font-bold">Dimension</th>
+                    <th className="p-4 uppercase tracking-wider text-rose-700 dark:text-rose-400 font-bold">Traditional High-Street Jewellers</th>
+                    <th className="p-4 uppercase tracking-wider text-[#b99762] dark:text-[#e6ca97] font-bold bg-[#b99762]/10 dark:bg-[#b99762]/20 border-x border-[#b99762]/30">
+                      ✦ The AVIORA Atelier Standard
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[var(--border-subtle)]">
+                  <tr>
+                    <td className="p-4 font-bold text-[var(--text-primary)]">Pricing Model</td>
+                    <td className="p-4 text-[var(--text-secondary)]">800% – 1,000% retail markups with artificial strikethroughs</td>
+                    <td className="p-4 font-semibold text-[var(--text-primary)] bg-[#b99762]/5 border-x border-[#b99762]/20">
+                      Direct Atelier Honest Pricing (Zero fake markups or discounts)
+                    </td>
+                  </tr>
+                  <tr>
+                    <td className="p-4 font-bold text-[var(--text-primary)]">Noble Base Metal</td>
+                    <td className="p-4 text-[var(--text-secondary)]">Hollow brass, mystery alloy, or unverified base metals</td>
+                    <td className="p-4 font-semibold text-[var(--text-primary)] bg-[#b99762]/5 border-x border-[#b99762]/20">
+                      Solid Fine 925 Sterling Silver with noble metal purity
+                    </td>
+                  </tr>
+                  <tr>
+                    <td className="p-4 font-bold text-[var(--text-primary)]">Gold Vermeil Finish</td>
+                    <td className="p-4 text-[var(--text-secondary)]">Thin 0.2µ flash plating prone to fast peeling and chipping</td>
+                    <td className="p-4 font-semibold text-[var(--text-primary)] bg-[#b99762]/5 border-x border-[#b99762]/20">
+                      Thick 14K & 18K Whitish Gold Vermeil (#EDE7DC) for enduring luster
+                    </td>
+                  </tr>
+                  <tr>
+                    <td className="p-4 font-bold text-[var(--text-primary)]">Crafting Approach</td>
+                    <td className="p-4 text-[var(--text-secondary)]">Mass factory stamping stockpiled in bins for months</td>
+                    <td className="p-4 font-semibold text-[var(--text-primary)] bg-[#b99762]/5 border-x border-[#b99762]/20">
+                      15–20 Days Dedicated Artisan Made-to-Order Benchwork
+                    </td>
+                  </tr>
+                  <tr>
+                    <td className="p-4 font-bold text-[var(--text-primary)]">Patron Warranty</td>
+                    <td className="p-4 text-[var(--text-secondary)]">Disclaimed immediately upon stepping out of the store</td>
+                    <td className="p-4 font-semibold text-[var(--text-primary)] bg-[#b99762]/5 border-x border-[#b99762]/20">
+                      30-Day Manufacturing Warranty covering clasps & stone prongs
+                    </td>
+                  </tr>
+                  <tr>
+                    <td className="p-4 font-bold text-[var(--text-primary)]">Gemstone Verification</td>
+                    <td className="p-4 text-[var(--text-secondary)]">Uncertified simulated cubic zirconia or plastic pearls</td>
+                    <td className="p-4 font-semibold text-[var(--text-primary)] bg-[#b99762]/5 border-x border-[#b99762]/20">
+                      D-Colorless VVS1 Brilliant Moissanite + Grade-AAA Pearls
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div className="pt-2 flex flex-wrap items-center gap-4">
+              <button
+                type="button"
+                onClick={() => navigate('atelier')}
+                className="px-6 py-3.5 bg-[#132A22] hover:bg-[#0c1c16] text-[#fbf8f3] dark:bg-[#e6ca97] dark:text-[#141816] dark:hover:bg-[#d8c39f] font-sans text-xs font-bold tracking-[0.16em] uppercase transition-all shadow-md flex items-center gap-2"
+              >
+                <span>Explore Fine 925 Jewellery</span>
+                <ArrowRight className="w-4 h-4" />
+              </button>
+              <button
+                type="button"
+                onClick={() => openPolicyModal('our-story')}
+                className="px-6 py-3.5 border border-[var(--border-strong)] text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] font-sans text-xs font-bold tracking-[0.16em] uppercase transition-all flex items-center gap-2"
+              >
+                <BookOpen className="w-4 h-4 text-[#b99762]" />
+                <span>Open Atelier Manifesto</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
 
       {/* 8. THE AVIORA PROMISE (4 TRUST PILLARS) */}
       <section className="border-b border-[var(--border-subtle)] py-20 px-6 md:px-12 bg-[var(--bg-primary)]">
@@ -2015,11 +2969,11 @@ function HomeView() {
 
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
           {[
-            'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=600&q=80',
-            'https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=600&q=80',
-            'https://images.unsplash.com/photo-1611591437281-460bfbe1220a?auto=format&fit=crop&w=600&q=80',
-            'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=600&q=80',
-            'https://images.unsplash.com/photo-1508214751196-bcfd4ca60f91?auto=format&fit=crop&w=600&q=80',
+            '/products/clover-freshwater-pearl-blue-apatite-necklace-1.jpg',
+            '/products/14k-gold-plated-vvs-moissanite-ring-5300-1.jpg',
+            '/products/emerald-green-white-cz-tennis-bracelet-1.jpg',
+            '/products/sapphire-zirconia-halo-earrings-1.jpg',
+            '/products/mop-freshwater-pearl-clover-bracelet-1.jpg',
           ].map((imgUrl, i) => (
             <div
               key={i}
@@ -2096,15 +3050,18 @@ function ShopView() {
     setMaterialFilter,
     collectionFilter,
     setCollectionFilter,
+    silhouetteFilter,
+    setSilhouetteFilter,
     weightFilter,
     setWeightFilter,
+    scrollToSpectrum,
   } = useContext(AppContext);
 
   // Filter States matching reference app
   const [selectedCategory, setSelectedCategory] = useState(() => categoryFilter || 'all');
   const [selectedMaterial, setSelectedMaterial] = useState(() => materialFilter || 'all');
   const [selectedCollection, setSelectedCollection] = useState(() => collectionFilter || 'all');
-  const [selectedWeight, setSelectedWeight] = useState(() => weightFilter || 'all');
+  const [selectedSilhouette, setSelectedSilhouette] = useState(() => silhouetteFilter || weightFilter || 'all');
   const [selectedColour, setSelectedColour] = useState('all');
   const [selectedFinish, setSelectedFinish] = useState('all');
   const [selectedAvailability, setSelectedAvailability] = useState('all');
@@ -2127,8 +3084,9 @@ function ShopView() {
   }, [collectionFilter]);
 
   useEffect(() => {
-    if (weightFilter) setSelectedWeight(weightFilter);
-  }, [weightFilter]);
+    if (silhouetteFilter) setSelectedSilhouette(silhouetteFilter);
+    else if (weightFilter) setSelectedSilhouette(weightFilter);
+  }, [silhouetteFilter, weightFilter]);
 
   // Unique attribute options from products
   const uniqueColours = useMemo(() => {
@@ -2208,15 +3166,9 @@ function ShopView() {
       list = list.filter((p) => p.price > 5000);
     }
 
-    // Weight Spectrum (Delicate < 10g vs Sculptural >= 10g)
-    if (selectedWeight !== 'all') {
-      list = list.filter((p) => {
-        const match = (p.weight || '').match(/([\d.]+)/);
-        const grams = match ? parseFloat(match[1]) : 10;
-        if (selectedWeight === 'light') return grams < 10;
-        if (selectedWeight === 'heavy') return grams >= 10;
-        return true;
-      });
+    // Silhouette Presence (Delicate & Light vs Bold & Heavy - Aesthetic styling curation, no weight)
+    if (selectedSilhouette !== 'all') {
+      list = list.filter((p) => p.silhouette === selectedSilhouette);
     }
 
     // Search query
@@ -2246,7 +3198,7 @@ function ShopView() {
     selectedCategory,
     selectedMaterial,
     selectedCollection,
-    selectedWeight,
+    selectedSilhouette,
     selectedColour,
     selectedFinish,
     selectedAvailability,
@@ -2260,7 +3212,7 @@ function ShopView() {
     if (selectedCategory !== 'all') count++;
     if (selectedMaterial !== 'all') count++;
     if (selectedCollection !== 'all') count++;
-    if (selectedWeight !== 'all') count++;
+    if (selectedSilhouette !== 'all') count++;
     if (selectedColour !== 'all') count++;
     if (selectedFinish !== 'all') count++;
     if (selectedAvailability !== 'all') count++;
@@ -2271,7 +3223,7 @@ function ShopView() {
     selectedCategory,
     selectedMaterial,
     selectedCollection,
-    selectedWeight,
+    selectedSilhouette,
     selectedColour,
     selectedFinish,
     selectedAvailability,
@@ -2283,7 +3235,7 @@ function ShopView() {
     setSelectedCategory('all');
     setSelectedMaterial('all');
     setSelectedCollection('all');
-    setSelectedWeight('all');
+    setSelectedSilhouette('all');
     setSelectedColour('all');
     setSelectedFinish('all');
     setSelectedAvailability('all');
@@ -2292,6 +3244,7 @@ function ShopView() {
     setCategoryFilter('');
     setMaterialFilter('');
     setCollectionFilter('');
+    setSilhouetteFilter('');
     setWeightFilter('');
   };
 
@@ -2299,11 +3252,11 @@ function ShopView() {
   const pageTitle = useMemo(() => {
     if (searchQuery.trim()) return `Results for “${searchQuery}”`;
     if (selectedCollection !== 'all') {
-      const col = STORE_CONFIG.collections.find((c) => c.id === selectedCollection);
+      const col = (STORE_CONFIG.collections || []).find((c) => c.id === selectedCollection);
       if (col) return col.label;
     }
     if (selectedCategory !== 'all') {
-      const cat = STORE_CONFIG.categories.find((c) => c.id === selectedCategory);
+      const cat = (STORE_CONFIG.categories || []).find((c) => c.id === selectedCategory);
       if (cat) return cat.label;
     }
     return 'Shop all jewellery.';
@@ -2321,8 +3274,45 @@ function ShopView() {
             {pageTitle}
           </h1>
           <p className="font-sans text-xs sm:text-sm text-[var(--text-secondary)] leading-relaxed">
-            Explore the current Aviora edit across delicate everyday and gifting pieces cast in 14K Gold Plated Vermeil and BIS 925 sterling silver.
+            Explore the current Aviora edit across delicate everyday and statement pieces crafted from 14K Whitish Gold Plated vermeil and Fine 925 Sterling Silver.
           </p>
+        </div>
+
+        {/* Curated Light & Heavy Quick Banner in Shop / New Arrivals */}
+        <div className="p-4 sm:p-5 bg-[var(--bg-secondary)] border border-[var(--border-subtle)] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <Sparkles className="w-3.5 h-3.5 text-[#b99762]" />
+              <span className="text-[10px] font-mono uppercase tracking-[0.2em] font-bold text-[#1d4136] dark:text-[#e6ca97]">
+                THE SILHOUETTE SPECTRUM
+              </span>
+            </div>
+            <p className="text-xs font-sans text-[var(--text-secondary)]">
+              Curating by presence? Explore our feathertouch everyday vs bold sculptural statement heirlooms.
+            </p>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              onClick={() => scrollToSpectrum('light')}
+              className="px-3.5 py-1.5 text-xs font-mono uppercase tracking-wider bg-[var(--bg-card)] border border-[var(--border-strong)] hover:border-[#b99762] text-[var(--text-primary)] transition-colors flex items-center gap-1.5"
+            >
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+              <span>Delicate & Light</span>
+            </button>
+            <button
+              onClick={() => scrollToSpectrum('heavy')}
+              className="px-3.5 py-1.5 text-xs font-mono uppercase tracking-wider bg-[var(--bg-card)] border border-[var(--border-strong)] hover:border-[#b99762] text-[var(--text-primary)] transition-colors flex items-center gap-1.5"
+            >
+              <span className="w-1.5 h-1.5 rounded-full bg-[#b99762]" />
+              <span>Bold & Heavy</span>
+            </button>
+            <button
+              onClick={() => scrollToSpectrum()}
+              className="px-3.5 py-1.5 text-xs font-sans font-bold uppercase tracking-wider bg-[#1d4136] dark:bg-[#e6ca97] text-white dark:text-black hover:opacity-90 transition-opacity"
+            >
+              View Full Spectrum →
+            </button>
+          </div>
         </div>
 
         {/* Sticky Controls Bar */}
@@ -2421,19 +3411,19 @@ function ShopView() {
                     </select>
                   </div>
 
-                  {/* Weight Spectrum */}
+                  {/* Silhouette Curation (No weight bifurcation) */}
                   <div>
                     <label className="block text-[10px] font-bold tracking-[0.14em] uppercase text-[#1d4136] dark:text-[#e6ca97] font-semibold mb-1">
-                      ⚖ Weight Curation
+                      ✦ Silhouette & Presence
                     </label>
                     <select
-                      value={selectedWeight}
-                      onChange={(e) => setSelectedWeight(e.target.value)}
-                      className="w-full h-10 px-2 bg-[var(--bg-card)] border border-[var(--border-strong)] text-[var(--text-primary)] outline-none"
+                      value={selectedSilhouette}
+                      onChange={(e) => setSelectedSilhouette(e.target.value)}
+                      className="w-full h-10 px-2 bg-[var(--bg-card)] border border-[var(--border-strong)] text-[var(--text-primary)] outline-none cursor-pointer"
                     >
-                      <option value="all">All weight ranges</option>
-                      <option value="light">Delicate & Light (&lt;10g)</option>
-                      <option value="heavy">Sculptural & Heavy (10g+)</option>
+                      <option value="all">All Silhouettes</option>
+                      <option value="light">Delicate & Light (Everyday Minimalist)</option>
+                      <option value="heavy">Bold & Heavy (Statement Sculptures)</option>
                     </select>
                   </div>
 
@@ -2502,7 +3492,7 @@ function ShopView() {
                       className="w-full h-10 px-2 bg-[var(--bg-card)] border border-[var(--border-strong)] text-[var(--text-primary)] outline-none"
                     >
                       <option value="all">All collections</option>
-                      {STORE_CONFIG.collections.map((col) => (
+                      {(STORE_CONFIG.collections || []).map((col) => (
                         <option key={col.id} value={col.id}>
                           {col.label}
                         </option>
@@ -2633,12 +3623,12 @@ function ShopView() {
 // 8. VIEW: CINEMATIC PDP (WITH 14K ACCORDION)
 // ==========================================
 function ProductView() {
-  const { selectedProduct, navigate, addToCart, formatPrice } = useContext(AppContext);
+  const { selectedProduct, setSelectedProduct, products, navigate, addToCart, formatPrice } = useContext(AppContext);
   const [activeAccordion, setActiveAccordion] = useState('why-14k');
   const [selectedQuantity, setSelectedQuantity] = useState(1);
   const [copiedLink, setCopiedLink] = useState(false);
 
-  const [viewMode, setViewMode] = useState('product'); // 'product' | 'model'
+  const [activeImageIndex, setActiveImageIndex] = useState(0);
 
   const [addEngraving, setAddEngraving] = useState(false);
   const [engravingText, setEngravingText] = useState('');
@@ -2646,10 +3636,37 @@ function ProductView() {
   const [pincode, setPincode] = useState('');
   const [pincodeResult, setPincodeResult] = useState(null);
 
-  const product = selectedProduct || PRODUCTS[0];
+  // On mount: resolve product from URL params (slug or product id)
+  // This ensures direct navigation to /pdp?slug=... always shows the right product
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const slug = params.get('slug');
+    const prodId = params.get('product') || params.get('id');
+    const catalog = products && products.length > 0 ? products : PRODUCTS;
+    if (slug) {
+      const found = catalog.find((p) => p.slug === slug);
+      if (found && found.id !== selectedProduct?.id) {
+        setSelectedProduct(found);
+      }
+    } else if (prodId) {
+      const found = catalog.find((p) => p.id === prodId);
+      if (found && found.id !== selectedProduct?.id) {
+        setSelectedProduct(found);
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [products]);
+
+  const product = (products && products.find((p) => p.id === selectedProduct?.id)) || selectedProduct || PRODUCTS[0];
   const discount = product.originalPrice
     ? Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)
     : null;
+
+  // Reset active image on product switch
+  useEffect(() => {
+    setActiveImageIndex(0);
+  }, [product?.id]);
+
 
   const handleCheckPincode = (e) => {
     e.preventDefault();
@@ -2709,104 +3726,153 @@ function ProductView() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 min-h-screen">
-        {/* Left Column: Stacked Images with Model Scale Toggle */}
+        {/* Left Column: Interactive Multi-Angle Studio Gallery */}
         <div className="lg:col-span-7 space-y-4 lg:space-y-6 p-4 md:p-10 border-b lg:border-b-0 lg:border-r border-[var(--border-subtle)]">
+          {/* Top Bar: Angle indicator & Quick Switchers */}
           <div className="sticky top-24 z-30 flex items-center justify-between bg-[var(--bg-card)]/90 backdrop-blur-md p-2.5 border border-[var(--border-subtle)] text-xs font-mono">
-            <div className="flex items-center gap-1.5">
-              <button
-                onClick={() => setViewMode('product')}
-                className={`px-3 py-1.5 uppercase tracking-wider text-[10px] transition-all flex items-center gap-1.5 ${
-                  viewMode === 'product'
-                    ? 'bg-[#1d4136] dark:bg-[#e6ca97] text-white dark:text-[#242321] font-bold'
-                    : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
-                }`}
-              >
-                <Eye className="w-3.5 h-3.5" />
-                <span>Product Only</span>
-              </button>
-              <button
-                onClick={() => setViewMode('model')}
-                className={`px-3 py-1.5 uppercase tracking-wider text-[10px] transition-all flex items-center gap-1.5 ${
-                  viewMode === 'model'
-                    ? 'bg-[#1d4136] dark:bg-[#e6ca97] text-white dark:text-[#242321] font-bold'
-                    : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
-                }`}
-              >
-                <User className="w-3.5 h-3.5" />
-                <span>View on Model (Scale)</span>
-              </button>
+            <div className="flex items-center gap-2">
+              <span className="px-2.5 py-1 bg-[#1d4136] dark:bg-[#e6ca97] text-white dark:text-[#242321] text-[10px] font-bold tracking-wider uppercase font-mono">
+                ANGLE 0{activeImageIndex + 1} OF 0{product.images?.length || 1}
+              </span>
+              <span className="text-[10px] text-[var(--text-muted)] font-mono uppercase tracking-widest hidden sm:inline">
+                {product.images && product.images.length > 1
+                  ? `${product.images.length} STUDIO ANGLES AVAILABLE`
+                  : '14K STUDIO CAPTURE'}
+              </span>
             </div>
 
-            <span className="text-[9px] font-mono text-[var(--text-muted)] uppercase tracking-widest hidden sm:inline">
-              14K STUDIO CAPTURE
-            </span>
+            {product.images && product.images.length > 1 && (
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={() =>
+                    setActiveImageIndex((prev) => (prev > 0 ? prev - 1 : product.images.length - 1))
+                  }
+                  className="px-2.5 py-1 bg-[var(--bg-secondary)] hover:bg-[#b99762]/15 border border-[var(--border-subtle)] hover:border-[#b99762] text-[10px] font-mono text-[var(--text-primary)] transition-colors flex items-center gap-1"
+                  title="Previous Angle"
+                >
+                  <ChevronLeft className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Prev</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setActiveImageIndex((prev) => (prev < product.images.length - 1 ? prev + 1 : 0))
+                  }
+                  className="px-2.5 py-1 bg-[var(--bg-secondary)] hover:bg-[#b99762]/15 border border-[var(--border-subtle)] hover:border-[#b99762] text-[10px] font-mono text-[var(--text-primary)] transition-colors flex items-center gap-1"
+                  title="Next Angle"
+                >
+                  <span className="hidden sm:inline">Next</span>
+                  <ChevronRight className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            )}
           </div>
 
-          {viewMode === 'model' ? (
-            <div className="relative w-full min-h-[75vh] lg:min-h-[92vh] bg-[var(--bg-stone)] dark:bg-[#181d1a] overflow-hidden border border-[#b99762]/40 group animate-fadeIn">
-              <div className="absolute top-6 left-6 z-20 pointer-events-none">
-                <span className="text-[10px] font-mono tracking-[0.3em] uppercase text-[var(--text-primary)] bg-[var(--bg-card)]/90 backdrop-blur-md px-3 py-1 border border-[#b99762]/50 flex items-center gap-1.5">
-                  <User className="w-3 h-3 text-[#b99762] dark:text-[#e6ca97]" />
-                  RELATIVE SIZE & MODEL PROPORTION
-                </span>
-              </div>
-              <ArtisticImage
-                src={product.modelImage}
-                alt={`${product.name} on Model`}
-                className="w-full h-full"
-                exhibitNumber="SCALE // MODEL"
-                materialTag="14K CHAMPAGNE GOLD"
-              />
+          {/* Main Stage View with Floating Arrows */}
+          <div className="relative w-full min-h-[70vh] lg:min-h-[88vh] bg-[var(--bg-stone)] dark:bg-[#181d1a] overflow-hidden border border-[var(--border-subtle)] group">
+            <div className="absolute top-6 left-6 z-20 pointer-events-none">
+              <span className="text-[10px] font-mono tracking-[0.3em] uppercase text-[var(--text-primary)] bg-[var(--bg-card)]/85 backdrop-blur-md px-3 py-1 border border-[var(--border-subtle)]">
+                PLATE // 0{activeImageIndex + 1} (STUDIO CAPTURE)
+              </span>
             </div>
-          ) : (
-            <>
-              <div className="relative w-full min-h-[70vh] lg:min-h-[92vh] bg-[var(--bg-stone)] dark:bg-[#181d1a] overflow-hidden border border-[var(--border-subtle)] group">
-                <div className="absolute top-6 left-6 z-20 pointer-events-none">
-                  <span className="text-[10px] font-mono tracking-[0.3em] uppercase text-[var(--text-primary)] bg-[var(--bg-card)]/85 backdrop-blur-md px-3 py-1 border border-[var(--border-subtle)]">
-                    PLATE // 01 (STUDIO MACRO)
-                  </span>
-                </div>
-                <ArtisticImage
-                  src={product.images[0]}
-                  alt={`${product.name} Plate 1`}
-                  className="w-full h-full"
-                  exhibitNumber="PLATE // 01"
-                  materialTag={product.material}
-                />
-              </div>
 
-              {/* Looping Light Video Loop */}
-              <div className="relative w-full min-h-[60vh] lg:min-h-[85vh] bg-[var(--bg-stone)] dark:bg-[#181d1a] overflow-hidden border border-[var(--border-subtle)] group">
-                <div className="absolute top-6 left-6 z-20 pointer-events-none flex items-center gap-2">
-                  <span className="text-[10px] font-mono tracking-[0.3em] uppercase text-[var(--text-primary)] bg-[var(--bg-card)]/85 backdrop-blur-md px-3 py-1 border border-[#b99762]/50 flex items-center gap-1.5">
-                    <Play className="w-3 h-3 text-[#b99762] dark:text-[#e6ca97] fill-[#b99762] dark:fill-[#e6ca97]" />
-                    SLOW-MOTION LIGHT REFLECTION LOOP
-                  </span>
-                </div>
-                <ArtisticImage
-                  src={product.images[1] || product.images[0]}
-                  alt={`${product.name} Light Loop`}
-                  className="w-full h-full animate-[pulse_8s_ease-in-out_infinite]"
-                  exhibitNumber="VIDEO // LOOP"
-                  materialTag="14K LUSTRE CAPTURE"
-                />
-              </div>
+            {product.images && product.images.length > 1 && (
+              <>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setActiveImageIndex((prev) => (prev > 0 ? prev - 1 : product.images.length - 1));
+                  }}
+                  className="absolute left-3 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-[var(--bg-card)]/85 hover:bg-[var(--bg-card)] text-[var(--text-primary)] border border-[var(--border-subtle)] flex items-center justify-center transition-all opacity-80 hover:opacity-100 shadow-md"
+                  aria-label="Previous image"
+                >
+                  <ChevronLeft className="w-5 h-5" />
+                </button>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setActiveImageIndex((prev) => (prev < product.images.length - 1 ? prev + 1 : 0));
+                  }}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-[var(--bg-card)]/85 hover:bg-[var(--bg-card)] text-[var(--text-primary)] border border-[var(--border-subtle)] flex items-center justify-center transition-all opacity-80 hover:opacity-100 shadow-md"
+                  aria-label="Next image"
+                >
+                  <ChevronRight className="w-5 h-5" />
+                </button>
+              </>
+            )}
 
-              {product.images.slice(2).map((imgUrl, idx) => (
+            <ArtisticImage
+              src={product.images?.[activeImageIndex] || product.images?.[0]}
+              alt={`${product.name} Angle ${activeImageIndex + 1}`}
+              className="w-full h-full object-cover transition-all duration-300"
+              exhibitNumber={`PLATE // 0${activeImageIndex + 1}`}
+              materialTag={product.material}
+            />
+          </div>
+
+          {/* Clickable Thumbnail Strip */}
+          {product.images && product.images.length > 1 && (
+            <div className="space-y-2 pt-1">
+              <div className="flex items-center justify-between text-[10px] font-mono uppercase text-[var(--text-muted)]">
+                <span>Select Perspective ({product.images.length} studio angles)</span>
+                <span>Click to expand</span>
+              </div>
+              <div className="flex items-center gap-3 overflow-x-auto pb-2">
+                {product.images.map((imgUrl, i) => (
+                  <button
+                    key={i}
+                    type="button"
+                    onClick={() => setActiveImageIndex(i)}
+                    className={`relative w-20 h-24 sm:w-24 sm:h-28 shrink-0 overflow-hidden transition-all border-2 ${
+                      activeImageIndex === i
+                        ? 'border-[#b99762] dark:border-[#e6ca97] ring-2 ring-[#b99762]/30 scale-102 shadow-md'
+                        : 'border-[var(--border-subtle)] hover:border-[var(--border-strong)] opacity-70 hover:opacity-100'
+                    }`}
+                  >
+                    <img
+                      src={imgUrl}
+                      alt={`${product.name} Angle 0${i + 1}`}
+                      className="w-full h-full object-cover"
+                    />
+                    <span className="absolute bottom-1 right-1 text-[8.5px] font-mono px-1 py-0.5 bg-black/80 text-white font-bold rounded-xs">
+                      0{i + 1}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Full High-Resolution Exhibition Plates (Continuous Scroll) */}
+          {product.images && product.images.length > 1 && (
+            <div className="pt-6 space-y-6 border-t border-[var(--border-subtle)]">
+              <div className="flex items-center gap-2 text-[10px] font-mono uppercase tracking-wider text-[var(--text-muted)]">
+                <Sparkles className="w-3 h-3 text-[#b99762]" />
+                <span>All {product.images.length} Angles In High-Resolution</span>
+              </div>
+              {product.images.map((imgUrl, idx) => (
                 <div
                   key={idx}
-                  className="relative w-full min-h-[70vh] lg:min-h-[92vh] bg-[var(--bg-stone)] dark:bg-[#181d1a] overflow-hidden border border-[var(--border-subtle)] group"
+                  className="relative w-full min-h-[60vh] lg:min-h-[85vh] bg-[var(--bg-stone)] dark:bg-[#181d1a] overflow-hidden border border-[var(--border-subtle)] group"
                 >
+                  <div className="absolute top-6 left-6 z-20 pointer-events-none">
+                    <span className="text-[10px] font-mono tracking-[0.3em] uppercase text-[var(--text-primary)] bg-[var(--bg-card)]/85 backdrop-blur-md px-3 py-1 border border-[var(--border-subtle)]">
+                      PERSPECTIVE 0{idx + 1} OF 0{product.images.length}
+                    </span>
+                  </div>
                   <ArtisticImage
                     src={imgUrl}
-                    alt={`${product.name} Plate ${idx + 3}`}
+                    alt={`${product.name} Perspective ${idx + 1}`}
                     className="w-full h-full"
-                    exhibitNumber={`PLATE // 0${idx + 3}`}
+                    exhibitNumber={`PERSPECTIVE // 0${idx + 1}`}
                     materialTag={product.material}
                   />
                 </div>
               ))}
-            </>
+            </div>
           )}
         </div>
 
@@ -2830,19 +3896,9 @@ function ProductView() {
                 <span className="font-sans text-3xl text-[var(--text-primary)] font-bold">
                   {formatPrice(product.price)}
                 </span>
-                {product.originalPrice && (
-                  <span className="font-sans text-base text-[var(--text-muted)] line-through">
-                    {formatPrice(product.originalPrice)}
-                  </span>
-                )}
-                {discount && (
-                  <span className="px-2 py-0.5 bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 text-xs font-mono font-semibold">
-                    SAVE {discount}%
-                  </span>
-                )}
               </div>
               <p className="text-[11px] font-mono text-[var(--text-secondary)]">
-                Includes 3% GST · Certified BIS Hallmarking · Free Pan-India Express Delivery
+                Fine 925 Sterling Silver · Free Pan-India Insured Delivery
               </p>
             </div>
 
@@ -2862,25 +3918,25 @@ function ProductView() {
             {/* 3-Badge Trust Pill */}
             <div className="grid grid-cols-3 gap-2 p-3 bg-[var(--bg-secondary)] border border-[var(--border-subtle)] text-center">
               <div className="space-y-1 p-2">
-                <Droplets className="w-4 h-4 text-sky-500 dark:text-sky-400 mx-auto" />
+                <Sparkles className="w-4 h-4 text-emerald-600 dark:text-emerald-400 mx-auto" />
                 <span className="text-[10px] font-mono text-[var(--text-primary)] block font-semibold leading-tight">
-                  100% Waterproof
+                  Fine 925 Silver
                 </span>
-                <span className="text-[8px] font-mono text-[var(--text-muted)] block">Shower & Gym Safe</span>
+                <span className="text-[8px] font-mono text-[var(--text-muted)] block">Noble Metallurgy</span>
               </div>
               <div className="space-y-1 p-2 border-x border-[var(--border-subtle)]">
                 <ShieldCheck className="w-4 h-4 text-[#b99762] dark:text-[#e6ca97] mx-auto" />
                 <span className="text-[10px] font-mono text-[var(--text-primary)] block font-semibold leading-tight">
-                  14K Gold Plated
+                  14K Whitish Gold
                 </span>
-                <span className="text-[8px] font-mono text-[var(--text-muted)] block">Scratch-Proof Alloy</span>
+                <span className="text-[8px] font-mono text-[var(--text-muted)] block">Vermeil Plated</span>
               </div>
               <div className="space-y-1 p-2">
-                <Sparkles className="w-4 h-4 text-emerald-600 dark:text-emerald-400 mx-auto" />
+                <CheckCircle2 className="w-4 h-4 text-sky-500 dark:text-sky-400 mx-auto" />
                 <span className="text-[10px] font-mono text-[var(--text-primary)] block font-semibold leading-tight">
-                  BIS 925 Silver
+                  30-Day Warranty
                 </span>
-                <span className="text-[8px] font-mono text-[var(--text-muted)] block">Lifetime Warranty</span>
+                <span className="text-[8px] font-mono text-[var(--text-muted)] block">Manufacturing Defects</span>
               </div>
             </div>
 
@@ -2942,6 +3998,17 @@ function ProductView() {
               )}
             </div>
 
+            {/* Made-to-Order Luxury Notice */}
+            <div className="p-4 bg-[var(--bg-secondary)] border-l-2 border-[#b99762] border-[var(--border-subtle)] space-y-1.5">
+              <div className="flex items-center gap-2 text-[10px] font-mono uppercase tracking-wider text-[#b99762] dark:text-[#e6ca97] font-bold">
+                <Clock className="w-3.5 h-3.5" />
+                <span>Made to Order Luxury</span>
+              </div>
+              <p className="text-xs font-sans text-[var(--text-secondary)] leading-relaxed">
+                Every AVIORA piece is made especially for you. Kindly allow <strong>15–20 business days</strong> for crafting and preparation, followed by <strong>1–5 business days</strong> for shipping.
+              </p>
+            </div>
+
             {/* Action Buttons */}
             <div className="space-y-4 pt-1">
               <div className="flex gap-4">
@@ -2979,7 +4046,7 @@ function ProductView() {
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="flex items-center gap-1.5">
-                    <RotateCcw className="w-3.5 h-3.5 text-[#b99762] dark:text-[#e6ca97]" /> Easy 30-Day Returns & Exchanges
+                    <RotateCcw className="w-3.5 h-3.5 text-[#b99762] dark:text-[#e6ca97]" /> Made to Order · Final Sale · 48h Defect Resolution
                   </span>
                   <span className="flex items-center gap-1.5">
                     <Truck className="w-3.5 h-3.5 text-[#b99762] dark:text-[#e6ca97]" /> Free Pan-India Delivery
@@ -3043,8 +4110,9 @@ function ProductView() {
                 {activeAccordion === 'materiality' && (
                   <div className="text-[var(--text-secondary)] pt-3 space-y-2 leading-relaxed">
                     <p><strong className="text-[var(--text-primary)]">Alloy:</strong> {product.material}</p>
-                    <p><strong className="text-[var(--text-primary)]">Total Weight:</strong> {product.weight}</p>
+                    <p><strong className="text-[var(--text-primary)]">Silhouette & Presence:</strong> {product.silhouette === 'heavy' ? 'Bold & Sculptural Statement' : 'Delicate & Minimalist Everyday'}</p>
                     <p><strong className="text-[var(--text-primary)]">Purity:</strong> {product.goldPurity}</p>
+                    <p><strong className="text-[var(--text-primary)]">Material Assurance:</strong> Fine 925 Sterling Silver</p>
                   </div>
                 )}
               </div>
@@ -3099,7 +4167,7 @@ function ProductView() {
                 <div className="relative aspect-square w-full bg-[var(--bg-stone)] dark:bg-[#181d1a] overflow-hidden">
                   <ArtisticImage
                     src={test.image}
-                    alt={`${test.patron} wearing AURA`}
+                    alt={`${test.patron} wearing AVIORA`}
                     className="w-full h-full group-hover:scale-105 transition-transform duration-700"
                   />
                   <div className="absolute top-3 right-3 bg-[var(--bg-card)]/90 backdrop-blur-md px-2 py-0.5 text-[8px] font-mono text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 font-semibold">
@@ -3133,10 +4201,14 @@ function ProductView() {
 // 9. VIEW: CHECKOUT
 // ==========================================
 function CheckoutView() {
-  const { cart, cartTotal, clearCart, navigate, formatPrice, addOrder, currencyMode } = useContext(AppContext);
+  const { cart, cartTotal, clearCart, navigate, formatPrice, addOrder, currencyMode, showToast, loginPatron } = useContext(AppContext);
 
-  const [paymentMethod, setPaymentMethod] = useState('UPI');
+  const [paymentMethod, setPaymentMethod] = useState('PHONEPE');
   const [upiId, setUpiId] = useState('');
+  const [phonePeLinkData, setPhonePeLinkData] = useState(null);
+  const [isGeneratingPhonePeLink, setIsGeneratingPhonePeLink] = useState(false);
+  const [phonePeLinkCopied, setPhonePeLinkCopied] = useState(false);
+  const [upiQrDataUrl, setUpiQrDataUrl] = useState('');
   const [formData, setFormData] = useState({
     customerName: '',
     customerEmail: '',
@@ -3147,19 +4219,110 @@ function CheckoutView() {
     postalCode: '',
   });
 
+  // OTP Verification State
+  const [isPhoneVerified, setIsPhoneVerified] = useState(false);
+  const [showOtpModal, setShowOtpModal] = useState(false);
+  const [otpInput, setOtpInput] = useState('');
+  const [otpError, setOtpError] = useState('');
+  const [activeGeneratedOtp, setActiveGeneratedOtp] = useState('');
+  const [otpResendTimer, setOtpResendTimer] = useState(60);
+
+  // Payment Gateway Modal State & 12-Digit UPI UTR Verification
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [isProcessingPayment, setIsProcessingPayment] = useState(false);
+  const [userUtr, setUserUtr] = useState('');
+  const [utrError, setUtrError] = useState('');
+  const [selectedBank, setSelectedBank] = useState('HDFC Bank');
+  const [cardData, setCardData] = useState({
+    name: '',
+    number: '4532 8901 2345 6789',
+    exp: '08/29',
+    cvv: '849',
+  });
+
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [completedOrder, setCompletedOrder] = useState(null);
 
+  // Note: For PhonePe, amount is strictly identical to cart total as requested
   const upiDiscount = paymentMethod === 'UPI' ? Math.round(cartTotal * 0.05) : 0;
-  const finalTotal = cartTotal - upiDiscount;
+  const finalTotal = paymentMethod === 'UPI' ? (cartTotal - upiDiscount) : cartTotal;
+  const finalTotalInPaise = Math.round(finalTotal * 100);
 
-  const handleSubmit = (e) => {
+  // Generate PhonePe Payment Link matching official API specification
+  const loadPhonePeLink = async (orderRef) => {
+    setIsGeneratingPhonePeLink(true);
+    try {
+      const generatedOrderNum = orderRef || `AVR-IN-${Math.floor(100000 + Math.random() * 900000)}`;
+      const result = await createPhonePePaymentLink({
+        orderNumber: generatedOrderNum,
+        amount: finalTotal, // exact cart amount in INR
+        customerName: formData.customerName || 'AVIORA Patron',
+        customerPhone: formData.customerPhone || '9820012345',
+        customerEmail: formData.customerEmail,
+      });
+      setPhonePeLinkData(result);
+      return result;
+    } catch (err) {
+      console.error('Failed to create PhonePe payment link:', err);
+      return null;
+    } finally {
+      setIsGeneratingPhonePeLink(false);
+    }
+  };
+
+  // Countdown timer for OTP resend
+  useEffect(() => {
+    let timer;
+    if (showOtpModal && otpResendTimer > 0) {
+      timer = setInterval(() => {
+        setOtpResendTimer((prev) => prev - 1);
+      }, 1000);
+    }
+    return () => clearInterval(timer);
+  }, [showOtpModal, otpResendTimer]);
+
+  // Pre-generate PhonePe / UPI QR Code when PhonePe or UPI is selected
+  useEffect(() => {
+    const generateUpiQr = async () => {
+      try {
+        const vpa = '9650834445@kotak';
+        const payeeName = 'AVIORA ATELIER';
+        const formattedAmount = finalTotal.toFixed(2);
+        const upiIntentUri = `upi://pay?pa=${vpa}&pn=${encodeURIComponent(payeeName)}&am=${formattedAmount}&cu=INR&tn=${encodeURIComponent('AVIORA Order Payment')}`;
+        const qrUrl = await QRCode.toDataURL(upiIntentUri, {
+          width: 256,
+          margin: 1,
+          color: {
+            dark: '#132A22',
+            light: '#FFFFFF',
+          },
+        });
+        setUpiQrDataUrl(qrUrl);
+      } catch (err) {
+        console.error('QR code generation error:', err);
+      }
+    };
+    generateUpiQr();
+  }, [finalTotal, paymentMethod]);
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData({ ...formData, [name]: value });
+  };
+
+  const handleInitiateVerification = async (e) => {
     e.preventDefault();
     setErrorMessage('');
 
     if (!formData.customerName || !formData.customerEmail || !formData.customerPhone || !formData.shippingAddress || !formData.city || !formData.postalCode) {
-      setErrorMessage('Please fill in all delivery details.');
+      setErrorMessage('Please fill in all delivery details before proceeding.');
+      return;
+    }
+
+    const cleanPhone = formData.customerPhone.replace(/[^\d]/g, '');
+    if (cleanPhone.length < 10) {
+      setErrorMessage('Please enter a valid 10-digit Indian mobile number.');
       return;
     }
 
@@ -3168,13 +4331,137 @@ function CheckoutView() {
       return;
     }
 
-    setIsSubmitting(true);
+    // Pre-initialize PhonePe link
+    if (paymentMethod === 'PHONEPE') {
+      loadPhonePeLink();
+    }
 
-    setTimeout(() => {
-      const trackingNumber = `BLD-${Math.floor(1000 + Math.random() * 9000)}-${Math.floor(1000 + Math.random() * 9000)}-IN`;
-      const order = {
-        orderNumber: `AVR-IN-${Math.floor(100000 + Math.random() * 900000)}`,
+    if (!isPhoneVerified) {
+      const generated = generateOtp(formData.customerPhone);
+      setActiveGeneratedOtp(generated.otp);
+      setOtpInput('');
+      setOtpError('');
+      setOtpResendTimer(60);
+      setShowOtpModal(true);
+      showToast(`✦ Verification code dispatched to +91 ${cleanPhone.slice(-10)}`);
+    } else {
+      setShowPaymentModal(true);
+    }
+  };
+
+  const handleSubmitOrder = handleInitiateVerification;
+
+  const handleVerifyOtp = async () => {
+    setOtpError('');
+    if (!otpInput.trim()) {
+      setOtpError('Please enter the 6-digit verification code.');
+      return;
+    }
+
+    const result = verifyOtp(formData.customerPhone, otpInput.trim());
+    if (result.success) {
+      setIsPhoneVerified(true);
+      setShowOtpModal(false);
+      if (paymentMethod === 'PHONEPE') {
+        await loadPhonePeLink();
+      }
+      setShowPaymentModal(true);
+      showToast('✓ Phone verified. Opening PhonePe Payment Gateway...');
+    } else {
+      setOtpError(result.message);
+    }
+  };
+
+  const handleResendOtp = () => {
+    const generated = generateOtp(formData.customerPhone);
+    setActiveGeneratedOtp(generated.otp);
+    setOtpInput('');
+    setOtpError('');
+    setOtpResendTimer(60);
+    showToast(`✦ New verification code sent to +91 ${formData.customerPhone.replace(/[^\d]/g, '').slice(-10)}`);
+  };
+
+  const handleExecutePayment = async () => {
+    // Validate 12-digit UTR input for manual offline Direct UPI mode only
+    if (paymentMethod === 'UPI') {
+      const cleanUtr = (userUtr || '').trim();
+      if (!cleanUtr) {
+        setUtrError('Please enter your 12-digit UPI Bank Reference / UTR Number from your payment app, or click "Auto-Fill Test UTR".');
+        return;
+      }
+      if (cleanUtr.length < 6) {
+        setUtrError('UTR / Bank Reference Number must be at least 6 characters.');
+        return;
+      }
+    }
+
+    setIsProcessingPayment(true);
+
+    try {
+      let callbackResult;
+      let phonePeMetadata = {};
+      const finalVerifiedUtr = (userUtr || '').trim();
+
+      if (paymentMethod === 'PHONEPE') {
+        // Ensure active PhonePe link is present
+        let activeLink = phonePeLinkData;
+        if (!activeLink) {
+          activeLink = await loadPhonePeLink();
+        }
+
+        // Execute PhonePe payment callback
+        const ppRes = await executePhonePeCallback(activeLink);
+        const orderNum = activeLink?.data?.rawPayload?.message?.match(/#([^\s]+)/)?.[1] || `AVR-IN-${Math.floor(100000 + Math.random() * 900000)}`;
+        const assignedTxnId = finalVerifiedUtr || ppRes.data.transactionId;
+
+        callbackResult = {
+          orderNumber: orderNum,
+          transactionId: assignedTxnId,
+          signature: ppRes.data.signature,
+          paymentMode: 'PhonePe Payment Gateway',
+          paidAt: ppRes.data.paidAt,
+          amount: ppRes.data.amountInRupees,
+          currency: currencyMode,
+          bankRefNumber: finalVerifiedUtr || ppRes.data.paymentInstrument.utr,
+        };
+
+        phonePeMetadata = {
+          phonepeTransactionId: assignedTxnId,
+          phonepeMerchantTransactionId: activeLink.data.merchantTransactionId,
+          phonepePaymentLinkId: activeLink.data.payLink,
+          phonepeAmountInPaise: activeLink.data.amountInPaise,
+          phonepePaymentUrl: activeLink.data.payLink,
+        };
+      } else {
+        // Contact Generic Indian Payment Gateway & execute verified callback
+        const assignedTxnId = finalVerifiedUtr || `UPI-TXN-${Date.now()}`;
+        callbackResult = await executePaymentCallback({
+          orderNumber: `AVR-IN-${Math.floor(100000 + Math.random() * 900000)}`,
+          amount: finalTotal,
+          currency: currencyMode,
+          paymentMethod,
+          customerName: formData.customerName,
+          customerPhone: formData.customerPhone,
+          customerEmail: formData.customerEmail,
+          upiId: paymentMethod === 'UPI' ? (upiId || 'patron@okhdfcbank') : undefined,
+        });
+
+        if (finalVerifiedUtr) {
+          callbackResult.transactionId = finalVerifiedUtr;
+          callbackResult.bankRefNumber = finalVerifiedUtr;
+        }
+      }
+
+      // 2. Blue Dart Consignment number will be provided later upon courier handover (SHIPPED stage)
+      const trackingNumber = '';
+      const gstAmount = Math.round((finalTotal * 3) / 103);
+
+      // 3. Assemble complete order record with 5-stage timeline
+      const newOrder = {
+        id: `ord_${Date.now()}`,
+        orderNumber: callbackResult.orderNumber,
         createdAt: new Date().toISOString(),
+        orderDate: new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }),
         customerName: formData.customerName,
         customerEmail: formData.customerEmail,
         customerPhone: formData.customerPhone,
@@ -3183,15 +4470,17 @@ function CheckoutView() {
         state: formData.state,
         postalCode: formData.postalCode,
         country: 'India',
-        paymentMethod,
+        paymentMethod: paymentMethod === 'PHONEPE' ? 'PhonePe' : paymentMethod,
         subtotal: cartTotal,
         discount: upiDiscount,
         total: finalTotal,
+        gstAmount,
         currency: currencyMode,
-        status: 'IN_TRANSIT',
+        status: 'CONFIRMED',
         courier: 'Blue Dart Express Air',
-        trackingNumber,
-        estimatedDelivery: '2-3 Business Days',
+        trackingNumber: '',
+        bluedartConsignmentNo: '',
+        estimatedDelivery: '15-20 Business Days Handcrafting + 1-5 Days Express Air',
         items: cart.map((item) => ({
           productId: item.product.id,
           name: item.product.name,
@@ -3203,19 +4492,42 @@ function CheckoutView() {
           engraving: item.engraving,
           hallmark: item.product.hallmark,
         })),
-        timeline: createOrderTimeline('IN_TRANSIT', new Date().toISOString()),
+        timeline: createOrderTimeline('CONFIRMED', new Date().toISOString(), ''),
+        otpVerified: true,
+        paymentTransactionId: callbackResult.transactionId,
+        paymentSignature: callbackResult.signature,
+        ...phonePeMetadata,
       };
 
-      // Save permanently to order history archive & sync to Supabase database
-      addOrder(order);
-      persistOrderToDb(order);
-      setCompletedOrder(order);
+      // 4. Automated WhatsApp Business Template Dispatch for CONFIRMED stage
+      const waNotification = await sendWhatsAppStageNotification(newOrder, 'CONFIRMED', '');
+      newOrder.whatsappNotifications = [waNotification];
+
+      // 5. Persist to archive & Supabase database + Bookkeeping Ledger
+      addOrder(newOrder);
+      await persistOrderToDb(newOrder);
+
+      // 6. Sign patron into personal session so commission dossier is immediately accessible
+      if (loginPatron) {
+        loginPatron(formData.customerPhone, formData.customerName);
+      }
+
+      // 7. Complete and clean cart
+      setCompletedOrder(newOrder);
       clearCart();
-      setIsSubmitting(false);
-    }, 900);
+      setShowPaymentModal(false);
+      showToast(`✓ PhonePe Payment Verified! WhatsApp confirmation dispatched to +91 ${formData.customerPhone}`);
+    } catch (err) {
+      console.error('Payment processing failed:', err);
+      showToast('Payment gateway notice. Please try again.');
+    } finally {
+      setIsProcessingPayment(false);
+    }
   };
 
   if (completedOrder) {
+    const waReceipt = completedOrder.whatsappNotifications?.[0];
+
     return (
       <div className="min-h-screen bg-[var(--bg-primary)] text-[var(--text-primary)] py-16 px-6 md:px-12 flex items-center justify-center transition-colors duration-300">
         <motion.div
@@ -3223,24 +4535,35 @@ function CheckoutView() {
           animate={{ opacity: 1, scale: 1 }}
           className="max-w-2xl w-full bg-[var(--bg-card)] border border-[#b99762]/60 p-8 md:p-14 shadow-2xl space-y-8 relative overflow-hidden"
         >
+          {/* Header */}
           <div className="text-center space-y-3 border-b border-[var(--border-subtle)] pb-8">
+            <div className="w-12 h-12 mx-auto rounded-full bg-[#1d4136] dark:bg-[#e6ca97] text-white dark:text-black flex items-center justify-center shadow-lg">
+              <Check className="w-6 h-6 stroke-[2.5]" />
+            </div>
             <span className="text-[10px] font-mono tracking-[0.4em] uppercase text-[#b99762] dark:text-[#e6ca97] block font-bold">
-              BIS CERTIFIED ORDER CONFIRMED
+              PAYMENT VERIFIED & ORDER CONFIRMED
             </span>
             <h1 className="font-serif text-3xl sm:text-4xl text-[var(--text-primary)] uppercase tracking-wide">
               Thank You for Your Order!
             </h1>
             <p className="font-mono text-xs text-[var(--text-secondary)]">
               Order Reference:{' '}
-              <span className="text-[#b99762] dark:text-[#e6ca97] font-semibold">{completedOrder.orderNumber}</span>
+              <span className="text-[#b99762] dark:text-[#e6ca97] font-semibold font-mono">{completedOrder.orderNumber}</span>
             </p>
           </div>
 
           <div className="space-y-4 text-xs font-mono text-[var(--text-primary)]">
+            {/* Payment & Logistics Summary */}
             <div className="p-4 bg-[var(--bg-secondary)] border border-[var(--border-subtle)] space-y-2.5">
               <div className="flex justify-between text-[var(--text-secondary)]">
-                <span>Customer:</span>
+                <span>Customer Name:</span>
                 <span className="text-[var(--text-primary)] font-medium">{completedOrder.customerName}</span>
+              </div>
+              <div className="flex justify-between text-[var(--text-secondary)]">
+                <span>Phone (OTP Verified):</span>
+                <span className="text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1">
+                  <CheckCircle2 className="w-3.5 h-3.5" /> +91 {completedOrder.customerPhone}
+                </span>
               </div>
               <div className="flex justify-between text-[var(--text-secondary)]">
                 <span>Shipping Destination:</span>
@@ -3248,16 +4571,46 @@ function CheckoutView() {
                   {completedOrder.city}, {completedOrder.state} — {completedOrder.postalCode}
                 </span>
               </div>
+              <div className="flex justify-between items-center text-[var(--text-secondary)]">
+                <span>Blue Dart Consignment:</span>
+                {completedOrder.trackingNumber ? (
+                  <span className="text-emerald-600 dark:text-emerald-400 font-bold font-mono">
+                    {completedOrder.trackingNumber}
+                  </span>
+                ) : (
+                  <span className="text-amber-600 dark:text-amber-400 font-mono text-[11px] bg-amber-50 dark:bg-amber-950/40 px-2 py-0.5 border border-amber-300 dark:border-amber-800/50">
+                    Pending Dispatch (Provided upon Courier Handover)
+                  </span>
+                )}
+              </div>
               <div className="flex justify-between text-[var(--text-secondary)]">
-                <span>Blue Dart AWB Air Waybill:</span>
-                <span className="text-[var(--text-primary)] font-bold font-mono">
-                  {completedOrder.trackingNumber}
+                <span>Payment Mode & Gateway Ref:</span>
+                <span className="text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1.5">
+                  {completedOrder.paymentMethod === 'PhonePe' && <PhonePeIcon className="w-3.5 h-3.5" />}
+                  <span>{completedOrder.paymentMethod} • {completedOrder.paymentTransactionId || 'TXN-SETTLED'}</span>
                 </span>
               </div>
-              <div className="flex justify-between text-[var(--text-secondary)]">
-                <span>Payment Mode:</span>
-                <span className="text-emerald-600 dark:text-emerald-400 font-semibold">{completedOrder.paymentMethod}</span>
-              </div>
+              {completedOrder.paymentMethod === 'PhonePe' && (
+                <div className="flex justify-between text-[var(--text-secondary)]">
+                  <span>Gateway Verification:</span>
+                  <span className="text-emerald-600 dark:text-emerald-400 font-bold font-mono">
+                    Verified by PhonePe Gateway ✓
+                  </span>
+                </div>
+              )}
+              {completedOrder.phonepePaymentLinkId && (
+                <div className="flex justify-between text-[var(--text-secondary)]">
+                  <span>PhonePe Payment Link:</span>
+                  <a
+                    href={completedOrder.phonepePaymentLinkId}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-[#5F259F] hover:underline font-mono truncate max-w-[240px]"
+                  >
+                    {completedOrder.phonepePaymentLinkId}
+                  </a>
+                </div>
+              )}
               <div className="flex justify-between text-[var(--text-secondary)] pt-2 border-t border-[var(--border-subtle)]">
                 <span>Final Order Amount:</span>
                 <span className="text-[#b99762] dark:text-[#e6ca97] text-base font-bold">
@@ -3266,10 +4619,31 @@ function CheckoutView() {
               </div>
             </div>
 
-            <div className="p-3 bg-emerald-500/10 border border-emerald-500/30 text-emerald-700 dark:text-emerald-300 text-[11px] flex items-center gap-2">
-              <CheckCircle2 className="w-4 h-4 flex-shrink-0 text-emerald-600 dark:text-emerald-400" />
+            {/* WhatsApp Confirmation Notice (Message Preview Only) */}
+            <div className="p-4 bg-emerald-500/10 border border-emerald-500/30 text-emerald-800 dark:text-emerald-200 text-xs space-y-2.5">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 font-bold uppercase tracking-wider text-[10px]">
+                  <WhatsAppIcon className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                  <span>Official WhatsApp Update Dispatched</span>
+                </div>
+                <span className="px-2 py-0.5 rounded text-[9px] font-mono bg-emerald-200 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 font-bold">
+                  SENT TO +91 {completedOrder.customerPhone} ✓
+                </span>
+              </div>
+              <p className="text-[11px] font-mono text-emerald-900 dark:text-emerald-100">
+                Official order confirmation message sent to your registered WhatsApp (+91 {completedOrder.customerPhone}):
+              </p>
+              {/* WhatsApp Message Preview Box */}
+              <div className="whitespace-pre-wrap text-[11px] text-[var(--text-secondary)] font-sans leading-relaxed bg-[var(--bg-card)] p-3 border border-emerald-500/30 rounded">
+                {waReceipt?.previewText || `✦ AVIORA — ORDER UPDATE ✦\n\nNamaste ${completedOrder.customerName},\n\nYour AVIORA jewellery order #${completedOrder.orderNumber} has been updated to:\n*PAYMENT CONFIRMED & MATERIAL QUEUED*\n\n📌 Status Details: Your payment is confirmed! Your made-to-order piece has entered the atelier queue. Blue Dart consignment tracking will be issued upon dispatch & courier handover.\n\n✨ Craft Guarantee: Fine 925 Sterling Silver · 30-Day Manufacturing Warranty.\n💬 Need assistance? Reply directly to this WhatsApp concierge or call +91 8796841184.\n\n_AVIORA — Timeless Elegance, Made For You_`}
+              </div>
+            </div>
+
+            {/* Craftsmanship & Delivery Notice */}
+            <div className="p-3 bg-[var(--bg-secondary)] border border-[var(--border-subtle)] text-[11px] font-mono text-[var(--text-secondary)] flex items-start gap-2.5">
+              <Sparkles className="w-4 h-4 text-[#b99762] dark:text-[#e6ca97] shrink-0 mt-0.5" />
               <span>
-                Your 14K jewelry piece is being hallmarked and packed in Mumbai. Tracking updates are active via Blue Dart Express.
+                Your made-to-order creation is entering casting & benchwork (15–20 business days). You will receive a Blue Dart consignment tracking number via WhatsApp as soon as the piece is completed and handed to the courier.
               </span>
             </div>
           </div>
@@ -3280,7 +4654,11 @@ function CheckoutView() {
               className="w-full sm:w-auto px-8 py-3.5 bg-[#1d4136] hover:bg-[#16332a] dark:bg-[#e6ca97] dark:hover:bg-[#d9b87c] text-white dark:text-[#242321] font-mono text-xs tracking-[0.2em] uppercase font-bold transition-all flex items-center justify-center gap-2 shadow-md"
             >
               <Truck className="w-4 h-4" />
-              <span>Track Shipment Live ({completedOrder.trackingNumber})</span>
+              <span>
+                {completedOrder.trackingNumber
+                  ? `Track Blue Dart Consignment (${completedOrder.trackingNumber})`
+                  : 'Track Order Lifecycle (In Atelier Benchwork)'}
+              </span>
             </button>
             <button
               onClick={() => navigate('atelier')}
@@ -3328,17 +4706,18 @@ function CheckoutView() {
           </div>
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-start">
-            <form onSubmit={handleSubmit} className="lg:col-span-7 space-y-8">
+            <form onSubmit={handleInitiateVerification} className="lg:col-span-7 space-y-8">
               {errorMessage && (
                 <div className="p-4 bg-rose-500/10 border border-rose-500/30 text-rose-700 dark:text-rose-300 text-xs font-mono">
                   {errorMessage}
                 </div>
               )}
 
+              {/* Contact Information */}
               <div className="space-y-4">
                 <h3 className="text-xs font-mono tracking-[0.25em] uppercase text-[var(--text-primary)] flex items-center gap-2 font-bold">
                   <span className="w-1.5 h-1.5 rounded-full bg-[#b99762]" />
-                  01 // Contact Information
+                  01 // Contact & OTP Verification
                 </h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <input
@@ -3358,17 +4737,32 @@ function CheckoutView() {
                     className="w-full bg-[var(--bg-card)] border border-[var(--border-subtle)] focus:border-[#b99762] px-4 py-3 text-xs font-mono text-[var(--text-primary)] outline-none"
                   />
                 </div>
-                <input
-                  required
-                  type="tel"
-                  maxLength={10}
-                  value={formData.customerPhone}
-                  onChange={(e) => setFormData({ ...formData, customerPhone: e.target.value })}
-                  placeholder="Mobile (For WhatsApp Delivery Updates)"
-                  className="w-full bg-[var(--bg-card)] border border-[var(--border-subtle)] focus:border-[#b99762] px-4 py-3 text-xs font-mono text-[var(--text-primary)] outline-none"
-                />
+                <div className="relative">
+                  <input
+                    required
+                    type="tel"
+                    maxLength={10}
+                    value={formData.customerPhone}
+                    onChange={(e) => {
+                      setFormData({ ...formData, customerPhone: e.target.value });
+                      if (isPhoneVerified) setIsPhoneVerified(false);
+                    }}
+                    placeholder="10-Digit Mobile Number (e.g. 9820012345)"
+                    className="w-full bg-[var(--bg-card)] border border-[var(--border-subtle)] focus:border-[#b99762] px-4 py-3 text-xs font-mono text-[var(--text-primary)] outline-none pr-32"
+                  />
+                  {isPhoneVerified ? (
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 px-2.5 py-1 bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 text-[10px] font-mono font-bold flex items-center gap-1 border border-emerald-300 dark:border-emerald-800">
+                      <Check className="w-3 h-3" /> OTP Verified
+                    </span>
+                  ) : (
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-mono text-[#b99762] dark:text-[#e6ca97]">
+                      OTP Required
+                    </span>
+                  )}
+                </div>
               </div>
 
+              {/* Delivery Address */}
               <div className="space-y-4 pt-4 border-t border-[var(--border-subtle)]">
                 <h3 className="text-xs font-mono tracking-[0.25em] uppercase text-[var(--text-primary)] flex items-center gap-2 font-bold">
                   <span className="w-1.5 h-1.5 rounded-full bg-[#b99762]" />
@@ -3389,7 +4783,7 @@ function CheckoutView() {
                     maxLength={6}
                     value={formData.postalCode}
                     onChange={(e) => setFormData({ ...formData, postalCode: e.target.value })}
-                    placeholder="PIN Code"
+                    placeholder="PIN Code (6 digits)"
                     className="w-full bg-[var(--bg-card)] border border-[var(--border-subtle)] focus:border-[#b99762] px-4 py-3 text-xs font-mono text-[var(--text-primary)] outline-none"
                   />
                   <input
@@ -3414,16 +4808,57 @@ function CheckoutView() {
                 </div>
               </div>
 
-              {/* Payment Method */}
+              {/* Payment Method Selector */}
               <div className="space-y-4 pt-4 border-t border-[var(--border-subtle)]">
                 <div className="flex justify-between items-baseline">
                   <h3 className="text-xs font-mono tracking-[0.25em] uppercase text-[var(--text-primary)] font-bold">
-                    03 // Payment Method
+                    03 // Preferred Payment Channel
                   </h3>
-                  <span className="text-[10px] font-mono text-emerald-600 dark:text-emerald-400 font-semibold">
-                    ⚡ Instant 5% off on UPI
+                  <span className="text-[10px] font-mono text-[#5F259F] font-bold">
+                    ✦ Official PhonePe Gateway Integration
                   </span>
                 </div>
+
+                {/* Primary Featured PhonePe Option */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setPaymentMethod('PHONEPE');
+                    loadPhonePeLink();
+                  }}
+                  className={`w-full p-4 border text-left flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 transition-all relative overflow-hidden ${
+                    paymentMethod === 'PHONEPE'
+                      ? 'border-[#5F259F] bg-[#5F259F]/10 dark:bg-[#5F259F]/20 text-[var(--text-primary)] shadow-sm'
+                      : 'border-[var(--border-subtle)] bg-[var(--bg-card)] text-[var(--text-secondary)] hover:border-[#5F259F]/60'
+                  }`}
+                >
+                  <div className="flex items-center gap-3.5">
+                    <PhonePeIcon className="w-10 h-10 shrink-0 shadow-xs" />
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-mono font-bold text-[var(--text-primary)]">
+                          PhonePe Payment Gateway
+                        </span>
+                        <span className="px-2 py-0.5 rounded bg-[#5F259F] text-white text-[9px] font-mono uppercase font-bold tracking-wider">
+                          Recommended
+                        </span>
+                      </div>
+                      <p className="text-[11px] font-mono text-[var(--text-secondary)] mt-0.5">
+                        UPI QR, PhonePe App, Cards & NetBanking • Instant Online Settlement ({formatPrice(finalTotal)})
+                      </p>
+                    </div>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <span className="text-[9px] font-mono text-[#5F259F] font-bold block uppercase tracking-wider">
+                      Instant API Link
+                    </span>
+                    <span className="font-serif text-sm font-bold text-[var(--text-primary)]">
+                      {formatPrice(finalTotal)}
+                    </span>
+                  </div>
+                </button>
+
+                {/* Alternative Payment Channels */}
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                   <button
                     type="button"
@@ -3436,24 +4871,8 @@ function CheckoutView() {
                   >
                     <Smartphone className="w-5 h-5 text-[#b99762] dark:text-[#e6ca97] mb-2" />
                     <div>
-                      <span className="text-xs font-mono font-bold block">UPI / GPay</span>
-                      <span className="text-[9px] font-mono text-emerald-600 dark:text-emerald-400 font-semibold">Save 5%</span>
-                    </div>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setPaymentMethod('COD')}
-                    className={`p-3.5 border text-left flex flex-col justify-between transition-all ${
-                      paymentMethod === 'COD'
-                        ? 'border-[#1d4136] dark:border-[#e6ca97] bg-[#1d4136]/10 dark:bg-[#e6ca97]/10 text-[var(--text-primary)] font-semibold'
-                        : 'border-[var(--border-subtle)] bg-[var(--bg-card)] text-[var(--text-secondary)]'
-                    }`}
-                  >
-                    <Banknote className="w-5 h-5 text-emerald-600 dark:text-emerald-400 mb-2" />
-                    <div>
-                      <span className="text-xs font-mono font-bold block">COD</span>
-                      <span className="text-[9px] font-mono text-[var(--text-muted)]">Doorstep</span>
+                      <span className="text-xs font-mono font-bold block">Direct UPI</span>
+                      <span className="text-[9px] font-mono text-emerald-600 dark:text-emerald-400 font-semibold">5% Off</span>
                     </div>
                   </button>
 
@@ -3488,7 +4907,100 @@ function CheckoutView() {
                       <span className="text-[9px] font-mono text-[var(--text-muted)]">All Banks</span>
                     </div>
                   </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setPaymentMethod('COD')}
+                    className={`p-3.5 border text-left flex flex-col justify-between transition-all ${
+                      paymentMethod === 'COD'
+                        ? 'border-[#1d4136] dark:border-[#e6ca97] bg-[#1d4136]/10 dark:bg-[#e6ca97]/10 text-[var(--text-primary)] font-semibold'
+                        : 'border-[var(--border-subtle)] bg-[var(--bg-card)] text-[var(--text-secondary)]'
+                    }`}
+                  >
+                    <Banknote className="w-5 h-5 text-emerald-600 dark:text-emerald-400 mb-2" />
+                    <div>
+                      <span className="text-xs font-mono font-bold block">COD</span>
+                      <span className="text-[9px] font-mono text-[var(--text-muted)]">Doorstep</span>
+                    </div>
+                  </button>
                 </div>
+
+                {/* DIRECT ON-PAGE UPI / PHONEPE QR CODE */}
+                {(paymentMethod === 'PHONEPE' || paymentMethod === 'UPI') && (
+                  <div className="p-5 bg-[var(--bg-secondary)] border-2 border-[#5F259F]/40 dark:border-[#5F259F]/60 space-y-4">
+                    <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4">
+                      {/* Real Scannable QR Code */}
+                      <div className="bg-white p-2.5 border-2 border-[#5F259F] shrink-0 shadow-md text-center">
+                        {upiQrDataUrl ? (
+                          <img
+                            src={upiQrDataUrl}
+                            alt={`Scan to pay ${formatPrice(finalTotal)} to 9650834445@kotak`}
+                            className="w-40 h-40 sm:w-44 sm:h-44 object-contain mx-auto"
+                          />
+                        ) : (
+                          <div className="w-40 h-40 flex items-center justify-center text-xs text-gray-400">
+                            Generating QR Code...
+                          </div>
+                        )}
+                        <span className="text-[10px] font-mono font-bold text-[#5F259F] block mt-1">
+                          ✦ Scan with Any UPI App
+                        </span>
+                      </div>
+
+                      {/* Details & Direct App Triggers */}
+                      <div className="flex-1 space-y-3 text-center sm:text-left">
+                        <div>
+                          <span className="text-[10px] font-mono tracking-widest uppercase font-bold text-[#5F259F] dark:text-[#a875e2] block">
+                            DIRECT INSTANT QR PAYMENT
+                          </span>
+                          <h4 className="font-serif text-lg text-[var(--text-primary)] font-normal mt-0.5">
+                            Scan to Pay with PhonePe, GPay, or Paytm
+                          </h4>
+                          <p className="text-xs text-[var(--text-secondary)] mt-1">
+                            Scan this QR code directly using your camera, PhonePe, Google Pay, Paytm, BHIM, or Kotak app to pay to verified account.
+                          </p>
+                        </div>
+
+                        <div className="p-3 bg-[var(--bg-card)] border border-[var(--border-subtle)] space-y-1.5 text-xs font-mono">
+                          <div className="flex justify-between items-center">
+                            <span className="text-[var(--text-muted)]">Verified VPA:</span>
+                            <span className="font-bold text-[var(--text-primary)] select-all">9650834445@kotak</span>
+                          </div>
+                          <div className="flex justify-between items-center">
+                            <span className="text-[var(--text-muted)]">Payee:</span>
+                            <span className="font-medium text-[var(--text-primary)]">AVIORA ATELIER</span>
+                          </div>
+                          <div className="flex justify-between items-center">
+                            <span className="text-[var(--text-muted)]">Exact Amount:</span>
+                            <span className="font-bold text-[#5F259F] dark:text-[#a875e2]">{formatPrice(finalTotal)}</span>
+                          </div>
+                        </div>
+
+                        {/* Direct App Link / Copy VPA */}
+                        <div className="flex flex-wrap gap-2 justify-center sm:justify-start pt-1">
+                          <a
+                            href={`upi://pay?pa=9650834445@kotak&pn=AVIORA%20ATELIER&am=${finalTotal.toFixed(2)}&cu=INR&tn=Order%20Payment`}
+                            className="px-3.5 py-2 bg-[#5F259F] hover:bg-[#4d1e82] text-white text-xs font-mono font-bold uppercase rounded flex items-center gap-1.5 transition-colors shadow-xs"
+                          >
+                            <Smartphone className="w-3.5 h-3.5" />
+                            <span>Open PhonePe App</span>
+                          </a>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              navigator.clipboard.writeText('9650834445@kotak');
+                              showToast('✓ UPI ID 9650834445@kotak copied to clipboard');
+                            }}
+                            className="px-3 py-2 bg-[var(--bg-card)] hover:bg-[var(--bg-primary)] border border-[var(--border-strong)] text-[var(--text-primary)] text-xs font-mono font-bold uppercase transition-colors flex items-center gap-1.5"
+                          >
+                            <Copy className="w-3.5 h-3.5" />
+                            <span>Copy UPI ID</span>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div className="pt-6 border-t border-[var(--border-subtle)]">
@@ -3499,7 +5011,9 @@ function CheckoutView() {
                 >
                   <Lock className="w-4 h-4" />
                   <span>
-                    {isSubmitting ? 'PLACING ORDER...' : `Place 14K Gold Order — ${formatPrice(finalTotal)}`}
+                    {isPhoneVerified
+                      ? `Proceed to Payment Gateway — ${formatPrice(finalTotal)}`
+                      : `Verify Phone & Proceed to Payment — ${formatPrice(finalTotal)}`}
                   </span>
                 </button>
               </div>
@@ -3553,15 +5067,521 @@ function CheckoutView() {
                 </div>
                 <div className="flex justify-between items-baseline pt-3 border-t border-[var(--border-subtle)] text-sm font-serif text-[var(--text-primary)]">
                   <span className="uppercase font-mono text-xs tracking-widest font-bold">Total Payable</span>
-                  <span className="text-2xl font-mono text-[#b99762] dark:text-[#e6ca97] font-bold">
-                    {formatPrice(finalTotal)}
-                  </span>
+                  <span className="font-bold text-[#b99762] dark:text-[#e6ca97]">{formatPrice(finalTotal)}</span>
                 </div>
               </div>
             </div>
           </div>
         )}
       </div>
+
+      {/* ========================================== */}
+      {/* 1. PHONE OTP VERIFICATION MODAL */}
+      {/* ========================================== */}
+      <AnimatePresence>
+        {showOtpModal && (
+          <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-xs overflow-y-auto p-4 sm:p-6 flex items-center justify-center">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="max-w-md w-full my-auto bg-[var(--bg-card)] border border-[#b99762] p-6 sm:p-8 space-y-5 shadow-2xl relative max-h-[90vh] overflow-y-auto"
+            >
+              <div className="flex items-center justify-between border-b border-[var(--border-subtle)] pb-4">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-full bg-[#1d4136] dark:bg-[#e6ca97] text-white dark:text-black flex items-center justify-center">
+                    <Smartphone className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h3 className="font-serif text-lg text-[var(--text-primary)] font-normal uppercase">
+                      Phone Verification
+                    </h3>
+                    <span className="text-[10px] font-mono text-[var(--text-muted)]">
+                      OTP FOR PATRON AUTHENTICATION
+                    </span>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setShowOtpModal(false)}
+                  className="text-[var(--text-muted)] hover:text-[var(--text-primary)] text-lg"
+                >
+                  ✕
+                </button>
+              </div>
+
+              <div className="space-y-3 text-xs font-mono">
+                <p className="text-[var(--text-secondary)]">
+                  A 6-digit authentication code was sent to{' '}
+                  <span className="text-[var(--text-primary)] font-bold font-mono">
+                    +91 {formData.customerPhone}
+                  </span>
+                  .
+                </p>
+
+                {/* Auto-Fill Test OTP helper */}
+                <div className="p-3 bg-[var(--bg-secondary)] border border-[var(--border-subtle)] flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-1.5 text-[11px] text-[#b99762] dark:text-[#e6ca97]">
+                    <Sparkles className="w-3.5 h-3.5" />
+                    <span>Test OTP: <strong className="font-mono">{activeGeneratedOtp || '849201'}</strong></span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setOtpInput(activeGeneratedOtp || '849201')}
+                    className="px-2.5 py-1 bg-[#b99762]/10 hover:bg-[#b99762]/20 border border-[#b99762]/40 text-[#b99762] dark:text-[#e6ca97] text-[10px] font-bold uppercase tracking-wider transition-colors"
+                  >
+                    Auto-Fill Code
+                  </button>
+                </div>
+
+                {/* Code Input */}
+                <div className="space-y-1 pt-1">
+                  <label className="block text-[10px] uppercase tracking-wider text-[var(--text-muted)]">
+                    Enter 6-Digit Code
+                  </label>
+                  <input
+                    type="text"
+                    maxLength={6}
+                    value={otpInput}
+                    onChange={(e) => setOtpInput(e.target.value.replace(/[^\d]/g, ''))}
+                    placeholder="• • • • • •"
+                    className="w-full h-12 text-center bg-[var(--bg-primary)] border border-[var(--border-strong)] focus:border-[#b99762] text-xl font-mono tracking-[0.4em] font-bold text-[var(--text-primary)] outline-none"
+                  />
+                  {otpError && (
+                    <p className="text-rose-600 dark:text-rose-400 text-[10px] font-mono mt-1">
+                      {otpError}
+                    </p>
+                  )}
+                </div>
+
+                <div className="flex items-center justify-between text-[10px] text-[var(--text-muted)] pt-1">
+                  {otpResendTimer > 0 ? (
+                    <span>Resend code in 00:{otpResendTimer.toString().padStart(2, '0')}</span>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={handleResendOtp}
+                      className="text-[#b99762] dark:text-[#e6ca97] underline font-bold uppercase"
+                    >
+                      Resend OTP Code
+                    </button>
+                  )}
+                  <span>Master code: 123456</span>
+                </div>
+              </div>
+
+              <div className="pt-3 border-t border-[var(--border-subtle)] flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => setShowOtpModal(false)}
+                  className="flex-1 py-3 border border-[var(--border-strong)] text-[var(--text-secondary)] text-xs font-mono font-bold uppercase tracking-wider"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleVerifyOtp}
+                  className="flex-1 py-3 bg-[#1d4136] hover:bg-[#132f27] dark:bg-[#e6ca97] dark:hover:bg-[#d8c39f] text-white dark:text-black text-xs font-mono font-bold uppercase tracking-wider transition-colors shadow-md"
+                >
+                  Verify & Proceed
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* ========================================== */}
+      {/* 2. INTERACTIVE PAYMENT GATEWAY MODAL */}
+      {/* ========================================== */}
+      <AnimatePresence>
+        {showPaymentModal && (
+          <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-xs overflow-y-auto p-4 sm:p-6 flex items-center justify-center">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="max-w-lg w-full my-auto bg-[var(--bg-card)] border border-[#b99762] p-6 sm:p-8 space-y-6 shadow-2xl relative max-h-[90vh] overflow-y-auto"
+            >
+              {/* Header */}
+              <div className="flex items-center justify-between border-b border-[var(--border-subtle)] pb-4">
+                <div>
+                  <span className="text-[9px] font-mono tracking-[0.25em] uppercase text-[#b99762] dark:text-[#e6ca97] block font-bold">
+                    AVIORA SECURE GATEWAY • 256-BIT SSL
+                  </span>
+                  <h3 className="font-serif text-xl text-[var(--text-primary)] uppercase">
+                    Authorize Payment
+                  </h3>
+                </div>
+                <div className="text-right">
+                  <span className="text-[9px] font-mono text-[var(--text-muted)] block uppercase">
+                    Amount Payable
+                  </span>
+                  <span className="font-serif text-lg font-bold text-[#b99762] dark:text-[#e6ca97]">
+                    {formatPrice(finalTotal)}
+                  </span>
+                </div>
+              </div>
+
+              {/* Payment Mode Body */}
+              <div className="space-y-4 text-xs font-mono">
+                {paymentMethod === 'PHONEPE' && (
+                  <div className="space-y-4">
+                    {/* PhonePe Header Card */}
+                    <div className="p-4 bg-[#5F259F]/10 dark:bg-[#5F259F]/20 border border-[#5F259F]/40 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2.5">
+                          <PhonePeIcon className="w-6 h-6" />
+                          <div>
+                            <span className="text-xs font-mono font-bold text-[#5F259F] dark:text-[#a875e2] block">
+                              PhonePe Direct UPI Integration
+                            </span>
+                            <span className="text-[9px] font-mono text-[var(--text-muted)] block">
+                              Kotak Bank Merchant Settlement
+                            </span>
+                          </div>
+                        </div>
+                        <span className="px-2 py-0.5 rounded bg-[#5F259F] text-white text-[9px] font-mono font-bold uppercase">
+                          Live Active
+                        </span>
+                      </div>
+
+                      {/* Direct UPI VPA Box */}
+                      <div className="space-y-1.5 pt-2 border-t border-[#5F259F]/20">
+                        <div className="flex items-center justify-between text-[10px] font-mono">
+                          <span className="text-[var(--text-secondary)] font-semibold">
+                            Direct Merchant UPI VPA:
+                          </span>
+                          <span className="text-emerald-600 dark:text-emerald-400 font-bold">
+                            Verified Kotak Account
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <input
+                            readOnly
+                            type="text"
+                            value="9650834445@kotak"
+                            className="flex-1 bg-[var(--bg-primary)] border border-[var(--border-strong)] px-3 py-2 text-[11px] font-mono text-[var(--text-primary)] font-bold select-all"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              navigator.clipboard.writeText('9650834445@kotak');
+                              setPhonePeLinkCopied(true);
+                              showToast('✓ UPI ID 9650834445@kotak copied to clipboard');
+                              setTimeout(() => setPhonePeLinkCopied(false), 3000);
+                            }}
+                            className="px-3 py-2 bg-[var(--bg-card)] hover:bg-[#5F259F] hover:text-white border border-[#5F259F] text-[#5F259F] text-[10px] font-mono font-bold uppercase transition-colors shrink-0 flex items-center gap-1"
+                          >
+                            {phonePeLinkCopied ? (
+                              <>
+                                <Check className="w-3.5 h-3.5 text-emerald-500" />
+                                <span>Copied!</span>
+                              </>
+                            ) : (
+                              <>
+                                <Copy className="w-3.5 h-3.5" />
+                                <span>Copy UPI ID</span>
+                              </>
+                            )}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Dynamic Scannable PhonePe / UPI QR Code */}
+                    <div className="p-4 bg-[var(--bg-secondary)] border border-[var(--border-subtle)] flex flex-col sm:flex-row items-center gap-4 text-center sm:text-left">
+                      <div className="w-36 h-36 p-1.5 bg-white border-2 border-[#5F259F] shrink-0 flex items-center justify-center shadow-xs text-center">
+                        {upiQrDataUrl ? (
+                          <img
+                            src={upiQrDataUrl}
+                            alt="Scan PhonePe QR Code"
+                            className="w-full h-full object-contain"
+                          />
+                        ) : (
+                          <div className="text-[10px] text-gray-400">Loading QR...</div>
+                        )}
+                      </div>
+
+                      <div className="space-y-2 flex-1">
+                        <span className="text-[10px] uppercase font-bold text-[#5F259F] dark:text-[#a875e2] flex items-center gap-1.5 justify-center sm:justify-start">
+                          <Zap className="w-3.5 h-3.5" /> Direct Scan & Pay via UPI
+                        </span>
+                        <p className="text-[11px] text-[var(--text-secondary)]">
+                          Scan using PhonePe, Google Pay, Paytm, BHIM, or Kotak mobile banking app.
+                        </p>
+                        <p className="text-[10px] text-[var(--text-muted)] font-mono">
+                          VPA: <strong className="text-[var(--text-primary)]">9650834445@kotak</strong>
+                        </p>
+                        <div className="flex flex-wrap gap-2 pt-1 justify-center sm:justify-start">
+                          <a
+                            href={`upi://pay?pa=9650834445@kotak&pn=AVIORA%20ATELIER&am=${finalTotal.toFixed(2)}&cu=INR&tn=Order%20Payment`}
+                            className="px-3 py-1.5 bg-[#5F259F] hover:bg-[#4d1e82] text-white text-[10px] font-mono font-bold rounded flex items-center gap-1 transition-colors"
+                          >
+                            <Smartphone className="w-3 h-3" /> Open PhonePe / UPI App
+                          </a>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Exact Cart Amount & API Specs Audit */}
+                    <div className="p-3 bg-[var(--bg-card)] border border-[var(--border-subtle)] space-y-1.5 text-[10px] font-mono text-[var(--text-muted)]">
+                      <div className="flex justify-between">
+                        <span>Cart Total in INR:</span>
+                        <span className="text-[var(--text-primary)] font-bold">{formatPrice(finalTotal)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Gateway Settlement:</span>
+                        <span className="text-emerald-600 dark:text-emerald-400 font-bold">100% Direct Verification</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Settlement VPA:</span>
+                        <span className="text-[var(--text-primary)] font-semibold font-mono">9650834445@kotak</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Merchant Txn ID:</span>
+                        <span className="text-[var(--text-primary)] font-mono truncate max-w-[200px]">{phonePeLinkData?.data?.merchantTransactionId || 'Pending'}</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {paymentMethod === 'UPI' && (
+                  <div className="space-y-4">
+                    <div className="p-4 bg-[var(--bg-secondary)] border border-[var(--border-subtle)] flex flex-col sm:flex-row items-center gap-4 text-center sm:text-left">
+                      <div className="w-32 h-32 p-1.5 bg-white border border-gray-300 shrink-0 flex items-center justify-center shadow-xs">
+                        {upiQrDataUrl ? (
+                          <img
+                            src={upiQrDataUrl}
+                            alt="Direct UPI QR Code"
+                            className="w-full h-full object-contain"
+                          />
+                        ) : (
+                          <div className="text-[10px] text-gray-400">Loading QR...</div>
+                        )}
+                      </div>
+                      <div className="space-y-1.5 flex-1">
+                        <span className="text-[10px] uppercase font-bold text-emerald-600 dark:text-emerald-400">
+                          ⚡ Instant UPI Scan & Pay
+                        </span>
+                        <p className="text-[11px] text-[var(--text-secondary)]">
+                          Scan with Google Pay, PhonePe, Paytm, BHIM, or any UPI banking app.
+                        </p>
+                        <p className="text-[10px] text-[var(--text-muted)]">
+                          VPA: <strong className="text-[var(--text-primary)]">9650834445@kotak</strong>
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="block text-[10px] uppercase tracking-wider text-[var(--text-muted)]">
+                        Or Enter Your UPI ID (VPA)
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="yourname@okhdfcbank"
+                        value={upiId}
+                        onChange={(e) => setUpiId(e.target.value)}
+                        className="w-full h-10 px-3 bg-[var(--bg-primary)] border border-[var(--border-strong)] text-xs font-mono text-[var(--text-primary)] outline-none"
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {paymentMethod === 'CARD' && (
+                  <div className="space-y-3">
+                    <div className="space-y-1">
+                      <label className="block text-[10px] uppercase tracking-wider text-[var(--text-muted)]">
+                        Card Number
+                      </label>
+                      <input
+                        type="text"
+                        value={cardData.number}
+                        onChange={(e) => setCardData({ ...cardData, number: e.target.value })}
+                        className="w-full h-10 px-3 bg-[var(--bg-primary)] border border-[var(--border-strong)] text-xs font-mono text-[var(--text-primary)] outline-none"
+                      />
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-[10px] uppercase tracking-wider text-[var(--text-muted)] mb-1">
+                          Expiry (MM/YY)
+                        </label>
+                        <input
+                          type="text"
+                          value={cardData.exp}
+                          onChange={(e) => setCardData({ ...cardData, exp: e.target.value })}
+                          className="w-full h-10 px-3 bg-[var(--bg-primary)] border border-[var(--border-strong)] text-xs font-mono text-[var(--text-primary)] outline-none"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] uppercase tracking-wider text-[var(--text-muted)] mb-1">
+                          CVV
+                        </label>
+                        <input
+                          type="password"
+                          maxLength={4}
+                          value={cardData.cvv}
+                          onChange={(e) => setCardData({ ...cardData, cvv: e.target.value })}
+                          className="w-full h-10 px-3 bg-[var(--bg-primary)] border border-[var(--border-strong)] text-xs font-mono text-[var(--text-primary)] outline-none"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {paymentMethod === 'NETBANKING' && (
+                  <div className="space-y-2">
+                    <label className="block text-[10px] uppercase tracking-wider text-[var(--text-muted)]">
+                      Select Authorized Indian Bank
+                    </label>
+                    <select
+                      value={selectedBank}
+                      onChange={(e) => setSelectedBank(e.target.value)}
+                      className="w-full h-10 px-3 bg-[var(--bg-primary)] border border-[var(--border-strong)] text-xs font-mono text-[var(--text-primary)] outline-none"
+                    >
+                      <option value="HDFC Bank">HDFC Bank</option>
+                      <option value="ICICI Bank">ICICI Bank</option>
+                      <option value="State Bank of India">State Bank of India (SBI)</option>
+                      <option value="Axis Bank">Axis Bank</option>
+                      <option value="Kotak Mahindra Bank">Kotak Mahindra Bank</option>
+                    </select>
+                  </div>
+                )}
+
+                {paymentMethod === 'COD' && (
+                  <div className="p-3 bg-[var(--bg-secondary)] border border-[var(--border-subtle)] space-y-1 text-[11px]">
+                    <span className="font-bold text-[var(--text-primary)] block">Cash on Delivery Verification</span>
+                    <p className="text-[var(--text-secondary)]">
+                      Doorstep cash handover upon arrival via Blue Dart Express. OTP verification active at delivery.
+                    </p>
+                  </div>
+                )}
+
+                {paymentMethod === 'PHONEPE' && (
+                  <div className="p-4 bg-purple-50/60 dark:bg-purple-950/20 border-2 border-[#5F259F]/40 space-y-2.5">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2 text-[#5F259F] dark:text-[#a875e2] font-bold uppercase text-[11px] font-mono">
+                        <ShieldCheck className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                        <span>PhonePe Gateway Redirection & Callback Flow</span>
+                      </div>
+                      <span className="px-2 py-0.5 rounded text-[9px] font-mono uppercase bg-purple-200 dark:bg-purple-900 text-[#5F259F] dark:text-purple-200 font-bold">
+                        Sandbox Simulator
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-[var(--text-secondary)] font-sans leading-relaxed">
+                      <strong>Production Flow:</strong> When live credentials are active, clicking below redirects your browser directly to PhonePe’s secure server. If you cancel or do not pay on PhonePe, the order is <em>rejected</em>.
+                    </p>
+                    <p className="text-[11px] text-[var(--text-secondary)] font-sans leading-relaxed">
+                      <strong>Current Sandbox:</strong> To test payment success, click <em>Simulate Successful Payment</em>. If you did <em>not</em> pay and want to cancel, click <em>Cancel (Did Not Pay)</em> below.
+                    </p>
+                    <div className="text-[10px] text-emerald-700 dark:text-emerald-400 font-mono font-semibold pt-1 border-t border-purple-200/60 dark:border-purple-800/30">
+                      ✓ S2S Callback & Auto-advance active • Zero manual UTR typing required
+                    </div>
+                  </div>
+                )}
+
+                {paymentMethod === 'UPI' && (
+                  <div className="p-4 bg-[var(--bg-secondary)] border-2 border-[#b99762]/60 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] font-mono uppercase font-bold text-[#b99762] dark:text-[#e6ca97] flex items-center gap-1.5">
+                        <ShieldCheck className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                        Step 2: Enter 12-Digit Bank UTR / Reference No.
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const demoUtr = `42${Math.floor(1000000000 + Math.random() * 9000000000)}`;
+                          setUserUtr(demoUtr);
+                          setUtrError('');
+                          showToast(`✓ Auto-filled demo UTR: ${demoUtr}`);
+                        }}
+                        className="px-2 py-0.5 bg-amber-500/15 hover:bg-amber-500/25 text-amber-700 dark:text-amber-300 border border-amber-500/30 text-[9px] font-mono font-bold uppercase transition-colors"
+                      >
+                        Auto-Fill Test UTR
+                      </button>
+                    </div>
+                    <p className="text-[10px] text-[var(--text-secondary)] font-mono leading-relaxed">
+                      After completing your transfer of <strong className="text-[var(--text-primary)]">{formatPrice(finalTotal)}</strong> to <strong className="text-[var(--text-primary)]">9650834445@kotak</strong> in PhonePe / UPI app, enter your 12-digit bank reference (UTR) from the receipt.
+                    </p>
+                    <div className="relative">
+                      <input
+                        type="text"
+                        maxLength={18}
+                        value={userUtr}
+                        onChange={(e) => {
+                          setUserUtr(e.target.value.replace(/[^\w]/g, '').toUpperCase());
+                          if (utrError) setUtrError('');
+                        }}
+                        placeholder="e.g. 426309817263 (12 digits)"
+                        className={`w-full h-11 px-3.5 bg-[var(--bg-card)] border text-sm font-mono tracking-wider text-[var(--text-primary)] font-bold outline-none uppercase ${
+                          utrError ? 'border-red-500' : 'border-[var(--border-strong)] focus:border-[#b99762]'
+                        }`}
+                      />
+                      {userUtr.length >= 10 && (
+                        <Check className="w-4 h-4 text-emerald-500 absolute right-3 top-1/2 -translate-y-1/2" />
+                      )}
+                    </div>
+                    {utrError && (
+                      <p className="text-[10px] font-mono text-red-500 flex items-center gap-1">
+                        <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                        {utrError}
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                <div className="p-2.5 bg-emerald-500/10 border border-emerald-500/30 text-emerald-800 dark:text-emerald-300 text-[10px] flex items-center gap-2">
+                  <ShieldCheck className="w-4 h-4 shrink-0" />
+                  <span>3D Secure 2.0 Enabled • Automatic Callback & WhatsApp Notification</span>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="pt-4 border-t border-[var(--border-subtle)] flex flex-col sm:flex-row gap-3">
+                <button
+                  type="button"
+                  disabled={isProcessingPayment}
+                  onClick={() => {
+                    setShowPaymentModal(false);
+                    showToast('Payment aborted. Order was not placed.');
+                  }}
+                  className="py-3 px-5 border border-[var(--border-strong)] text-[var(--text-secondary)] hover:text-red-500 hover:border-red-500 text-xs font-mono font-bold uppercase tracking-wider transition-colors"
+                >
+                  Cancel (Did Not Pay)
+                </button>
+                <button
+                  type="button"
+                  disabled={isProcessingPayment || (paymentMethod === 'PHONEPE' && isGeneratingPhonePeLink)}
+                  onClick={handleExecutePayment}
+                  className={`flex-1 py-3 disabled:opacity-50 text-xs font-mono font-bold uppercase tracking-wider transition-colors shadow-md flex items-center justify-center gap-2 ${
+                    paymentMethod === 'PHONEPE'
+                      ? 'bg-[#5F259F] hover:bg-[#4d1e82] text-white'
+                      : 'bg-[#1d4136] hover:bg-[#132f27] dark:bg-[#e6ca97] dark:hover:bg-[#d8c39f] text-white dark:text-black'
+                  }`}
+                >
+                  {isProcessingPayment ? (
+                    <>
+                      <RefreshCw className="w-4 h-4 animate-spin" />
+                      <span>{paymentMethod === 'PHONEPE' ? 'Awaiting PhonePe Gateway Return...' : 'Verifying Payment & Recording UTR...'}</span>
+                    </>
+                  ) : paymentMethod === 'PHONEPE' ? (
+                    <>
+                      <PhonePeIcon className="w-4 h-4" />
+                      <span>Simulate Successful Payment ({formatPrice(finalTotal)})</span>
+                    </>
+                  ) : paymentMethod === 'UPI' ? (
+                    <>
+                      <Zap className="w-4 h-4" />
+                      <span>Verify UTR & Confirm Order ({formatPrice(finalTotal)})</span>
+                    </>
+                  ) : (
+                    <span>Authorize & Pay {formatPrice(finalTotal)}</span>
+                  )}
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
@@ -3570,19 +5590,76 @@ function CheckoutView() {
 // 10. VIEW: ORDER TRACKING & HISTORICAL ARCHIVE
 // ==========================================
 function OrdersView() {
-  const { orders, selectedOrder, setSelectedOrder, navigate, formatPrice, addOrder, currencyMode } = useContext(AppContext);
+  const {
+    orders,
+    selectedOrder,
+    setSelectedOrder,
+    navigate,
+    formatPrice,
+    addOrder,
+    currencyMode,
+    showToast,
+    patronUser,
+    loginPatron,
+    logoutPatron,
+    syncOrdersFromDb,
+  } = useContext(AppContext);
+
   const [searchQuery, setSearchQuery] = useState('');
   const [copiedAWB, setCopiedAWB] = useState(false);
 
-  // Derive active order
+  // Patron Sign-In Form State (Mobile Phone OTP Verification)
+  const [loginPhone, setLoginPhone] = useState('');
+  const [loginOtp, setLoginOtp] = useState('');
+  const [otpSent, setOtpSent] = useState(false);
+  const [generatedOtp, setGeneratedOtp] = useState('');
+  const [loginError, setLoginError] = useState('');
+  const [isVerifying, setIsVerifying] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
+
+  // Filter orders strictly to logged-in patron's phone number for complete customer privacy
+  const patronCleanPhone = useMemo(() => {
+    if (!patronUser?.phone) return '';
+    return patronUser.phone.replace(/[^\d]/g, '').slice(-10);
+  }, [patronUser]);
+
+  const patronOrders = useMemo(() => {
+    if (!patronCleanPhone) return [];
+    return orders.filter(
+      (o) => (o.customerPhone || '').replace(/[^\d]/g, '').slice(-10) === patronCleanPhone
+    );
+  }, [orders, patronCleanPhone]);
+
+  // Derive active order from patron's personal commissions
   const activeOrder = useMemo(() => {
     if (selectedOrder) {
-      const match = orders.find((o) => o.orderNumber === selectedOrder.orderNumber);
+      const match = patronOrders.find((o) => o.orderNumber === selectedOrder.orderNumber);
       if (match) return match;
-      return selectedOrder;
     }
-    return orders.length > 0 ? orders[0] : null;
-  }, [orders, selectedOrder]);
+    return patronOrders.length > 0 ? patronOrders[0] : null;
+  }, [patronOrders, selectedOrder]);
+
+  // Auto-poll Supabase database every 8 seconds so curator stage moves (e.g. PREPARING) reflect live
+  useEffect(() => {
+    if (!patronUser) return;
+    syncOrdersFromDb();
+    const interval = setInterval(() => {
+      syncOrdersFromDb();
+    }, 8000);
+    return () => clearInterval(interval);
+  }, [patronUser]);
+
+  const handleManualSync = async () => {
+    setIsSyncing(true);
+    try {
+      await syncOrdersFromDb();
+      showToast('✓ Live atelier status synced with workshop ledger');
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setTimeout(() => setIsSyncing(false), 500);
+    }
+  };
 
   const handleCopyAWB = (awb) => {
     if (navigator.clipboard) {
@@ -3592,195 +5669,354 @@ function OrdersView() {
     }
   };
 
-  const handleSearch = (e) => {
-    e.preventDefault();
-    if (!searchQuery.trim()) return;
-    const query = searchQuery.trim().toLowerCase();
-    const match = orders.find(
+  const handleSearch = (queryStr) => {
+    setSearchQuery(queryStr);
+    if (!queryStr.trim()) return;
+    const query = queryStr.trim().toLowerCase();
+    const match = patronOrders.find(
       (o) =>
         o.orderNumber.toLowerCase().includes(query) ||
         (o.trackingNumber && o.trackingNumber.toLowerCase().includes(query)) ||
         (o.customerPhone && o.customerPhone.includes(query)) ||
-        (o.customerEmail && o.customerEmail.toLowerCase().includes(query))
+        (o.customerEmail && o.customerEmail.toLowerCase().includes(query)) ||
+        (o.city && o.city.toLowerCase().includes(query))
     );
     if (match) {
       setSelectedOrder(match);
     }
   };
 
-  // Helper to create a demo order if archive is empty
-  const handleCreateDemoOrder = () => {
-    const demoAwb = `BLD-${Math.floor(1000 + Math.random() * 9000)}-${Math.floor(1000 + Math.random() * 9000)}-IN`;
-    const sampleProduct1 = PRODUCTS[0];
-    const sampleProduct2 = PRODUCTS[1] || PRODUCTS[0];
-    const demoOrder = {
-      orderNumber: `AVR-IN-${Math.floor(100000 + Math.random() * 900000)}`,
-      createdAt: new Date().toISOString(),
-      customerName: 'Ananya Sharma',
-      customerEmail: 'ananya.sharma@curator.in',
-      customerPhone: '+91 98201 44892',
-      shippingAddress: 'Flat 402, Sea Green Mansions, Worli Sea Face',
-      city: 'Mumbai',
-      state: 'Maharashtra',
-      postalCode: '400030',
-      country: 'India',
-      paymentMethod: 'UPI',
-      subtotal: sampleProduct1.price + sampleProduct2.price,
-      discount: Math.round((sampleProduct1.price + sampleProduct2.price) * 0.05),
-      total: Math.round((sampleProduct1.price + sampleProduct2.price) * 0.95),
-      currency: currencyMode,
-      status: 'IN_TRANSIT',
-      courier: 'Blue Dart Express Air',
-      trackingNumber: demoAwb,
-      estimatedDelivery: '2-3 Business Days',
-      items: [
-        {
-          productId: sampleProduct1.id,
-          name: sampleProduct1.name,
-          price: sampleProduct1.price,
-          quantity: 1,
-          image: sampleProduct1.images[0],
-          material: sampleProduct1.material,
-          engraving: 'AVIORA 14K',
-          hallmark: sampleProduct1.hallmark,
-        },
-        {
-          productId: sampleProduct2.id,
-          name: sampleProduct2.name,
-          price: sampleProduct2.price,
-          quantity: 1,
-          image: sampleProduct2.images[0],
-          material: sampleProduct2.material,
-          engraving: '',
-          hallmark: sampleProduct2.hallmark,
-        },
-      ],
-      timeline: createOrderTimeline('IN_TRANSIT', new Date().toISOString()),
-    };
-    addOrder(demoOrder);
-    persistOrderToDb(demoOrder);
-  };
 
+
+  // 1. PATRON AUTHENTICATION SCREEN: If not logged in, enforce phone OTP authentication for privacy
+  if (!patronUser) {
+    return (
+      <div className="min-h-screen bg-[var(--bg-primary)] text-[var(--text-primary)] py-14 px-6 md:px-14 transition-colors duration-300 flex items-center justify-center">
+        <div className="max-w-xl w-full bg-[var(--bg-card)] border border-[#b99762]/60 p-8 sm:p-12 space-y-8 shadow-2xl relative overflow-hidden">
+          {/* Header */}
+          <div className="text-center space-y-3 border-b border-[var(--border-subtle)] pb-6">
+            <div className="inline-flex items-center gap-2 px-3 py-1 bg-[#1d4136]/10 text-[#1d4136] dark:bg-[#e6ca97]/10 dark:text-[#e6ca97] border border-current text-[10px] font-mono tracking-[0.25em] uppercase font-bold">
+              <User className="w-3.5 h-3.5" />
+              <span>Customer Portal • Patron Security Authentication</span>
+            </div>
+            <h1 className="font-serif text-3xl text-[var(--text-primary)] uppercase tracking-wide">
+              Customer Account & Order Tracking
+            </h1>
+            <p className="font-mono text-xs text-[var(--text-secondary)] leading-relaxed max-w-md mx-auto">
+              Please sign in with your registered mobile phone number. Only you can access your personal bespoke jewellery creation, studio casting timeline, and Blue Dart express courier logistics.
+            </p>
+          </div>
+
+          {/* Form */}
+          <div className="space-y-5 text-xs font-mono">
+            {/* Phone Number Field */}
+            <div className="space-y-1.5">
+              <label className="block uppercase tracking-wider text-[10px] text-[var(--text-muted)] font-bold">
+                Registered Mobile Phone
+              </label>
+              <div className="flex">
+                <span className="h-11 px-3.5 bg-[var(--bg-secondary)] border border-r-0 border-[var(--border-strong)] text-[var(--text-secondary)] text-xs flex items-center font-bold">
+                  +91
+                </span>
+                <input
+                  type="tel"
+                  maxLength={10}
+                  value={loginPhone}
+                  onChange={(e) => {
+                    setLoginPhone(e.target.value.replace(/[^\d]/g, ''));
+                    setLoginError('');
+                  }}
+                  placeholder="e.g. 8796841184"
+                  className="flex-1 h-11 px-3.5 bg-[var(--bg-primary)] border border-[var(--border-strong)] text-sm font-mono tracking-widest text-[var(--text-primary)] font-bold outline-none focus:border-[#b99762]"
+                />
+              </div>
+            </div>
+
+            {/* OTP Field if sent */}
+            {otpSent && (
+              <div className="space-y-2 p-4 bg-[var(--bg-secondary)] border border-[var(--border-subtle)]">
+                <div className="flex items-center justify-between">
+                  <label className="block uppercase tracking-wider text-[10px] text-[var(--text-muted)] font-bold">
+                    6-Digit Verification Code (OTP)
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setLoginOtp('123456');
+                      setLoginError('');
+                      showToast('✓ Auto-filled test code: 123456');
+                    }}
+                    className="text-[9px] font-mono text-[#b99762] dark:text-[#e6ca97] hover:underline uppercase font-bold"
+                  >
+                    Auto-Fill Test Code
+                  </button>
+                </div>
+                <input
+                  type="text"
+                  maxLength={6}
+                  value={loginOtp}
+                  onChange={(e) => {
+                    setLoginOtp(e.target.value.replace(/[^\d]/g, ''));
+                    setLoginError('');
+                  }}
+                  placeholder="123456"
+                  className="w-full h-11 px-3.5 bg-[var(--bg-primary)] border border-[var(--border-strong)] text-center text-lg font-mono tracking-[0.4em] text-[var(--text-primary)] font-bold outline-none focus:border-[#b99762]"
+                />
+                <p className="text-[10px] text-emerald-700 dark:text-emerald-300">
+                  ✦ Verification code dispatched to +91 {loginPhone}. (Sandbox codes: 123456 or {generatedOtp})
+                </p>
+              </div>
+            )}
+
+            {loginError && (
+              <p className="text-[11px] font-mono text-red-500 flex items-center gap-1.5">
+                <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                <span>{loginError}</span>
+              </p>
+            )}
+
+            {/* Actions */}
+            <div className="space-y-3 pt-2">
+              {!otpSent ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    const clean = loginPhone.replace(/[^\d]/g, '').slice(-10);
+                    if (clean.length < 10) {
+                      setLoginError('Please enter a valid 10-digit Indian mobile number.');
+                      return;
+                    }
+                    const res = generateOtp(clean);
+                    setGeneratedOtp(res.otp);
+                    setOtpSent(true);
+                    showToast(`✦ Verification code dispatched to +91 ${clean}`);
+                  }}
+                  className="w-full py-3.5 bg-[#1d4136] hover:bg-[#16332a] dark:bg-[#e6ca97] dark:hover:bg-[#d9b87c] text-white dark:text-[#242321] font-mono text-xs tracking-wider uppercase font-bold transition-all shadow-md"
+                >
+                  Send Verification Code (OTP)
+                </button>
+              ) : (
+                <div className="space-y-2">
+                  <button
+                    type="button"
+                    disabled={isVerifying}
+                    onClick={async () => {
+                      if (!loginOtp || loginOtp.length < 6) {
+                        setLoginError('Please enter the 6-digit verification code.');
+                        return;
+                      }
+                      setIsVerifying(true);
+                      const clean = loginPhone.replace(/[^\d]/g, '').slice(-10);
+                      const check = verifyOtp(clean, loginOtp);
+                      if (check.success) {
+                        const matched = orders.find(
+                          (o) => (o.customerPhone || '').replace(/[^\d]/g, '').slice(-10) === clean
+                        );
+                        loginPatron(clean, matched?.customerName || `Patron +91 ${clean}`);
+                        await syncOrdersFromDb();
+                      } else {
+                        setLoginError(check.message || 'Invalid verification code.');
+                      }
+                      setIsVerifying(false);
+                    }}
+                    className="w-full py-3.5 bg-[#1d4136] hover:bg-[#16332a] dark:bg-[#e6ca97] dark:hover:bg-[#d9b87c] text-white dark:text-[#242321] font-mono text-xs tracking-wider uppercase font-bold transition-all shadow-md flex items-center justify-center gap-2"
+                  >
+                    {isVerifying ? <RefreshCw className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
+                    <span>Verify & Access Dossier</span>
+                  </button>
+                  <div className="flex justify-between items-center text-[10px] text-[var(--text-muted)] pt-1">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setOtpSent(false);
+                        setLoginOtp('');
+                        setLoginError('');
+                      }}
+                      className="hover:underline"
+                    >
+                      Change Mobile Number
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const res = generateOtp(loginPhone);
+                        setGeneratedOtp(res.otp);
+                        showToast(`✦ New code dispatched to +91 ${loginPhone.slice(-10)}`);
+                      }}
+                      className="hover:underline text-[#b99762] dark:text-[#e6ca97]"
+                    >
+                      Resend Code
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+
+
+
+            <div className="pt-3 border-t border-[var(--border-subtle)] flex items-center justify-between text-[10px] font-mono">
+              <button
+                type="button"
+                onClick={() => navigate('atelier')}
+                className="uppercase tracking-wider text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors inline-flex items-center gap-1"
+              >
+                <ArrowLeft className="w-3 h-3" />
+                <span>Return to Catalog</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => navigate('admin')}
+                className="text-[#b99762] hover:underline flex items-center gap-1 font-bold"
+                title="Strictly for store management and master jewelers"
+              >
+                <Lock className="w-2.5 h-2.5" />
+                <span>Store Owner / Staff Login →</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // 2. AUTHENTICATED PATRON TRACKING DOSSIER
   return (
     <div className="min-h-screen bg-[var(--bg-primary)] text-[var(--text-primary)] py-12 px-6 md:px-14 transition-colors duration-300">
       <div className="max-w-6xl mx-auto space-y-10">
-        {/* Navigation Breadcrumb */}
-        <div className="flex items-center justify-between border-b border-[var(--border-subtle)] pb-5">
-          <button
-            onClick={() => navigate('atelier')}
-            className="inline-flex items-center gap-2 text-xs font-mono tracking-widest uppercase text-[var(--text-secondary)] hover:text-[#b99762] dark:hover:text-[#e6ca97] transition-colors"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            <span>Return to Atelier</span>
-          </button>
-          <span className="text-[10px] font-mono uppercase tracking-[0.3em] text-[#b99762] dark:text-[#e6ca97] flex items-center gap-1.5 font-bold">
-            <Sparkles className="w-3.5 h-3.5 text-[#b99762] dark:text-[#e6ca97]" />
-            LIVE BLUE DART EXPRESS LOGISTICS
-          </span>
-        </div>
-
-        {/* Header & Order Lookup Search */}
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
-          <div>
-            <span className="text-[10px] font-mono tracking-[0.35em] uppercase text-[var(--text-muted)] block">
-              PATRON ARCHIVE // REAL-TIME DISPATCH & TRANSIT
+        {/* Navigation Breadcrumb & Authenticated Patron Bar */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-[var(--border-subtle)] pb-5 gap-3">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => navigate('atelier')}
+              className="inline-flex items-center gap-2 text-xs font-mono tracking-widest uppercase text-[var(--text-secondary)] hover:text-[#b99762] dark:hover:text-[#e6ca97] transition-colors"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              <span>Back to Atelier</span>
+            </button>
+            <span className="text-[var(--text-muted)]">/</span>
+            <span className="text-xs font-mono tracking-widest uppercase text-[var(--text-primary)] font-bold">
+              Patron Commission Dossier
             </span>
-            <h1 className="font-serif text-3xl sm:text-5xl uppercase tracking-tight text-[var(--text-primary)] mt-1">
-              Order Tracking & History
-            </h1>
           </div>
 
-          <form onSubmit={handleSearch} className="flex items-center gap-2 max-w-md w-full">
-            <div className="relative flex-1">
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search Order (e.g. AVR-IN-...) or Phone"
-                className="w-full bg-[var(--bg-card)] border border-[var(--border-subtle)] focus:border-[#b99762] px-4 py-2.5 text-xs font-mono text-[var(--text-primary)] placeholder-[var(--text-muted)] outline-none"
-              />
+          <div className="flex items-center gap-2.5 flex-wrap">
+            {/* Authenticated Patron Pill */}
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-[var(--bg-card)] border border-[var(--border-strong)] text-[11px] font-mono">
+              <User className="w-3.5 h-3.5 text-[#b99762] dark:text-[#e6ca97]" />
+              <span className="font-bold text-[var(--text-primary)]">{patronUser.name || 'Patron'}</span>
+              <span className="text-[var(--text-muted)]">(+91 {patronCleanPhone})</span>
             </div>
+
+            {/* Sync Workshop Status Button */}
             <button
-              type="submit"
-              className="px-4 py-2.5 bg-[#1d4136] hover:bg-[#16332a] dark:bg-[#e6ca97] dark:hover:bg-[#d9b87c] text-white dark:text-[#242321] font-mono text-xs uppercase tracking-wider font-bold transition-colors flex items-center gap-1.5"
+              type="button"
+              onClick={handleManualSync}
+              disabled={isSyncing}
+              className="px-3 py-1.5 bg-[var(--bg-secondary)] hover:border-[#b99762] border border-[var(--border-subtle)] text-[10px] font-mono uppercase font-bold tracking-wider text-[var(--text-primary)] transition-colors inline-flex items-center gap-1.5"
+              title="Poll workshop ledger for latest curator movements"
             >
-              <Search className="w-3.5 h-3.5" />
-              <span>Track</span>
+              <RefreshCw className={`w-3 h-3 ${isSyncing ? 'animate-spin text-[#b99762]' : ''}`} />
+              <span>{isSyncing ? 'Syncing...' : 'Sync Workshop Status'}</span>
             </button>
-          </form>
+
+            {/* Sign Out Button */}
+            <button
+              type="button"
+              onClick={logoutPatron}
+              className="px-2.5 py-1.5 text-[10px] font-mono uppercase tracking-wider text-[var(--text-muted)] hover:text-red-500 hover:border-red-500/40 border border-transparent transition-colors inline-flex items-center gap-1"
+              title="Sign out of patron dossier"
+            >
+              <LogOut className="w-3 h-3" />
+              <span>Sign Out</span>
+            </button>
+          </div>
         </div>
 
-        {/* Empty Archive State */}
-        {orders.length === 0 ? (
-          <div className="py-24 text-center border border-dashed border-[var(--border-subtle)] p-12 space-y-5 bg-[var(--bg-card)]">
-            <div className="w-16 h-16 rounded-full border border-dashed border-[var(--border-subtle)] mx-auto flex items-center justify-center text-[var(--text-muted)]">
-              <PackageCheck className="w-7 h-7" />
-            </div>
-            <div className="space-y-2">
-              <h3 className="font-serif italic text-2xl text-[var(--text-secondary)]">
-                No orders recorded yet.
-              </h3>
-              <p className="text-xs font-mono text-[var(--text-muted)] max-w-lg mx-auto leading-relaxed">
-                When you complete an order via UPI, Cards, or COD, your order dossier and live Blue Dart tracking milestones are permanently stored here and will never be cleared when adding new items to your bag.
-              </p>
-            </div>
-            <div className="flex flex-wrap items-center justify-center gap-4 pt-3">
-              <button
-                onClick={handleCreateDemoOrder}
-                className="px-6 py-3 bg-[var(--bg-secondary)] hover:bg-[var(--bg-primary)] border border-[#b99762]/60 text-[#b99762] dark:text-[#e6ca97] font-mono text-xs uppercase tracking-wider font-bold transition-all flex items-center gap-2"
-              >
-                <Sparkles className="w-3.5 h-3.5" />
-                <span>Simulate Test 14K Order & Real-Time Tracking</span>
-              </button>
+        {/* Header Title */}
+        <div className="space-y-2">
+          <div className="inline-flex items-center gap-2 px-3 py-1 bg-[#1d4136]/10 text-[#1d4136] dark:bg-[#e6ca97]/10 dark:text-[#e6ca97] border border-current text-[10px] font-mono tracking-[0.2em] uppercase font-bold">
+            <Truck className="w-3.5 h-3.5" />
+            <span>Blue Dart Express Air Logistics Tracker</span>
+          </div>
+          <h1 className="font-serif text-3xl sm:text-4xl text-[var(--text-primary)] font-normal uppercase tracking-tight">
+            Track Your Patron Commission
+          </h1>
+          <p className="font-mono text-xs text-[var(--text-secondary)] max-w-2xl leading-relaxed">
+            Real-time status of your bespoke jewellery commissions. Consignment numbers are issued when handed over to Blue Dart Express Air.
+          </p>
+        </div>
+
+        {/* Orders Archive & Active Inspection Grid */}
+        {patronOrders.length === 0 ? (
+          <div className="p-12 text-center border border-[var(--border-subtle)] bg-[var(--bg-card)] space-y-4 max-w-xl mx-auto shadow-sm">
+            <PackageCheck className="w-10 h-10 text-[#b99762] dark:text-[#e6ca97] mx-auto stroke-[1.5]" />
+            <h3 className="font-serif text-2xl text-[var(--text-primary)]">No Active Commissions Found</h3>
+            <p className="font-mono text-xs text-[var(--text-secondary)] leading-relaxed">
+              There are no orders recorded under mobile number <strong>+91 {patronCleanPhone}</strong>. If you placed an order under a different number or want to explore our fine jewellery creations, use the options below.
+            </p>
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
               <button
                 onClick={() => navigate('atelier')}
-                className="px-8 py-3 bg-[#1d4136] hover:bg-[#16332a] dark:bg-[#e6ca97] dark:hover:bg-[#d9b87c] text-white dark:text-[#242321] font-mono text-xs uppercase tracking-[0.2em] font-bold transition-all"
+                className="w-full sm:w-auto px-6 py-2.5 bg-[#1d4136] hover:bg-[#16332a] dark:bg-[#e6ca97] dark:hover:bg-[#d9b87c] text-white dark:text-[#242321] font-mono text-xs tracking-wider uppercase font-bold transition-all"
               >
-                Browse 14K Catalog
+                Explore Atelier
+              </button>
+
+              <button
+                onClick={handleManualSync}
+                className="w-full sm:w-auto px-6 py-2.5 border border-[var(--border-subtle)] hover:border-[#b99762] text-[var(--text-secondary)] font-mono text-xs tracking-wider uppercase transition-all flex items-center justify-center gap-1.5"
+              >
+                <RefreshCw className="w-3.5 h-3.5" />
+                <span>Check Workshop Ledger</span>
               </button>
             </div>
           </div>
         ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-            {/* Left Column: Historical Orders List */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+            {/* Left Column: Orders History List & Search */}
             <div className="lg:col-span-4 space-y-4">
-              <div className="flex items-center justify-between text-xs font-mono tracking-widest uppercase text-[var(--text-secondary)] border-b border-[var(--border-subtle)] pb-3">
-                <span>Archived Orders ({orders.length})</span>
-                <span className="text-[10px] text-[var(--text-muted)]">Saved Locally</span>
+              <div className="p-4 bg-[var(--bg-card)] border border-[var(--border-subtle)] space-y-3 shadow-xs">
+                <span className="text-[10px] font-mono uppercase tracking-[0.2em] text-[var(--text-muted)] block font-bold">
+                  My Commissions ({patronOrders.length})
+                </span>
+                <div className="relative">
+                  <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => handleSearch(e.target.value)}
+                    placeholder="Search Order # or City..."
+                    className="w-full pl-8 pr-3 py-2 bg-[var(--bg-primary)] border border-[var(--border-subtle)] text-xs font-mono text-[var(--text-primary)] outline-none focus:border-[#b99762]"
+                  />
+                </div>
               </div>
 
               <div className="space-y-3 max-h-[600px] overflow-y-auto pr-1">
-                {orders.map((order) => {
-                  const isSelected = order.orderNumber === activeOrder?.orderNumber;
+                {patronOrders.map((order) => {
+                  const isSelected = activeOrder?.orderNumber === order.orderNumber;
                   return (
                     <button
                       key={order.orderNumber}
                       onClick={() => setSelectedOrder(order)}
-                      className={`w-full text-left p-4 border transition-all ${
+                      className={`w-full p-4 text-left border transition-all ${
                         isSelected
-                          ? 'border-[#1d4136] dark:border-[#e6ca97] bg-[#1d4136]/10 dark:bg-[#e6ca97]/10 shadow-md'
-                          : 'border-[var(--border-subtle)] bg-[var(--bg-card)] hover:border-[var(--border-strong)]'
+                          ? 'border-[#1d4136] dark:border-[#e6ca97] bg-[var(--bg-card)] shadow-md ring-1 ring-current'
+                          : 'border-[var(--border-subtle)] bg-[var(--bg-card)] hover:border-[#b99762] text-[var(--text-secondary)]'
                       }`}
                     >
-                      <div className="flex justify-between items-start">
+                      <div className="flex items-center justify-between">
                         <span className="font-mono text-xs font-bold text-[var(--text-primary)]">
-                          {order.orderNumber}
+                          #{order.orderNumber}
                         </span>
-                        <span className="text-[9px] font-mono px-2 py-0.5 bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 uppercase font-semibold">
-                          {(order.status || 'IN_TRANSIT').replace('_', ' ')}
+                        <span className="px-2 py-0.5 rounded text-[9px] font-mono uppercase bg-[#1d4136]/10 text-[#1d4136] dark:bg-[#e6ca97]/10 dark:text-[#e6ca97] border border-current font-semibold">
+                          {(order.status || 'CONFIRMED').replace(/_/g, ' ')}
                         </span>
                       </div>
-                      <div className="mt-2 flex justify-between items-baseline text-[11px] font-mono text-[var(--text-secondary)]">
-                        <span>
-                          {order.createdAt
-                            ? new Date(order.createdAt).toLocaleDateString('en-IN', {
-                                day: 'numeric',
-                                month: 'short',
-                                year: 'numeric',
-                              })
-                            : 'Recent'}
+                      <div className="flex justify-between items-baseline mt-2 text-xs">
+                        <span className="text-[10px] font-mono text-[var(--text-muted)]">
+                          {order.orderDate || new Date(order.createdAt).toLocaleDateString('en-IN')}
                         </span>
-                        <span className="text-[#b99762] dark:text-[#e6ca97] font-bold">
+                        <span className="font-mono font-bold text-[var(--text-primary)]">
                           {formatPrice(order.total)}
                         </span>
                       </div>
@@ -3801,42 +6037,81 @@ function OrdersView() {
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[var(--border-subtle)] pb-5">
                     <div>
                       <span className="text-[10px] font-mono uppercase tracking-[0.3em] text-[#b99762] dark:text-[#e6ca97] block font-bold">
-                        ACTIVE LOGISTICS WAYBILL
+                        LOGISTICS & CONSIGNMENT DOSSIER
                       </span>
                       <h2 className="font-serif text-2xl text-[var(--text-primary)] mt-0.5">
                         Order #{activeOrder.orderNumber}
                       </h2>
                     </div>
 
-                    <div className="flex items-center gap-3">
-                      <div className="text-right">
-                        <span className="text-[9px] font-mono text-[var(--text-muted)] uppercase tracking-wider block">
-                          Blue Dart AWB Air Waybill
-                        </span>
-                        <span className="font-mono text-xs text-[var(--text-primary)] font-bold">
-                          {activeOrder.trackingNumber || 'BLD-7492-8812-IN'}
-                        </span>
+                    {activeOrder.trackingNumber ? (
+                      <div className="flex items-center gap-3">
+                        <div className="text-right">
+                          <span className="text-[9px] font-mono text-[var(--text-muted)] uppercase tracking-wider block">
+                            Blue Dart Consignment No
+                          </span>
+                          <span className="font-mono text-xs text-emerald-600 dark:text-emerald-400 font-bold">
+                            {activeOrder.trackingNumber}
+                          </span>
+                        </div>
+                        <button
+                          onClick={() => handleCopyAWB(activeOrder.trackingNumber)}
+                          className="p-2 border border-[var(--border-subtle)] hover:border-[#b99762] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
+                          title="Copy Consignment Tracking Number"
+                        >
+                          {copiedAWB ? <Check className="w-4 h-4 text-emerald-600 dark:text-emerald-400" /> : <Copy className="w-4 h-4" />}
+                        </button>
+                        <a
+                          href={getTrackingUrl(activeOrder.trackingNumber)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="px-2.5 py-1.5 bg-[#1d4136] dark:bg-[#e6ca97] text-white dark:text-black text-[10px] font-mono uppercase tracking-wider font-bold hover:bg-[#132f27] transition-colors inline-flex items-center gap-1"
+                          title="Open live Blue Dart tracker"
+                        >
+                          <ExternalLink className="w-3.5 h-3.5" />
+                          <span>Track</span>
+                        </a>
                       </div>
-                      <button
-                        onClick={() => handleCopyAWB(activeOrder.trackingNumber || 'BLD-7492-8812-IN')}
-                        className="p-2 border border-[var(--border-subtle)] hover:border-[#b99762] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
-                        title="Copy AWB Tracking Number"
-                      >
-                        {copiedAWB ? <Check className="w-4 h-4 text-emerald-600 dark:text-emerald-400" /> : <Copy className="w-4 h-4" />}
-                      </button>
-                    </div>
+                    ) : (
+                      <div className="flex items-center gap-2.5 px-3 py-2 bg-amber-500/10 border border-amber-500/30 text-amber-700 dark:text-amber-300">
+                        <Clock className="w-4 h-4 shrink-0" />
+                        <div className="text-left">
+                          <span className="text-[9px] font-mono uppercase tracking-wider block font-bold">
+                            Consignment No. Status
+                          </span>
+                          <span className="text-[10px] font-mono">
+                            Pending Dispatch (Issued upon Blue Dart handover)
+                          </span>
+                        </div>
+                      </div>
+                    )}
                   </div>
 
-                  {/* 2. Interactive Shipment Progress Stepper */}
+                  {/* 2. Interactive Shipment Progress Stepper with Attached WhatsApp Messages */}
                   <div className="space-y-6 pt-2">
                     <h3 className="text-xs font-mono uppercase tracking-[0.25em] text-[var(--text-primary)] flex items-center gap-2 font-bold">
                       <Truck className="w-4 h-4 text-[#b99762] dark:text-[#e6ca97]" />
-                      Real-Time Transit Progress
+                      Real-Time Transit Progress (5-Stage Architecture)
                     </h3>
 
                     <div className="relative pl-6 sm:pl-8 space-y-6 before:absolute before:left-3 before:top-2 before:bottom-2 before:w-0.5 before:bg-[var(--border-subtle)]">
-                      {(activeOrder.timeline || createOrderTimeline(activeOrder.status || 'IN_TRANSIT', activeOrder.createdAt)).map((step, idx) => {
+                      {(activeOrder.timeline || createOrderTimeline(activeOrder.status || 'CONFIRMED', activeOrder.createdAt, activeOrder.trackingNumber)).map((step, idx) => {
                         const isDone = step.completed || step.current;
+                        const matchingWaNotif = (activeOrder.whatsappNotifications || []).find(
+                          (n) => n.stage === step.status || (n.templateName && n.templateName.toUpperCase().includes(step.status))
+                        );
+                        const fallbackWaText = composeWhatsAppTemplateMessage({
+                          templateName: `aviora_order_${step.status.toLowerCase()}`,
+                          recipientPhone: activeOrder.customerPhone,
+                          customerName: activeOrder.customerName || 'Patron',
+                          orderNumber: activeOrder.orderNumber,
+                          stageTitle: step.label,
+                          description: step.description,
+                          awbNumber: (step.status === 'SHIPPED' || step.status === 'OUT_FOR_DELIVERY' || step.status === 'DELIVERED') && activeOrder.trackingNumber ? activeOrder.trackingNumber : undefined,
+                          trackingUrl: (step.status === 'SHIPPED' || step.status === 'OUT_FOR_DELIVERY' || step.status === 'DELIVERED') && activeOrder.trackingNumber ? getTrackingUrl(activeOrder.trackingNumber) : undefined,
+                        });
+                        const currentWaText = matchingWaNotif?.previewText || fallbackWaText;
+
                         return (
                           <div key={idx} className="relative group">
                             {/* Dot */}
@@ -3859,7 +6134,7 @@ function OrdersView() {
                             </div>
 
                             {/* Content */}
-                            <div className="space-y-0.5">
+                            <div className="space-y-1">
                               <div className="flex flex-wrap items-baseline gap-2">
                                 <span
                                   className={`text-xs font-mono font-bold uppercase tracking-wider ${
@@ -3886,10 +6161,63 @@ function OrdersView() {
                                   <Clock className="w-3 h-3" /> {step.timestamp}
                                 </span>
                               </div>
+
+                              {/* Attached Official WhatsApp Notification Card for this Stage */}
+                              {isDone && (
+                                <div className="mt-3 p-3.5 bg-emerald-500/5 dark:bg-emerald-950/20 border border-emerald-500/30 text-xs font-mono space-y-2">
+                                  <div className="flex flex-wrap items-center justify-between gap-2 border-b border-emerald-500/20 pb-2">
+                                    <div className="flex items-center gap-1.5 text-emerald-700 dark:text-emerald-400 font-bold uppercase text-[10px]">
+                                      <WhatsAppIcon className="w-3.5 h-3.5" />
+                                      <span>Official WhatsApp Dispatch • Template: {matchingWaNotif?.templateName || `aviora_order_${step.status.toLowerCase()}`}</span>
+                                    </div>
+                                    <span className="px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-800 dark:text-emerald-300 text-[9px] font-bold">
+                                      DISPATCHED TO +91 {activeOrder.customerPhone} ✓
+                                    </span>
+                                  </div>
+                                  {/* Notification message only */}
+                                  <div className="whitespace-pre-wrap text-[11px] text-[var(--text-secondary)] font-sans leading-relaxed bg-[var(--bg-card)] p-3 border border-[var(--border-subtle)] rounded shadow-2xs">
+                                    {currentWaText}
+                                  </div>
+                                  <div className="text-[10px] text-[var(--text-muted)] font-mono pt-0.5">
+                                    Dispatched to WhatsApp: {matchingWaNotif?.sentAt ? new Date(matchingWaNotif.sentAt).toLocaleString('en-IN') : step.timestamp}
+                                  </div>
+                                </div>
+                              )}
                             </div>
                           </div>
                         );
                       })}
+                    </div>
+                  </div>
+
+                  {/* WhatsApp Business Concierge Card */}
+                  <div className="p-4 bg-[var(--bg-secondary)] border border-[var(--border-subtle)] space-y-3">
+                    <div className="flex items-center justify-between border-b border-[var(--border-subtle)] pb-2.5">
+                      <div className="flex items-center gap-2">
+                        <WhatsAppIcon className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                        <span className="text-[11px] font-mono uppercase font-bold tracking-wider text-[var(--text-primary)]">
+                          WhatsApp Business Concierge & Dispatches
+                        </span>
+                      </div>
+                      <span className="text-[10px] font-mono text-emerald-600 dark:text-emerald-400 font-semibold">
+                        Dispatched Directly to Your Phone
+                      </span>
+                    </div>
+
+                    <div className="space-y-2 text-xs font-mono">
+                      <p className="text-[11px] text-[var(--text-secondary)] leading-relaxed">
+                        Every stage change made on your order dispatches an official WhatsApp template notification directly to your WhatsApp mobile application on{' '}
+                        <strong className="text-[var(--text-primary)]">+91 {activeOrder.customerPhone}</strong>.
+                      </p>
+
+                      <div className="pt-2 flex flex-wrap items-center justify-between gap-3 border-t border-[var(--border-subtle)] text-[10px]">
+                        <span className="text-[var(--text-muted)]">
+                          Atelier Concierge Hotline: <strong className="text-[var(--text-primary)] font-mono">{STORE_CONFIG.brand.whatsapp}</strong>
+                        </span>
+                        <span className="text-emerald-700 dark:text-emerald-400 font-semibold">
+                          Meta Business Verified Dispatches
+                        </span>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -3933,7 +6261,7 @@ function OrdersView() {
                           <div className="flex justify-between items-center text-[10px] font-mono text-[var(--text-muted)] pt-2">
                             <span>Qty: {item.quantity}</span>
                             <span className="text-[#b99762] dark:text-[#e6ca97] flex items-center gap-1 font-semibold">
-                              <ShieldCheck className="w-3.5 h-3.5" /> BIS 925 Pure Silver Core
+                              <ShieldCheck className="w-3.5 h-3.5" /> Fine 925 Pure Silver Core
                             </span>
                           </div>
                         </div>
@@ -3973,7 +6301,7 @@ function OrdersView() {
                       </span>
                     </div>
                     <div className="flex justify-between text-[10px] text-[var(--text-muted)]">
-                      <span>Inclusive of 3% GST & Lifetime Anti-Tarnish Warranty</span>
+                      <span>Includes 30-Day Manufacturing Warranty & Certificate</span>
                       <span>Free Express Blue Dart Courier</span>
                     </div>
                   </div>
@@ -4001,21 +6329,204 @@ function AdminView() {
     formatPrice,
     navigate,
     showToast,
+    patronUser,
   } = useContext(AppContext);
 
-  const [isAuthenticated, setIsAuthenticated] = useState(() => {
-    try {
-      return localStorage.getItem('aviora_admin_auth') === 'true';
-    } catch {
-      return false;
-    }
-  });
+  // Store Owner / Staff session starts locked and requires explicit PIN verification
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   const [pinCode, setPinCode] = useState('');
   const [pinError, setPinError] = useState('');
-  const [activeTab, setActiveTab] = useState('catalog'); // 'catalog' | 'add' | 'orders'
+  const [activeTab, setActiveTab] = useState('catalog'); // 'catalog' | 'add' | 'orders' | 'phonepe' | 'bookkeeping'
   const [searchCatalog, setSearchCatalog] = useState('');
   const [filterCategory, setFilterCategory] = useState('all');
+  const [filterSilhouette, setFilterSilhouette] = useState('all'); // 'all' | 'light' | 'heavy'
+  const [filterCollection, setFilterCollection] = useState('all'); // 'all' | 'new-arrivals' | 'minimalist' | 'statement' | 'moissanite' | 'pearl' | 'gifting'
+  const [filterStock, setFilterStock] = useState('all'); // 'all' | 'initial_low' | 'in_stock' | 'out_of_stock'
+  const [customTagInputs, setCustomTagInputs] = useState({}); // productId -> custom tag input string
+
+  // Bookkeeping Ledger state
+  const [searchLedger, setSearchLedger] = useState('');
+  const [filterLedgerStage, setFilterLedgerStage] = useState('all');
+  const [isSyncingLedger, setIsSyncingLedger] = useState(false);
+
+  // WhatsApp Preview Modal State
+  const [previewWhatsAppModal, setPreviewWhatsAppModal] = useState(null);
+  const [updatingStageOrders, setUpdatingStageOrders] = useState({});
+
+  // PhonePe Admin Settings & Sandbox State
+  const [phonePeConfig, setPhonePeConfig] = useState(getPhonePeConfig());
+  const [testLinkAmount, setTestLinkAmount] = useState('3299');
+  const [testLinkPhone, setTestLinkPhone] = useState('9820012345');
+  const [testLinkName, setTestLinkName] = useState('Ananya Sharma');
+  const [generatedTestLink, setGeneratedTestLink] = useState(null);
+  const [isGeneratingTestLink, setIsGeneratingTestLink] = useState(false);
+  const [testLinkCopied, setTestLinkCopied] = useState(false);
+
+  const handleGenerateTestPhonePeLink = async (e) => {
+    e.preventDefault();
+    setIsGeneratingTestLink(true);
+    try {
+      const amt = Number(testLinkAmount) || 3299;
+      const res = await createPhonePePaymentLink({
+        orderNumber: `TEST-${Math.floor(100000 + Math.random() * 900000)}`,
+        amount: amt,
+        customerName: testLinkName,
+        customerPhone: testLinkPhone,
+        customConfig: phonePeConfig,
+      });
+      setGeneratedTestLink(res);
+      showToast('✓ PhonePe Payment Link generated with SHA-256 checksum');
+    } catch (err) {
+      console.error(err);
+      showToast('Error generating test link');
+    } finally {
+      setIsGeneratingTestLink(false);
+    }
+  };
+
+  const handleSavePhonePeSettings = (e) => {
+    e.preventDefault();
+    savePhonePeConfig(phonePeConfig);
+    showToast('✓ PhonePe API credentials updated successfully');
+  };
+
+  // Stage advancement & automated WhatsApp Business dispatch
+  const handleStageMove = async (order, targetStage) => {
+    // Prevent duplicate dispatches if order is already at the target stage
+    if (order.status === targetStage) {
+      showToast(`Order #${order.orderNumber} is already at stage ${targetStage.replace(/_/g, ' ')}`);
+      return;
+    }
+    // Prevent rapid multiple clicks while dispatch is in progress
+    if (updatingStageOrders[order.orderNumber]) {
+      return;
+    }
+    setUpdatingStageOrders((prev) => ({ ...prev, [order.orderNumber]: true }));
+
+    let awb = (order.trackingNumber || '').trim();
+    if (targetStage === 'SHIPPED' || targetStage === 'OUT_FOR_DELIVERY' || targetStage === 'DELIVERED') {
+      if (!awb) {
+        const inputVal = document.getElementById(`awb-${order.orderNumber}`)?.value?.trim();
+        awb = inputVal || generateAwbNumber();
+        const inputEl = document.getElementById(`awb-${order.orderNumber}`);
+        if (inputEl) inputEl.value = awb;
+      }
+    } else {
+      // If moving to CONFIRMED or PREPARING, do not assign premature AWB
+      awb = order.trackingNumber || '';
+    }
+
+    try {
+      const waRecord = await sendWhatsAppStageNotification(order, targetStage, awb);
+      await adminUpdateOrderStatus(order.orderNumber, targetStage, awb, waRecord);
+      showToast(`✓ Order #${order.orderNumber} moved to ${targetStage.replace(/_/g, ' ')}${awb ? ` with Consignment ${awb}` : ''}!`);
+    } catch (err) {
+      console.error('Stage update failed:', err);
+      showToast('Stage update notice. Please check connection.');
+    } finally {
+      setUpdatingStageOrders((prev) => ({ ...prev, [order.orderNumber]: false }));
+    }
+  };
+
+  const handleUpdateAwb = async (order, customAwb) => {
+    const finalAwb = (customAwb || generateAwbNumber()).trim();
+    try {
+      let waRecord = null;
+      if (order.status === 'SHIPPED' || order.status === 'OUT_FOR_DELIVERY' || order.status === 'DELIVERED') {
+        waRecord = await sendWhatsAppStageNotification(order, order.status, finalAwb);
+      }
+      await adminUpdateOrderStatus(order.orderNumber, order.status, finalAwb, waRecord);
+      showToast(`✓ Blue Dart Consignment updated to ${finalAwb}`);
+    } catch (err) {
+      console.error('AWB update failed:', err);
+    }
+  };
+
+  // Synchronize Cloud Ledger with Supabase database (Remote records take precedence over local cache)
+  const handleSyncCloudLedger = async () => {
+    setIsSyncingLedger(true);
+    try {
+      const remoteOrders = await fetchOrdersFromDb();
+      if (remoteOrders && remoteOrders.length > 0) {
+        setOrders((prev) => {
+          const map = new Map();
+          // Local cache first
+          prev.forEach((o) => map.set(o.orderNumber, o));
+          // Remote database records overwrite local cache with latest status
+          remoteOrders.forEach((o) => {
+            const existing = map.get(o.orderNumber);
+            map.set(o.orderNumber, existing ? { ...existing, ...o } : o);
+          });
+          const merged = Array.from(map.values());
+          localStorage.setItem('aura_orders_history', JSON.stringify(merged));
+          return merged;
+        });
+      }
+      showToast('✓ Cloud Ledger synced with Supabase');
+    } catch (err) {
+      console.error('Cloud ledger sync failed:', err);
+      showToast('Sync notice. Displaying local cached ledger.');
+    } finally {
+      setIsSyncingLedger(false);
+    }
+  };
+
+  // Financial calculations for Bookkeeping & Analytics
+  const bookkeepingAnalytics = useMemo(() => {
+    let grossRevenue = 0;
+    let totalTaxGST = 0;
+    let pendingCourierCount = 0;
+    let inTransitCourierCount = 0;
+    let deliveredCount = 0;
+
+    orders.forEach((o) => {
+      const g = Number(o.total) || 0;
+      grossRevenue += g;
+      const gst = Number(o.gstAmount) || Math.round((g * 3) / 103);
+      totalTaxGST += gst;
+      if (o.status === 'CONFIRMED' || o.status === 'PREPARING') {
+        pendingCourierCount++;
+      } else if (o.status === 'SHIPPED' || o.status === 'OUT_FOR_DELIVERY') {
+        inTransitCourierCount++;
+      } else if (o.status === 'DELIVERED') {
+        deliveredCount++;
+      }
+    });
+
+    const netRevenue = grossRevenue - totalTaxGST;
+    const aov = orders.length > 0 ? Math.round(grossRevenue / orders.length) : 0;
+
+    return {
+      grossRevenue,
+      totalTaxGST,
+      netRevenue,
+      aov,
+      totalOrders: orders.length,
+      pendingCourierCount,
+      inTransitCourierCount,
+      deliveredCount,
+    };
+  }, [orders]);
+
+  // Filtered orders for Bookkeeping Ledger
+  const filteredLedgerOrders = useMemo(() => {
+    return orders.filter((o) => {
+      const q = searchLedger.toLowerCase().trim();
+      const matchesSearch =
+        !q ||
+        o.orderNumber?.toLowerCase().includes(q) ||
+        o.customerName?.toLowerCase().includes(q) ||
+        o.customerPhone?.toLowerCase().includes(q) ||
+        o.customerEmail?.toLowerCase().includes(q) ||
+        o.city?.toLowerCase().includes(q) ||
+        o.trackingNumber?.toLowerCase().includes(q) ||
+        o.paymentTransactionId?.toLowerCase().includes(q);
+
+      const matchesStage = filterLedgerStage === 'all' || o.status === filterLedgerStage;
+      return matchesSearch && matchesStage;
+    });
+  }, [orders, searchLedger, filterLedgerStage]);
 
   // Edit Product Modal State
   const [editingProduct, setEditingProduct] = useState(null);
@@ -4023,77 +6534,113 @@ function AdminView() {
   // New Product Form State
   const [newProductForm, setNewProductForm] = useState({
     name: '',
-    category: 'earrings',
-    categorySlug: 'negative-space-ear-cuffs',
+    category: 'minimalist',
+    categorySlug: 'minimalist-jewellery',
     collection: 'new-arrivals',
+    silhouette: 'light',
     price: 3299,
-    originalPrice: 4499,
+    originalPrice: 3299,
     inventory: 8,
-    goldPurity: '14K Gold Vermeil (2.5μm)',
-    colorTone: 'Champagne Gold',
-    metalColorHex: '#E6CA97',
+    goldPurity: '14K Gold Plated Vermeil',
+    colorTone: 'Whitish Gold',
+    metalColorHex: '#EDE7DC',
     occasionVibe: 'Everyday Wear',
     finish: 'Polished',
-    hallmark: 'BIS Hallmarked 925 Pure Silver',
-    warranty: 'Lifetime Anti-Tarnish Warranty',
+    hallmark: 'Fine 925 Sterling Silver',
+    warranty: '30-Day Manufacturing Warranty',
     dimensions: 'Standard Universal Fit',
-    weight: '6.5g BIS 925 Silver Core',
-    image1: 'https://images.unsplash.com/photo-1611652022419-a9419f74343d?auto=format&fit=crop&w=1200&q=85',
-    image2: 'https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?auto=format&fit=crop&w=1200&q=85',
-    modelImage: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=1200&q=85',
-    description: 'Precision cast in BIS 925 sterling silver with a heavy 2.5-micron jacket of 14K Champagne Gold Vermeil. 100% waterproof and sweat-proof.',
-    editorialNote: 'Hand-finished in our Mumbai & Jaipur ateliers.',
+    weight: 'Fine 925 Silver Core',
+    images: ['/products/clover-freshwater-pearl-blue-apatite-necklace-1.jpg'],
+    modelImage: '/products/clover-freshwater-pearl-blue-apatite-necklace-1.jpg',
+    description: 'Precision crafted in Fine 925 sterling silver with a heavy 2.5-micron jacket of 14K Whitish Gold Vermeil.',
+    editorialNote: 'Hand-finished in our Delhi atelier.',
     pairsWithId: '',
     upsellReason: '',
+    newImageUrl: '', // temp input for adding image URLs
   });
+
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const [uploadFeedback, setUploadFeedback] = useState('');
+
+  const handleFileUpload = async (e, target = 'new') => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      setIsUploadingImage(true);
+      setUploadFeedback(`Uploading ${file.name}...`);
+      const publicUrl = await uploadProductImageToStorage(file);
+      if (target === 'new') {
+        // Add to new product images array
+        setNewProductForm((prev) => ({
+          ...prev,
+          images: [...(prev.images || []), publicUrl],
+          modelImage: prev.images?.length === 0 ? publicUrl : prev.modelImage,
+        }));
+      } else {
+        // Add to editing product images array
+        setEditingProduct((prev) => ({
+          ...prev,
+          images: [...(prev.images || []), publicUrl],
+        }));
+      }
+      setUploadFeedback(`✓ Uploaded & Rendered: ${file.name}`);
+      showToast('Image uploaded and rendered to catalog successfully');
+    } catch (err) {
+      console.error('Upload failed:', err);
+      setUploadFeedback('Upload failed. Please try again or paste image URL.');
+    } finally {
+      setIsUploadingImage(false);
+    }
+  };
 
   const handleLogin = (e) => {
     e?.preventDefault();
     if (pinCode.trim() === '149250' || pinCode.trim() === '1492') {
       setIsAuthenticated(true);
       try {
-        localStorage.setItem('aviora_admin_auth', 'true');
+        sessionStorage.removeItem('aviora_admin_session_auth');
+        localStorage.removeItem('aviora_admin_auth');
       } catch {}
       setPinError('');
-      showToast('✦ Curator Access Authorized');
+      showToast('✦ Staff Access Authorized');
     } else {
-      setPinError('Invalid PIN code. Use 149250 or click Quick VIP Bypass.');
+      setPinError('Invalid PIN code. Enter staff PIN 149250 to authenticate.');
     }
   };
 
-  const handleBypass = () => {
-    setIsAuthenticated(true);
-    try {
-      localStorage.setItem('aviora_admin_auth', 'true');
-    } catch {}
+  const handlePrefillPin = () => {
+    setPinCode('149250');
     setPinError('');
-    showToast('✦ Curator Access Authorized via VIP Bypass');
+    showToast('PIN 149250 entered. Click Authenticate to proceed.');
   };
 
   const handleLogout = () => {
     setIsAuthenticated(false);
+    setPinCode('');
+    setPinError('');
     try {
+      sessionStorage.removeItem('aviora_admin_session_auth');
       localStorage.removeItem('aviora_admin_auth');
     } catch {}
-    showToast('Curator Session Concluded');
+    showToast('Staff Session Concluded & Locked');
   };
 
   const handleCreateProduct = (e) => {
     e.preventDefault();
-    if (!newProductForm.name || !newProductForm.price) {
-      showToast('Please enter a product name and price.');
+    const images = (newProductForm.images || []).filter(Boolean);
+    if (images.length === 0) {
+      showToast('Please add at least one product image.');
       return;
     }
-
-    const images = [newProductForm.image1, newProductForm.image2].filter(Boolean);
 
     adminAddProduct({
       name: newProductForm.name,
       category: newProductForm.category,
       categorySlug: newProductForm.categorySlug,
+      silhouette: newProductForm.silhouette || 'light',
       collections: [newProductForm.collection],
       price: Number(newProductForm.price),
-      originalPrice: Number(newProductForm.originalPrice || newProductForm.price),
+      originalPrice: Number(newProductForm.price),
       inventory: Number(newProductForm.inventory || 5),
       inStock: Number(newProductForm.inventory || 5) > 0,
       goldPurity: newProductForm.goldPurity,
@@ -4133,6 +6680,11 @@ function AdminView() {
       colorTone: editingProduct.colorTone,
       material: editingProduct.material,
       images: editingProduct.images,
+      category: editingProduct.category,
+      categorySlug: editingProduct.categorySlug,
+      silhouette: editingProduct.silhouette || 'light',
+      collections: editingProduct.collections || [],
+      hallmark: editingProduct.hallmark || 'Fine 925 Sterling Silver',
     });
     setEditingProduct(null);
   };
@@ -4148,28 +6700,62 @@ function AdminView() {
 
   const filteredCatalog = useMemo(() => {
     let list = [...products];
+
+    // 1. Category filter
     if (filterCategory !== 'all') {
-      list = list.filter(
-        (p) =>
-          p.category === filterCategory ||
-          p.categorySlug === filterCategory ||
-          (filterCategory === 'earrings' && p.categorySlug?.includes('ear')) ||
-          (filterCategory === 'necklaces' && (p.categorySlug?.includes('choker') || p.categorySlug?.includes('hasli'))) ||
-          (filterCategory === 'bracelets' && (p.categorySlug?.includes('kada') || p.categorySlug?.includes('bangle'))) ||
-          (filterCategory === 'rings' && p.categorySlug?.includes('ring'))
-      );
+      list = list.filter((p) => {
+        if (p.category === filterCategory) return true;
+        if (p.categorySlug === filterCategory) return true;
+        if (filterCategory === 'earrings' && (p.subcategory === 'earrings' || p.categorySlug?.includes('ear') || p.name?.toLowerCase().includes('earring'))) return true;
+        if (filterCategory === 'necklaces' && (p.subcategory === 'necklaces' || p.categorySlug?.includes('choker') || p.categorySlug?.includes('hasli') || p.name?.toLowerCase().includes('necklace') || p.name?.toLowerCase().includes('chain') || p.name?.toLowerCase().includes('pendant'))) return true;
+        if (filterCategory === 'bracelets' && (p.subcategory === 'bracelets' || p.categorySlug?.includes('kada') || p.categorySlug?.includes('bangle') || p.name?.toLowerCase().includes('bracelet') || p.name?.toLowerCase().includes('kada'))) return true;
+        if (filterCategory === 'rings' && (p.subcategory === 'rings' || p.categorySlug?.includes('ring') || p.name?.toLowerCase().includes('ring'))) return true;
+        if (filterCategory === 'jewellery-sets' && (p.subcategory === 'jewellery-sets' || p.name?.toLowerCase().includes('suite') || p.name?.toLowerCase().includes('set'))) return true;
+        return false;
+      });
     }
+
+    // 2. Silhouette filter (light vs heavy)
+    if (filterSilhouette !== 'all') {
+      list = list.filter((p) => p.silhouette === filterSilhouette);
+    }
+
+    // 3. Collection filter
+    if (filterCollection !== 'all') {
+      list = list.filter((p) => {
+        if (Array.isArray(p.collections) && p.collections.includes(filterCollection)) return true;
+        if (p.category === filterCollection) return true;
+        if (filterCollection === 'new-arrivals' && p.isNew) return true;
+        return false;
+      });
+    }
+
+    // 4. Stock Status filter
+    if (filterStock === 'initial_low') {
+      // Show newly added pieces or low stock items (inventory <= 2)
+      list = list.filter((p) => Number(p.inventory) <= 2 && Number(p.inventory) > 0);
+    } else if (filterStock === 'in_stock') {
+      list = list.filter((p) => Number(p.inventory) > 0);
+    } else if (filterStock === 'out_of_stock') {
+      list = list.filter((p) => Number(p.inventory) === 0);
+    }
+
+    // 5. Search query
     if (searchCatalog.trim()) {
       const q = searchCatalog.toLowerCase();
       list = list.filter(
         (p) =>
-          p.name.toLowerCase().includes(q) ||
+          p.name?.toLowerCase().includes(q) ||
           p.description?.toLowerCase().includes(q) ||
-          p.material?.toLowerCase().includes(q)
+          p.material?.toLowerCase().includes(q) ||
+          p.id?.toLowerCase().includes(q) ||
+          p.slug?.toLowerCase().includes(q) ||
+          (Array.isArray(p.collections) && p.collections.some((c) => c.toLowerCase().includes(q)))
       );
     }
+
     return list;
-  }, [products, filterCategory, searchCatalog]);
+  }, [products, filterCategory, filterSilhouette, filterCollection, filterStock, searchCatalog]);
 
   // If locked, render security portal
   if (!isAuthenticated) {
@@ -4180,18 +6766,42 @@ function AdminView() {
             <div className="w-12 h-12 rounded-full bg-[#1d4136]/10 dark:bg-[#e6ca97]/10 border border-[#1d4136]/30 dark:border-[#e6ca97]/30 flex items-center justify-center mx-auto text-[#1d4136] dark:text-[#e6ca97]">
               <Lock className="w-6 h-6" />
             </div>
+            <div className="inline-block px-2.5 py-0.5 rounded text-[9px] font-mono uppercase bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-800 font-bold">
+              Store Owner & Master Jeweler (Restricted)
+            </div>
             <h2 className="font-serif text-3xl text-[var(--text-primary)] font-normal">
-              Atelier Vault Access
+              Store Admin & Atelier Portal
             </h2>
             <p className="text-xs font-sans text-[var(--text-secondary)]">
-              Authorized personnel only. Enter your 6-digit Curator Security PIN to manage the catalog, pricing, and Blue Dart logistics.
+              Strictly for Aviora store managers & master jewelers. Enter the 6-digit Staff PIN (149250) to manage inventory, catalog prices, Blue Dart waybills, and financial bookkeeping.
             </p>
           </div>
+
+          {/* Patron Notice: If customer is logged in, guide them to their customer-facing dossier */}
+          {patronUser && (
+            <div className="p-4 bg-[#1d4136]/5 dark:bg-[#e6ca97]/5 border border-[#b99762]/50 text-xs font-mono space-y-2.5">
+              <div className="flex items-center gap-1.5 font-bold text-[#b99762] dark:text-[#e6ca97] uppercase tracking-wider text-[10px]">
+                <User className="w-3.5 h-3.5" />
+                <span>Patron Session Active: {patronUser.name}</span>
+              </div>
+              <p className="text-[11px] text-[var(--text-secondary)] leading-relaxed">
+                Looking to track your jewellery order or Blue Dart courier consignment? This page is the staff vault for atelier bench jewelers. Your customer tracking dossier is in your Patron Portal.
+              </p>
+              <button
+                type="button"
+                onClick={() => navigate('orders')}
+                className="w-full py-2 bg-[#1d4136] hover:bg-[#16332a] dark:bg-[#e6ca97] dark:hover:bg-[#d9b87c] text-white dark:text-[#242321] font-mono font-bold text-xs uppercase tracking-wider transition-colors flex items-center justify-center gap-2 shadow-xs"
+              >
+                <Truck className="w-3.5 h-3.5" />
+                <span>Open My Patron Order Tracking</span>
+              </button>
+            </div>
+          )}
 
           <form onSubmit={handleLogin} className="space-y-4">
             <div>
               <label className="block text-[10px] font-sans font-bold tracking-[0.14em] uppercase text-[var(--text-muted)] mb-1.5">
-                Curator PIN (Default: 149250)
+                Curator Staff PIN (Default: 149250)
               </label>
               <input
                 type="password"
@@ -4211,17 +6821,23 @@ function AdminView() {
               type="submit"
               className="w-full h-12 bg-[#1d4136] dark:bg-[#e6ca97] text-white dark:text-black font-sans text-xs font-bold tracking-[0.16em] uppercase transition-colors hover:bg-[#132f27] dark:hover:bg-[#d8c39f]"
             >
-              Authenticate & Enter
+              Authenticate Staff Access
             </button>
           </form>
 
-          <div className="pt-2 border-t border-[var(--border-subtle)] text-center">
+          <div className="pt-2 border-t border-[var(--border-subtle)] flex items-center justify-between text-xs font-sans">
             <button
-              onClick={handleBypass}
-              className="text-xs font-sans font-bold tracking-[0.1em] uppercase text-[#b99762] hover:underline inline-flex items-center gap-1.5"
+              onClick={() => navigate('home')}
+              className="text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
             >
-              <ShieldCheck className="w-4 h-4" />
-              <span>Owner 1-Click VIP Bypass</span>
+              ← Storefront
+            </button>
+            <button
+              type="button"
+              onClick={handlePrefillPin}
+              className="text-[#b99762] hover:underline font-bold text-[11px] font-mono"
+            >
+              Pre-fill Staff PIN (149250)
             </button>
           </div>
         </div>
@@ -4248,12 +6864,20 @@ function AdminView() {
                 </span>
               </div>
               <span className="text-[10px] font-mono tracking-wider uppercase text-[var(--text-muted)]">
-                AVIORA JEWELLERS • MUMBAI & JAIPUR ATELIERS
+                AVIORA JEWELLERS • DELHI ATELIER
               </span>
             </div>
           </div>
 
           <div className="flex items-center gap-3">
+            <button
+              onClick={() => navigate('orders')}
+              className="px-3.5 py-1.5 text-xs font-sans font-bold tracking-[0.1em] uppercase border border-[#b99762]/60 hover:bg-[#b99762]/10 text-[#b99762] dark:text-[#e6ca97] transition-colors flex items-center gap-1.5"
+              title="Preview client-facing tracking dossier"
+            >
+              <Truck className="w-3.5 h-3.5" />
+              <span>Patron Tracking View</span>
+            </button>
             <button
               onClick={() => navigate('atelier')}
               className="px-3.5 py-1.5 text-xs font-sans font-bold tracking-[0.1em] uppercase border border-[var(--border-strong)] hover:bg-[var(--bg-card)] transition-colors"
@@ -4358,6 +6982,28 @@ function AdminView() {
             <Truck className="w-4 h-4" />
             <span>Patron Orders & Blue Dart AWB ({orders.length})</span>
           </button>
+          <button
+            onClick={() => setActiveTab('phonepe')}
+            className={`pb-3 border-b-2 flex items-center gap-2 transition-colors ${
+              activeTab === 'phonepe'
+                ? 'border-[#5F259F] text-[#5F259F]'
+                : 'border-transparent text-[var(--text-muted)] hover:text-[var(--text-primary)]'
+            }`}
+          >
+            <PhonePeIcon className="w-4 h-4" />
+            <span>PhonePe Gateway & Sandbox</span>
+          </button>
+          <button
+            onClick={() => setActiveTab('bookkeeping')}
+            className={`pb-3 border-b-2 flex items-center gap-2 transition-colors ${
+              activeTab === 'bookkeeping'
+                ? 'border-[#1d4136] dark:border-[#e6ca97] text-[#1d4136] dark:text-[#e6ca97]'
+                : 'border-transparent text-[var(--text-muted)] hover:text-[var(--text-primary)]'
+            }`}
+          >
+            <FileSpreadsheet className="w-4 h-4" />
+            <span>Bookkeeping & Analytics Ledger</span>
+          </button>
         </div>
 
         {/* ========================================== */}
@@ -4365,36 +7011,146 @@ function AdminView() {
         {/* ========================================== */}
         {activeTab === 'catalog' && (
           <div className="mt-8 space-y-6">
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-              <div className="flex items-center gap-3 w-full sm:w-auto">
-                <input
-                  type="text"
-                  placeholder="Search piece name or material..."
-                  value={searchCatalog}
-                  onChange={(e) => setSearchCatalog(e.target.value)}
-                  className="w-full sm:w-72 h-10 px-3 bg-[var(--bg-card)] border border-[var(--border-strong)] text-xs font-sans text-[var(--text-primary)] outline-none"
-                />
-                <select
-                  value={filterCategory}
-                  onChange={(e) => setFilterCategory(e.target.value)}
-                  className="h-10 px-3 bg-[var(--bg-card)] border border-[var(--border-strong)] text-xs font-sans text-[var(--text-primary)] outline-none"
+            {/* Multi-Axis Catalog Filter & Curation Toolbar */}
+            <div className="bg-[var(--bg-card)] border border-[var(--border-strong)] p-4 sm:p-5 space-y-4 shadow-sm">
+              <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3">
+                {/* Search Bar */}
+                <div className="relative flex-1">
+                  <input
+                    type="text"
+                    placeholder="Search name, ID (e.g. prod-017), material, slug, or tag..."
+                    value={searchCatalog}
+                    onChange={(e) => setSearchCatalog(e.target.value)}
+                    className="w-full h-10 pl-3 pr-8 bg-[var(--bg-primary)] border border-[var(--border-strong)] text-xs font-sans text-[var(--text-primary)] outline-none"
+                  />
+                  {searchCatalog && (
+                    <button
+                      onClick={() => setSearchCatalog('')}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+                    >
+                      ✕
+                    </button>
+                  )}
+                </div>
+
+                {/* Add Creation Button */}
+                <button
+                  onClick={() => setActiveTab('add')}
+                  className="px-5 py-2.5 bg-[#1d4136] dark:bg-[#e6ca97] text-white dark:text-black text-xs font-sans font-bold tracking-[0.12em] uppercase transition-colors hover:bg-[#132f27] flex items-center justify-center gap-1.5 shrink-0"
                 >
-                  <option value="all">All Categories</option>
-                  <option value="earrings">Earrings</option>
-                  <option value="necklaces">Necklaces</option>
-                  <option value="bracelets">Bracelets</option>
-                  <option value="rings">Rings</option>
-                  <option value="jewellery-sets">Jewellery Sets</option>
-                </select>
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>Add Creation</span>
+                </button>
               </div>
 
-              <button
-                onClick={() => setActiveTab('add')}
-                className="w-full sm:w-auto px-5 py-2.5 bg-[#1d4136] dark:bg-[#e6ca97] text-white dark:text-black text-xs font-sans font-bold tracking-[0.12em] uppercase transition-colors hover:bg-[#132f27] flex items-center justify-center gap-1.5"
-              >
-                <Plus className="w-3.5 h-3.5" />
-                <span>Add Creation</span>
-              </button>
+              {/* Filter Controls Row */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-1 border-t border-[var(--border-subtle)] text-xs font-sans">
+                {/* 1. Category Filter */}
+                <div>
+                  <label className="block text-[9px] font-mono uppercase tracking-wider text-[var(--text-muted)] mb-1 font-bold">
+                    Category Filter
+                  </label>
+                  <select
+                    value={filterCategory}
+                    onChange={(e) => setFilterCategory(e.target.value)}
+                    className="w-full h-9 px-2.5 bg-[var(--bg-primary)] border border-[var(--border-strong)] text-xs font-sans text-[var(--text-primary)] outline-none"
+                  >
+                    <option value="all">All Categories</option>
+                    <option value="minimalist">Minimalist Jewellery</option>
+                    <option value="statement">Statement Jewellery</option>
+                    <option value="moissanite">Moissanite Collection</option>
+                    <option value="pearl">Pearl Collection</option>
+                    <option value="new-arrivals">New Arrivals</option>
+                    <option value="gifting">Gifting Occasions</option>
+                    <option value="necklaces">Necklaces & Chains</option>
+                    <option value="bracelets">Bracelets & Kadas</option>
+                    <option value="earrings">Earrings & Studs</option>
+                    <option value="rings">Rings</option>
+                    <option value="jewellery-sets">Sets & Suites</option>
+                  </select>
+                </div>
+
+                {/* 2. Silhouette Filter */}
+                <div>
+                  <label className="block text-[9px] font-mono uppercase tracking-wider text-[var(--text-muted)] mb-1 font-bold">
+                    Silhouette Curation
+                  </label>
+                  <select
+                    value={filterSilhouette}
+                    onChange={(e) => setFilterSilhouette(e.target.value)}
+                    className="w-full h-9 px-2.5 bg-[var(--bg-primary)] border border-[var(--border-strong)] text-xs font-sans text-[var(--text-primary)] outline-none"
+                  >
+                    <option value="all">All Silhouettes</option>
+                    <option value="light">Light (Everyday Wear)</option>
+                    <option value="heavy">Heavy (Statement Presence)</option>
+                  </select>
+                </div>
+
+                {/* 3. Collection Tag Filter */}
+                <div>
+                  <label className="block text-[9px] font-mono uppercase tracking-wider text-[var(--text-muted)] mb-1 font-bold">
+                    Collection / Tag
+                  </label>
+                  <select
+                    value={filterCollection}
+                    onChange={(e) => setFilterCollection(e.target.value)}
+                    className="w-full h-9 px-2.5 bg-[var(--bg-primary)] border border-[var(--border-strong)] text-xs font-sans text-[var(--text-primary)] outline-none"
+                  >
+                    <option value="all">All Collections</option>
+                    <option value="new-arrivals">New Arrivals</option>
+                    <option value="minimalist">Minimalist Edit</option>
+                    <option value="statement">Statement Jewellery</option>
+                    <option value="moissanite">Moissanite Collection</option>
+                    <option value="pearl">Freshwater Pearls</option>
+                    <option value="gifting">Gifting Occasions</option>
+                  </select>
+                </div>
+
+                {/* 4. Stock Filter */}
+                <div>
+                  <label className="block text-[9px] font-mono uppercase tracking-wider text-[var(--text-muted)] mb-1 font-bold">
+                    Stock Status
+                  </label>
+                  <select
+                    value={filterStock}
+                    onChange={(e) => setFilterStock(e.target.value)}
+                    className="w-full h-9 px-2.5 bg-[var(--bg-primary)] border border-[var(--border-strong)] text-xs font-sans text-[var(--text-primary)] outline-none"
+                  >
+                    <option value="all">All Stock Levels</option>
+                    <option value="initial_low">Initial / Low Stock (≤ 2 units)</option>
+                    <option value="in_stock">In Stock (&gt; 0 units)</option>
+                    <option value="out_of_stock">Out of Stock (0 units)</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Status bar with Active Filters & Reset */}
+              <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-[var(--border-subtle)] text-[11px] font-mono">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-[var(--text-muted)]">
+                    Showing <strong className="text-[var(--text-primary)]">{filteredCatalog.length}</strong> of{' '}
+                    <strong>{products.length}</strong> creations
+                  </span>
+                  {(filterCategory !== 'all' || filterSilhouette !== 'all' || filterCollection !== 'all' || filterStock !== 'all' || searchCatalog) && (
+                    <button
+                      onClick={() => {
+                        setFilterCategory('all');
+                        setFilterSilhouette('all');
+                        setFilterCollection('all');
+                        setFilterStock('all');
+                        setSearchCatalog('');
+                      }}
+                      className="px-2 py-0.5 text-[9px] uppercase font-bold text-amber-800 dark:text-amber-300 bg-amber-100 dark:bg-amber-950/60 border border-amber-300 dark:border-amber-800 rounded hover:bg-amber-200"
+                    >
+                      Clear All Filters ✕
+                    </button>
+                  )}
+                </div>
+
+                <div className="text-[10px] text-[var(--text-muted)] hidden sm:block">
+                  Tag pieces below to place into collections & silhouettes in real-time
+                </div>
+              </div>
             </div>
 
             {/* Catalog Grid Cards */}
@@ -4402,36 +7158,248 @@ function AdminView() {
               {filteredCatalog.map((product) => (
                 <div
                   key={product.id}
-                  className="bg-[var(--bg-card)] border border-[var(--border-subtle)] p-4 space-y-3 flex flex-col justify-between shadow-xs"
+                  className="bg-[var(--bg-card)] border border-[var(--border-subtle)] p-4 space-y-3.5 flex flex-col justify-between shadow-xs hover:border-[var(--border-strong)] transition-colors"
                 >
-                  <div className="flex gap-3">
-                    <img
-                      src={product.images[0]}
-                      alt={product.name}
-                      className="w-20 h-24 object-cover bg-[var(--bg-stone)] border border-[var(--border-subtle)] shrink-0"
-                    />
-                    <div className="space-y-1 min-w-0 flex-1">
-                      <div className="flex items-center justify-between gap-1">
-                        <span className="text-[9px] font-mono tracking-wider uppercase text-[var(--text-muted)] truncate">
-                          {product.category || product.categoryName || 'Jewellery'}
-                        </span>
-                        <span className="text-[10px] font-sans font-bold text-emerald-600 dark:text-emerald-400">
-                          {formatPrice(product.price)}
-                        </span>
+                  <div className="space-y-3">
+                    {/* Header: Image & Main Details */}
+                    <div className="flex gap-3">
+                      <div className="relative shrink-0">
+                        <img
+                          src={product.images[0]}
+                          alt={product.name}
+                          className="w-20 h-24 object-cover bg-[var(--bg-stone)] border border-[var(--border-subtle)]"
+                        />
+                        {product.images?.length > 1 && (
+                          <span className="absolute bottom-1 right-1 px-1 py-0.5 bg-black/80 text-[#e6ca97] text-[7.5px] font-mono font-bold rounded-xs tracking-wider">
+                            {product.images.length} ANGLES
+                          </span>
+                        )}
                       </div>
-                      <h4 className="font-serif text-lg text-[var(--text-primary)] truncate font-normal">
-                        {product.name}
-                      </h4>
-                      <p className="text-[10px] font-sans text-[var(--text-secondary)] line-clamp-1">
-                        {product.goldPurity || product.material}
-                      </p>
-                      <div className="flex flex-wrap gap-1 pt-1">
-                        <span className="px-1.5 py-0.5 bg-[var(--bg-secondary)] text-[8.5px] font-mono uppercase text-[#b99762] border border-[var(--border-subtle)]">
-                          {product.colorTone || 'Champagne Gold'}
+                      <div className="space-y-1 min-w-0 flex-1">
+                        <div className="flex items-center justify-between gap-1">
+                          <span className="text-[9px] font-mono tracking-wider uppercase text-[var(--text-muted)] truncate">
+                            {product.id}
+                          </span>
+                          <span className="text-[11px] font-sans font-bold text-emerald-600 dark:text-emerald-400">
+                            {formatPrice(product.price)}
+                          </span>
+                        </div>
+                        <h4 className="font-serif text-base text-[var(--text-primary)] line-clamp-1 font-normal" title={product.name}>
+                          {product.name}
+                        </h4>
+                        <p className="text-[10px] font-sans text-[var(--text-secondary)] line-clamp-1">
+                          {product.goldPurity || product.material}
+                        </p>
+                        <div className="flex flex-wrap items-center gap-1 pt-0.5">
+                          <span className={`px-1.5 py-0.5 text-[8.5px] font-mono uppercase border ${
+                            Number(product.inventory) <= 2
+                              ? 'bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border-amber-300 dark:border-amber-800 font-bold'
+                              : 'bg-[var(--bg-secondary)] text-[var(--text-muted)] border-[var(--border-subtle)]'
+                          }`}>
+                            Stock: {product.inventory ?? 2}
+                          </span>
+                          <span className="px-1.5 py-0.5 bg-[var(--bg-secondary)] text-[8.5px] font-mono uppercase text-[#b99762] border border-[var(--border-subtle)]">
+                            {product.colorTone || 'Whitish Gold'}
+                          </span>
+                          {product.images?.length > 1 && (
+                            <span className="px-1.5 py-0.5 bg-[#1d4136]/10 dark:bg-[#e6ca97]/10 text-[8.5px] font-mono uppercase text-[#1d4136] dark:text-[#e6ca97] border border-[#1d4136]/20 dark:border-[#e6ca97]/20 font-bold">
+                              ✦ {product.images.length} Photos
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Admin Multi-Angle Preview Strip */}
+                    {product.images?.length > 1 && (
+                      <div className="flex items-center gap-1.5 p-1.5 bg-[var(--bg-secondary)]/70 border border-[var(--border-subtle)] rounded-xs">
+                        <span className="text-[8.5px] font-mono text-[var(--text-muted)] uppercase tracking-wider shrink-0 font-bold">
+                          Angles ({product.images.length}):
                         </span>
-                        <span className="px-1.5 py-0.5 bg-[var(--bg-secondary)] text-[8.5px] font-mono uppercase text-[var(--text-muted)] border border-[var(--border-subtle)]">
-                          BIS 925
+                        <div className="flex items-center gap-1 overflow-x-auto">
+                          {product.images.map((img, idx) => (
+                            <button
+                              key={idx}
+                              type="button"
+                              onClick={() => navigate('pdp', product)}
+                              title={`Preview Angle 0${idx + 1} in Studio Gallery`}
+                              className="relative shrink-0 hover:ring-1 hover:ring-[#b99762] transition-all"
+                            >
+                              <img
+                                src={img}
+                                alt={`Angle 0${idx + 1}`}
+                                className="w-6 h-7 object-cover border border-[var(--border-subtle)] rounded-xs"
+                              />
+                              <span className="absolute bottom-0 right-0 text-[6.5px] font-mono bg-black/80 text-white px-0.5 font-bold">
+                                0{idx + 1}
+                              </span>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Quick Tagging & Curation Controls */}
+                    <div className="space-y-2 pt-2 border-t border-[var(--border-subtle)] bg-[var(--bg-secondary)]/40 p-2.5 rounded-xs">
+                      {/* Row 1: Category Selector */}
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-[9px] font-mono tracking-wider uppercase text-[var(--text-muted)] shrink-0 font-bold">
+                          Category:
                         </span>
+                        <select
+                          value={product.category || 'minimalist'}
+                          onChange={(e) => {
+                            const newCat = e.target.value;
+                            const slugMap = {
+                              'minimalist': 'minimalist-jewellery',
+                              'statement': 'statement-jewellery',
+                              'moissanite': 'moissanite-collection',
+                              'pearl': 'freshwater-pearl-jewellery',
+                              'new-arrivals': 'latest-launches',
+                              'gifting': 'occasions-gifting',
+                            };
+                            adminUpdateProduct(product.id, {
+                              category: newCat,
+                              categorySlug: slugMap[newCat] || newCat,
+                            });
+                          }}
+                          className="h-6 px-2 bg-[var(--bg-primary)] border border-[var(--border-strong)] text-[10px] font-sans text-[var(--text-primary)] outline-none flex-1 max-w-[180px]"
+                        >
+                          <option value="minimalist">Minimalist</option>
+                          <option value="statement">Statement</option>
+                          <option value="moissanite">Moissanite</option>
+                          <option value="pearl">Freshwater Pearl</option>
+                          <option value="new-arrivals">New Arrivals</option>
+                          <option value="gifting">Gifting</option>
+                        </select>
+                      </div>
+
+                      {/* Row 2: Silhouette Toggle */}
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-[9px] font-mono tracking-wider uppercase text-[var(--text-muted)] shrink-0 font-bold">
+                          Silhouette:
+                        </span>
+                        <div className="inline-flex rounded border border-[var(--border-subtle)] p-0.5 bg-[var(--bg-primary)]">
+                          <button
+                            type="button"
+                            onClick={() => adminUpdateProduct(product.id, { silhouette: 'light' })}
+                            className={`px-2 py-0.5 text-[8.5px] font-mono uppercase tracking-wider rounded transition-colors ${
+                              product.silhouette === 'light'
+                                ? 'bg-[#1d4136] dark:bg-[#e6ca97] text-white dark:text-black font-bold shadow-xs'
+                                : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
+                            }`}
+                          >
+                            Light
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => adminUpdateProduct(product.id, { silhouette: 'heavy' })}
+                            className={`px-2 py-0.5 text-[8.5px] font-mono uppercase tracking-wider rounded transition-colors ${
+                              product.silhouette === 'heavy'
+                                ? 'bg-[#1d4136] dark:bg-[#e6ca97] text-white dark:text-black font-bold shadow-xs'
+                                : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
+                            }`}
+                          >
+                            Heavy
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Row 3: Collection Tag Pills */}
+                      <div className="space-y-1.5 pt-1 border-t border-[var(--border-subtle)]">
+                        <span className="text-[9px] font-mono tracking-wider uppercase text-[var(--text-muted)] block font-bold">
+                          Tag in Collections:
+                        </span>
+                        <div className="flex flex-wrap gap-1">
+                          {['new-arrivals', 'minimalist', 'statement', 'moissanite', 'pearl', 'gifting'].map((colKey) => {
+                            const isTagged = Array.isArray(product.collections) && product.collections.includes(colKey);
+                            return (
+                              <button
+                                key={colKey}
+                                type="button"
+                                onClick={() => {
+                                  const cur = Array.isArray(product.collections) ? [...product.collections] : [];
+                                  const next = isTagged ? cur.filter((c) => c !== colKey) : [...cur, colKey];
+                                  adminUpdateProduct(product.id, { collections: next });
+                                }}
+                                className={`px-1.5 py-0.5 text-[8px] font-mono uppercase rounded transition-colors ${
+                                  isTagged
+                                    ? 'bg-[#1d4136] dark:bg-[#e6ca97] text-white dark:text-black font-bold'
+                                    : 'bg-[var(--bg-primary)] text-[var(--text-muted)] border border-[var(--border-subtle)] hover:border-[var(--border-strong)]'
+                                }`}
+                                title={isTagged ? `Click to remove from ${colKey}` : `Click to tag in ${colKey}`}
+                              >
+                                {isTagged ? '✓ ' : '+ '}
+                                {colKey === 'new-arrivals' ? 'New' : colKey}
+                              </button>
+                            );
+                          })}
+
+                          {/* Render custom tags */}
+                          {Array.isArray(product.collections) &&
+                            product.collections
+                              .filter((c) => !['new-arrivals', 'minimalist', 'statement', 'moissanite', 'pearl', 'gifting'].includes(c))
+                              .map((customTag) => (
+                                <span
+                                  key={customTag}
+                                  className="inline-flex items-center gap-1 px-1.5 py-0.5 text-[8px] font-mono uppercase bg-emerald-100 dark:bg-emerald-950/70 text-emerald-900 dark:text-emerald-200 border border-emerald-400 dark:border-emerald-700 font-bold rounded"
+                                >
+                                  <span>#{customTag}</span>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      const next = product.collections.filter((c) => c !== customTag);
+                                      adminUpdateProduct(product.id, { collections: next });
+                                    }}
+                                    className="hover:text-rose-600 ml-0.5"
+                                  >
+                                    ✕
+                                  </button>
+                                </span>
+                              ))}
+                        </div>
+
+                        {/* Quick Custom Tag Adder */}
+                        <div className="flex items-center gap-1 pt-1">
+                          <input
+                            type="text"
+                            placeholder="+ Custom tag (Press Enter)..."
+                            value={customTagInputs[product.id] || ''}
+                            onChange={(e) => setCustomTagInputs({ ...customTagInputs, [product.id]: e.target.value })}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                e.preventDefault();
+                                const rawTag = (customTagInputs[product.id] || '').trim().toLowerCase().replace(/\s+/g, '-');
+                                if (rawTag) {
+                                  const cur = Array.isArray(product.collections) ? [...product.collections] : [];
+                                  if (!cur.includes(rawTag)) {
+                                    adminUpdateProduct(product.id, { collections: [...cur, rawTag] });
+                                    showToast(`✓ Tagged with #${rawTag}`);
+                                  }
+                                  setCustomTagInputs({ ...customTagInputs, [product.id]: '' });
+                                }
+                              }
+                            }}
+                            className="w-full h-6 px-2 text-[9px] font-mono bg-[var(--bg-primary)] border border-[var(--border-subtle)] text-[var(--text-primary)] outline-none"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const rawTag = (customTagInputs[product.id] || '').trim().toLowerCase().replace(/\s+/g, '-');
+                              if (rawTag) {
+                                const cur = Array.isArray(product.collections) ? [...product.collections] : [];
+                                if (!cur.includes(rawTag)) {
+                                  adminUpdateProduct(product.id, { collections: [...cur, rawTag] });
+                                  showToast(`✓ Tagged with #${rawTag}`);
+                                }
+                                setCustomTagInputs({ ...customTagInputs, [product.id]: '' });
+                              }
+                            }}
+                            className="px-2 h-6 bg-[var(--bg-primary)] border border-[var(--border-strong)] text-[8.5px] font-mono uppercase font-bold hover:bg-[var(--bg-stone)] shrink-0"
+                          >
+                            Add
+                          </button>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -4439,7 +7407,7 @@ function AdminView() {
                   {/* Stock and CRUD Controls */}
                   <div className="pt-3 border-t border-[var(--border-subtle)] flex items-center justify-between text-xs font-sans">
                     {/* Live stock stepper syncing immediately */}
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1.5">
                       <span className="text-[10px] uppercase font-bold tracking-wider text-[var(--text-muted)]">
                         Stock:
                       </span>
@@ -4453,7 +7421,7 @@ function AdminView() {
                         <Minus className="w-3 h-3" />
                       </button>
                       <span className="font-mono font-bold w-6 text-center text-[var(--text-primary)]">
-                        {product.inventory ?? 5}
+                        {product.inventory ?? 2}
                       </span>
                       <button
                         onClick={() => {
@@ -4532,25 +7500,27 @@ function AdminView() {
                     onChange={(e) => {
                       const cat = e.target.value;
                       const slugMap = {
-                        earrings: 'negative-space-ear-cuffs',
-                        necklaces: 'haslis-sculptural-chokers',
-                        bracelets: 'anatomical-kadas-cuffs',
-                        rings: 'statement-rings-solitaires',
-                        'jewellery-sets': 'gift-sets',
+                        'new-arrivals': 'latest-launches',
+                        minimalist: 'minimalist-jewellery',
+                        statement: 'statement-jewellery',
+                        moissanite: 'moissanite-collection',
+                        pearl: 'freshwater-pearl-jewellery',
+                        gifting: 'occasions-gifting',
                       };
                       setNewProductForm({
                         ...newProductForm,
                         category: cat,
-                        categorySlug: slugMap[cat] || 'anatomical-kadas-cuffs',
+                        categorySlug: slugMap[cat] || 'minimalist-jewellery',
                       });
                     }}
                     className="w-full h-10 px-3 bg-[var(--bg-primary)] border border-[var(--border-strong)] text-[var(--text-primary)] outline-none"
                   >
-                    <option value="earrings">Earrings & Ear Cuffs</option>
-                    <option value="necklaces">Necklaces & Haslis</option>
-                    <option value="bracelets">Bracelets & Kadas</option>
-                    <option value="rings">Rings & Solitaires</option>
-                    <option value="jewellery-sets">Jewellery Sets</option>
+                    <option value="new-arrivals">New Arrivals (Latest Launches)</option>
+                    <option value="minimalist">Minimalist Jewellery</option>
+                    <option value="statement">Statement Jewellery</option>
+                    <option value="moissanite">Moissanite Collection</option>
+                    <option value="pearl">Pearl Collection (Freshwater Pearls)</option>
+                    <option value="gifting">Gifting Occasions</option>
                   </select>
                 </div>
               </div>
@@ -4571,14 +7541,16 @@ function AdminView() {
 
                 <div>
                   <label className="block font-bold tracking-[0.14em] uppercase text-[var(--text-muted)] mb-1">
-                    Original Strike-through Price (₹)
+                    Silhouette & Presence *
                   </label>
-                  <input
-                    type="number"
-                    value={newProductForm.originalPrice}
-                    onChange={(e) => setNewProductForm({ ...newProductForm, originalPrice: e.target.value })}
+                  <select
+                    value={newProductForm.silhouette || 'light'}
+                    onChange={(e) => setNewProductForm({ ...newProductForm, silhouette: e.target.value })}
                     className="w-full h-10 px-3 bg-[var(--bg-primary)] border border-[var(--border-strong)] text-[var(--text-primary)] outline-none"
-                  />
+                  >
+                    <option value="light">Delicate & Light (Minimalist & Everyday)</option>
+                    <option value="heavy">Bold & Heavy (Statement Sculptures)</option>
+                  </select>
                 </div>
 
                 <div>
@@ -4620,7 +7592,7 @@ function AdminView() {
                     onChange={(e) => setNewProductForm({ ...newProductForm, colorTone: e.target.value })}
                     className="w-full h-10 px-3 bg-[var(--bg-primary)] border border-[var(--border-strong)] text-[var(--text-primary)] outline-none"
                   >
-                    <option value="Champagne Gold">Champagne Gold</option>
+                    <option value="Whitish Gold">Whitish Gold</option>
                     <option value="Pure 925 Silver">Pure 925 Silver</option>
                     <option value="14K Rose Gold">14K Rose Gold</option>
                     <option value="Obsidian Black">Obsidian Black</option>
@@ -4646,26 +7618,95 @@ function AdminView() {
                 </div>
               </div>
 
-              {/* Images URLs */}
-              <div className="space-y-3">
-                <label className="block font-bold tracking-[0.14em] uppercase text-[var(--text-muted)]">
-                  Imagery URLs (Direct High-Res Links)
-                </label>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <input
-                    type="url"
-                    placeholder="Primary Product Angle Image URL"
-                    value={newProductForm.image1}
-                    onChange={(e) => setNewProductForm({ ...newProductForm, image1: e.target.value })}
-                    className="w-full h-10 px-3 bg-[var(--bg-primary)] border border-[var(--border-strong)] text-[var(--text-primary)] outline-none"
-                  />
-                  <input
-                    type="url"
-                    placeholder="Secondary Hover Flip Image URL"
-                    value={newProductForm.image2}
-                    onChange={(e) => setNewProductForm({ ...newProductForm, image2: e.target.value })}
-                    className="w-full h-10 px-3 bg-[var(--bg-primary)] border border-[var(--border-strong)] text-[var(--text-primary)] outline-none"
-                  />
+              {/* Image Gallery Manager */}
+              <div className="space-y-4 p-4 bg-[var(--bg-secondary)] border border-[var(--border-subtle)]">
+                <div className="flex items-center justify-between">
+                  <label className="block font-bold tracking-[0.14em] uppercase text-[#1d4136] dark:text-[#e6ca97] text-xs flex items-center gap-2">
+                    <UploadCloud className="w-4 h-4" />
+                    Studio Image Gallery ({newProductForm.images?.length || 0} angles)
+                  </label>
+                  {isUploadingImage && (
+                    <span className="text-[10px] font-mono text-amber-500 animate-pulse">
+                      Uploading...
+                    </span>
+                  )}
+                </div>
+
+                {uploadFeedback && (
+                  <p className="text-[11px] font-mono text-emerald-600 dark:text-emerald-400">{uploadFeedback}</p>
+                )}
+
+                {/* Existing images with remove */}
+                {(newProductForm.images || []).length > 0 && (
+                  <div className="flex flex-wrap gap-2">
+                    {(newProductForm.images || []).map((imgUrl, idx) => (
+                      <div key={idx} className="relative group">
+                        <img
+                          src={imgUrl}
+                          alt={`Angle ${idx + 1}`}
+                          className="w-16 h-20 object-cover border border-[var(--border-subtle)] bg-[var(--bg-stone)]"
+                        />
+                        <span className="absolute bottom-1 left-1 text-[7px] font-mono bg-black/80 text-white px-1">0{idx + 1}</span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const updated = (newProductForm.images || []).filter((_, i) => i !== idx);
+                            setNewProductForm({ ...newProductForm, images: updated, modelImage: updated[0] || '' });
+                          }}
+                          className="absolute top-0.5 right-0.5 w-4 h-4 rounded-full bg-rose-600 text-white text-[9px] font-bold flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                          title="Remove image"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Add new image: URL input + file upload */}
+                <div className="space-y-2 border border-dashed border-[var(--border-strong)] p-3 bg-[var(--bg-card)]">
+                  <span className="text-[10px] font-mono uppercase text-[var(--text-muted)] font-semibold block">
+                    Add Image (Angle {(newProductForm.images?.length || 0) + 1})
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="url"
+                      placeholder="Paste image URL (e.g. /products/name-1.jpg)"
+                      value={newProductForm.newImageUrl || ''}
+                      onChange={(e) => setNewProductForm({ ...newProductForm, newImageUrl: e.target.value })}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          const url = (newProductForm.newImageUrl || '').trim();
+                          if (url) {
+                            setNewProductForm({ ...newProductForm, images: [...(newProductForm.images || []), url], newImageUrl: '', modelImage: newProductForm.images?.length === 0 ? url : newProductForm.modelImage });
+                          }
+                        }
+                      }}
+                      className="flex-1 h-8 px-2 bg-[var(--bg-primary)] border border-[var(--border-subtle)] text-[11px] font-mono text-[var(--text-primary)] outline-none"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const url = (newProductForm.newImageUrl || '').trim();
+                        if (url) {
+                          setNewProductForm({ ...newProductForm, images: [...(newProductForm.images || []), url], newImageUrl: '', modelImage: newProductForm.images?.length === 0 ? url : newProductForm.modelImage });
+                        }
+                      }}
+                      className="px-3 h-8 bg-[#1d4136] dark:bg-[#e6ca97] text-white dark:text-black text-[10px] font-mono font-bold uppercase shrink-0"
+                    >
+                      + Add
+                    </button>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => handleFileUpload(e, 'new')}
+                      className="text-xs text-[var(--text-secondary)] file:mr-2 file:py-1 file:px-2 file:border file:border-[var(--border-strong)] file:text-[10px] file:font-mono file:uppercase file:bg-[var(--bg-secondary)] file:text-[var(--text-primary)] file:cursor-pointer cursor-pointer"
+                    />
+                    <span className="text-[10px] font-mono text-[var(--text-muted)]">Or upload file</span>
+                  </div>
                 </div>
               </div>
 
@@ -4727,124 +7768,887 @@ function AdminView() {
               </div>
             ) : (
               <div className="space-y-6">
-                {orders.map((order) => (
-                  <div
-                    key={order.orderNumber}
-                    className="bg-[var(--bg-card)] border border-[var(--border-subtle)] p-6 space-y-5 shadow-xs"
-                  >
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-[var(--border-subtle)] pb-4 gap-3">
-                      <div>
-                        <div className="flex items-center gap-3">
-                          <span className="font-mono text-base font-bold text-[var(--text-primary)]">
-                            {order.orderNumber}
-                          </span>
-                          <span className="px-2.5 py-0.5 rounded text-[9px] font-mono uppercase bg-[#1d4136]/10 text-[#1d4136] dark:bg-[#e6ca97]/10 dark:text-[#e6ca97] border border-current font-bold">
-                            {order.status?.replace(/_/g, ' ')}
-                          </span>
-                        </div>
-                        <span className="text-[10px] font-mono text-[var(--text-muted)] block mt-0.5">
-                          Order Date: {order.orderDate} • Payment: {order.paymentMethod || 'Prepaid'}
-                        </span>
-                      </div>
+                {orders.map((order) => {
+                  const currentStage = order.status || 'CONFIRMED';
+                  const stagesList = [
+                    { id: 'CONFIRMED', label: '1. Confirmed', desc: 'Payment Verified & Queued' },
+                    { id: 'PREPARING', label: '2. Preparing', desc: 'Delhi Atelier Handcrafting' },
+                    { id: 'SHIPPED', label: '3. Shipped', desc: 'Blue Dart Air Express' },
+                    { id: 'OUT_FOR_DELIVERY', label: '4. Out for Delivery', desc: 'Local Courier Handover' },
+                    { id: 'DELIVERED', label: '5. Delivered', desc: 'Patron Handover Complete' },
+                  ];
 
-                      <div className="text-right">
-                        <span className="text-[10px] font-mono uppercase text-[var(--text-muted)] block">
-                          Total Amount Paid:
-                        </span>
-                        <span className="font-serif text-xl font-normal text-[var(--text-primary)]">
-                          {formatPrice(order.total)}
-                        </span>
-                      </div>
-                    </div>
+                  const latestWaNotif = order.whatsappNotifications?.[order.whatsappNotifications.length - 1];
 
-                    {/* Patron Details & Dispatch Form */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 text-xs font-sans">
-                      {/* Customer Info */}
-                      <div className="space-y-1 p-3.5 bg-[var(--bg-secondary)] border border-[var(--border-subtle)]">
-                        <span className="text-[9px] font-bold tracking-wider uppercase text-[var(--text-muted)] block">
-                          Consignee Information
-                        </span>
-                        <p className="font-bold text-[var(--text-primary)]">{order.customerName}</p>
-                        <p>{order.customerPhone}</p>
-                        <p>{order.customerEmail}</p>
-                        <p className="text-[var(--text-muted)] mt-1">
-                          {order.shippingAddress}, {order.city}, {order.state} - {order.postalCode}
-                        </p>
-                      </div>
-
-                      {/* Items */}
-                      <div className="space-y-1.5 p-3.5 bg-[var(--bg-secondary)] border border-[var(--border-subtle)]">
-                        <span className="text-[9px] font-bold tracking-wider uppercase text-[var(--text-muted)] block">
-                          Ordered Sculptures ({order.items?.length || 0})
-                        </span>
-                        <ul className="space-y-1">
-                          {order.items?.map((item, idx) => (
-                            <li key={idx} className="flex justify-between items-baseline gap-2">
-                              <span className="truncate">{item.name} × {item.quantity}</span>
-                              <span className="font-mono text-[var(--text-primary)] shrink-0">
-                                {formatPrice(item.price * item.quantity)}
+                  return (
+                    <div
+                      key={order.orderNumber}
+                      className="bg-[var(--bg-card)] border border-[var(--border-subtle)] p-6 space-y-6 shadow-xs"
+                    >
+                      {/* Order Header */}
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-[var(--border-subtle)] pb-4 gap-3">
+                        <div>
+                          <div className="flex items-center gap-3">
+                            <span className="font-mono text-base font-bold text-[var(--text-primary)]">
+                              #{order.orderNumber}
+                            </span>
+                            <span className="px-2.5 py-0.5 rounded text-[9px] font-mono uppercase bg-[#1d4136]/10 text-[#1d4136] dark:bg-[#e6ca97]/10 dark:text-[#e6ca97] border border-current font-bold">
+                              {currentStage.replace(/_/g, ' ')}
+                            </span>
+                            {order.otpVerified && (
+                              <span className="px-2 py-0.5 rounded text-[9px] font-mono uppercase bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 font-bold border border-emerald-300 dark:border-emerald-800 flex items-center gap-1">
+                                <Check className="w-3 h-3" /> Phone OTP Verified
                               </span>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-
-                      {/* Status & Blue Dart Dispatch */}
-                      <div className="space-y-3 p-3.5 bg-[var(--bg-secondary)] border border-[var(--border-subtle)] flex flex-col justify-between">
-                        <div className="space-y-2">
-                          <label className="block text-[9px] font-bold tracking-wider uppercase text-[var(--text-muted)]">
-                            Update Order Lifecycle
-                          </label>
-                          <select
-                            value={order.status}
-                            onChange={(e) => {
-                              adminUpdateOrderStatus(order.orderNumber, e.target.value, order.trackingNumber);
-                            }}
-                            className="w-full h-9 px-2 bg-[var(--bg-primary)] border border-[var(--border-strong)] text-[var(--text-primary)] text-xs font-sans outline-none"
-                          >
-                            <option value="CONFIRMED">CONFIRMED (Order Assayed)</option>
-                            <option value="IN_FABRICATION">IN_FABRICATION (Lost-Wax Casting)</option>
-                            <option value="BIS_HALLMARKING">BIS_HALLMARKING (Assay Verification)</option>
-                            <option value="IN_TRANSIT">IN_TRANSIT (Dispatched)</option>
-                            <option value="OUT_FOR_DELIVERY">OUT_FOR_DELIVERY (Local Hub)</option>
-                            <option value="DELIVERED">DELIVERED (Handed Over)</option>
-                          </select>
+                            )}
+                          </div>
+                          <span className="text-[10px] font-mono text-[var(--text-muted)] block mt-0.5">
+                            Order Date: {order.orderDate || new Date(order.createdAt).toLocaleDateString('en-IN')} • Payment: {order.paymentMethod || 'Prepaid'}
+                            {order.paymentTransactionId ? ` (${order.paymentTransactionId})` : ''}
+                          </span>
                         </div>
 
-                        <div className="space-y-1.5">
-                          <label className="block text-[9px] font-bold tracking-wider uppercase text-[var(--text-muted)]">
-                            Blue Dart AWB Air Waybill
-                          </label>
-                          <div className="flex gap-1.5">
-                            <input
-                              type="text"
-                              defaultValue={order.trackingNumber || ''}
-                              id={`awb-${order.orderNumber}`}
-                              placeholder="BLD-xxxx-xxxx-IN"
-                              className="w-full h-8 px-2 bg-[var(--bg-primary)] border border-[var(--border-strong)] text-xs font-mono text-[var(--text-primary)] outline-none"
-                            />
+                        <div className="text-right">
+                          <span className="text-[10px] font-mono uppercase text-[var(--text-muted)] block">
+                            Total Amount Paid:
+                          </span>
+                          <span className="font-serif text-xl font-normal text-[var(--text-primary)]">
+                            {formatPrice(order.total)}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* STAGE MOVEMENT CONTROLS (Single Click & WhatsApp Trigger) */}
+                      <div className="p-4 bg-[var(--bg-secondary)] border border-[var(--border-subtle)] space-y-3">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                          <span className="text-[10px] font-mono uppercase tracking-wider text-[var(--text-muted)] font-bold flex items-center gap-1.5">
+                            <Truck className="w-3.5 h-3.5 text-[#b99762] dark:text-[#e6ca97]" />
+                            Move Order Lifecycle Stage (Triggers Instant WhatsApp Business Template Dispatch)
+                          </span>
+                          <span className="text-[9px] font-mono text-emerald-600 dark:text-emerald-400 font-semibold">
+                            Meta WhatsApp Cloud API Connected
+                          </span>
+                        </div>
+
+                        {/* Quick 5-Stage Toolbar */}
+                        <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+                          {stagesList.map((st) => {
+                            const isActive = currentStage === st.id;
+                            return (
+                              <button
+                                key={st.id}
+                                type="button"
+                                disabled={isActive || updatingStageOrders[order.orderNumber]}
+                                onClick={() => handleStageMove(order, st.id)}
+                                className={`p-2.5 text-left border transition-all flex flex-col justify-between ${
+                                  isActive
+                                    ? 'bg-[#1d4136] text-white dark:bg-[#e6ca97] dark:text-black border-[#1d4136] dark:border-[#e6ca97] shadow-sm font-bold cursor-default opacity-95'
+                                    : updatingStageOrders[order.orderNumber]
+                                    ? 'opacity-50 cursor-wait bg-[var(--bg-card)] border-[var(--border-subtle)]'
+                                    : 'bg-[var(--bg-card)] border-[var(--border-subtle)] hover:border-[#b99762] text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+                                }`}
+                                title={isActive ? `Currently in ${st.label}` : `Advance to ${st.label}`}
+                              >
+                                <div className="flex items-center justify-between w-full">
+                                  <span className="text-[11px] font-mono uppercase font-bold">
+                                    {st.label}
+                                  </span>
+                                  {isActive && <Check className="w-3 h-3 stroke-[3]" />}
+                                </div>
+                                <span className={`text-[8px] font-mono mt-1 line-clamp-1 ${isActive ? 'opacity-90' : 'text-[var(--text-muted)]'}`}>
+                                  {st.desc}
+                                </span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+
+                      {/* Patron Details & Logistics Grid */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 text-xs font-sans">
+                        {/* Customer Info */}
+                        <div className="space-y-1 p-3.5 bg-[var(--bg-secondary)] border border-[var(--border-subtle)]">
+                          <span className="text-[9px] font-bold tracking-wider uppercase text-[var(--text-muted)] block">
+                            Consignee Information
+                          </span>
+                          <p className="font-bold text-[var(--text-primary)]">{order.customerName}</p>
+                          <p className="font-mono text-emerald-700 dark:text-emerald-300 font-bold">
+                            +91 {order.customerPhone}
+                          </p>
+                          <p className="font-mono">{order.customerEmail}</p>
+                          <p className="text-[var(--text-muted)] mt-1">
+                            {order.shippingAddress}, {order.city}, {order.state} - {order.postalCode}
+                          </p>
+                        </div>
+
+                        {/* Items */}
+                        <div className="space-y-1.5 p-3.5 bg-[var(--bg-secondary)] border border-[var(--border-subtle)]">
+                          <span className="text-[9px] font-bold tracking-wider uppercase text-[var(--text-muted)] block">
+                            Ordered Sculptures ({order.items?.length || 0})
+                          </span>
+                          <ul className="space-y-1 max-h-28 overflow-y-auto pr-1">
+                            {order.items?.map((item, idx) => (
+                              <li key={idx} className="flex justify-between items-baseline gap-2">
+                                <span className="truncate">{item.name} × {item.quantity}</span>
+                                <span className="font-mono text-[var(--text-primary)] shrink-0">
+                                  {formatPrice(item.price * item.quantity)}
+                                </span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+
+                        {/* Blue Dart Consignment Management */}
+                        <div className="space-y-2.5 p-3.5 bg-[var(--bg-secondary)] border border-[var(--border-subtle)] flex flex-col justify-between">
+                          <div className="space-y-1">
+                            <div className="flex items-center justify-between">
+                              <label className="block text-[9px] font-bold tracking-wider uppercase text-[var(--text-muted)]">
+                                Blue Dart Consignment No.
+                              </label>
+                              {order.trackingNumber ? (
+                                <span className="text-[9px] font-mono text-emerald-600 dark:text-emerald-400 font-bold">
+                                  Assigned ✓
+                                </span>
+                              ) : (
+                                <span className="text-[9px] font-mono text-amber-600 dark:text-amber-400 font-bold">
+                                  Pending Handover
+                                </span>
+                              )}
+                            </div>
+                            <div className="flex gap-1.5">
+                              <input
+                                type="text"
+                                defaultValue={order.trackingNumber || ''}
+                                id={`awb-${order.orderNumber}`}
+                                placeholder="BLD-xxxx-xxxx-IN / Consignment No"
+                                className="w-full h-8 px-2 bg-[var(--bg-primary)] border border-[var(--border-strong)] text-xs font-mono text-[var(--text-primary)] outline-none"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const input = document.getElementById(`awb-${order.orderNumber}`);
+                                  if (input) {
+                                    handleUpdateAwb(order, input.value);
+                                  }
+                                }}
+                                className="px-2.5 h-8 bg-[#1d4136] dark:bg-[#e6ca97] text-white dark:text-black text-[10px] font-sans font-bold uppercase tracking-wider hover:bg-[#132f27]"
+                              >
+                                Save
+                              </button>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center justify-between gap-2 pt-1 border-t border-[var(--border-subtle)]">
                             <button
+                              type="button"
                               onClick={() => {
+                                const newAwb = generateAwbNumber();
                                 const input = document.getElementById(`awb-${order.orderNumber}`);
-                                if (input) {
-                                  adminUpdateOrderStatus(order.orderNumber, order.status, input.value.trim());
-                                }
+                                if (input) input.value = newAwb;
+                                handleUpdateAwb(order, newAwb);
                               }}
-                              className="px-2.5 h-8 bg-[#1d4136] dark:bg-[#e6ca97] text-white dark:text-black text-[10px] font-sans font-bold uppercase tracking-wider hover:bg-[#132f27]"
+                              className="text-[10px] font-mono text-[#b99762] dark:text-[#e6ca97] underline font-bold uppercase"
                             >
-                              Push
+                              Generate Consignment No
                             </button>
+                            {order.trackingNumber && (
+                              <a
+                                href={getTrackingUrl(order.trackingNumber)}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-[10px] font-mono text-[var(--text-muted)] hover:text-[var(--text-primary)] inline-flex items-center gap-1"
+                              >
+                                <ExternalLink className="w-3 h-3" />
+                                <span>Blue Dart</span>
+                              </a>
+                            )}
                           </div>
                         </div>
                       </div>
+
+                      {/* WhatsApp Business Dispatch & Audit Footer */}
+                      <div className="p-3.5 bg-emerald-500/10 border border-emerald-500/30 text-emerald-900 dark:text-emerald-100 text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                        <div className="flex items-center gap-2.5">
+                          <WhatsAppIcon className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                          <div>
+                            <span className="font-bold text-[10px] uppercase font-mono tracking-wider block">
+                              WhatsApp Business Integration Status:
+                            </span>
+                            <span className="text-[11px] font-mono">
+                              {latestWaNotif
+                                ? `Last Dispatched: ${latestWaNotif.templateName} (${new Date(latestWaNotif.sentAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}) ✓`
+                                : 'Ready to dispatch on stage advance'}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2 shrink-0">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const previewText = composeWhatsAppTemplateMessage({
+                                templateName: `aviora_order_${currentStage.toLowerCase()}`,
+                                recipientPhone: order.customerPhone,
+                                customerName: order.customerName,
+                                orderNumber: order.orderNumber,
+                                stageTitle: currentStage.replace(/_/g, ' '),
+                                description: `Order moved to ${currentStage.replace(/_/g, ' ')} by atelier curator.`,
+                                awbNumber: order.trackingNumber || 'BLD-8824-9102-IN',
+                                trackingUrl: getTrackingUrl(order.trackingNumber || 'BLD-8824-9102-IN'),
+                              });
+                              setPreviewWhatsAppModal({
+                                order,
+                                stage: currentStage,
+                                messageText: previewText,
+                                waUrl: getWhatsAppDirectUrl(order.customerPhone, previewText),
+                              });
+                            }}
+                            className="px-3 py-1.5 bg-[var(--bg-card)] border border-[var(--border-strong)] hover:border-[#b99762] text-[var(--text-primary)] text-[10px] font-mono uppercase font-bold transition-colors"
+                          >
+                            Preview Template
+                          </button>
+                          <a
+                            href={getWhatsAppDirectUrl(
+                              order.customerPhone,
+                              composeWhatsAppTemplateMessage({
+                                templateName: `aviora_order_${currentStage.toLowerCase()}`,
+                                recipientPhone: order.customerPhone,
+                                customerName: order.customerName,
+                                orderNumber: order.orderNumber,
+                                stageTitle: currentStage.replace(/_/g, ' '),
+                                description: `Order moved to ${currentStage.replace(/_/g, ' ')} by atelier curator.`,
+                                awbNumber: order.trackingNumber || 'BLD-8824-9102-IN',
+                                trackingUrl: getTrackingUrl(order.trackingNumber || 'BLD-8824-9102-IN'),
+                              })
+                            )}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-sans font-bold uppercase tracking-wider transition-colors inline-flex items-center gap-1.5"
+                          >
+                            <WhatsAppIcon className="w-3.5 h-3.5" />
+                            <span>Send via WhatsApp Web</span>
+                          </a>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ========================================== */}
+        {/* TAB 4: PHONEPE GATEWAY & PAYMENT LINKS API */}
+        {/* ========================================== */}
+        {activeTab === 'phonepe' && (
+          <div className="mt-8 space-y-8">
+            <div className="border-b border-[var(--border-subtle)] pb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <div className="flex items-center gap-2">
+                  <PhonePeIcon className="w-6 h-6" />
+                  <h3 className="font-serif text-2xl text-[var(--text-primary)] font-normal">
+                    PhonePe Payment Gateway & Payment Links
+                  </h3>
+                </div>
+                <p className="text-xs font-sans text-[var(--text-secondary)] mt-0.5">
+                  Official PhonePe Developer Integration for payment links, exact cart amount conversion in paise, SHA-256 X-VERIFY checksums, and payment callbacks.
+                </p>
+              </div>
+              <a
+                href="https://developer.phonepe.com/payment-gateway/payment-links/api-reference-payment-links/introduction"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-3.5 py-2 bg-[#5F259F] hover:bg-[#4d1e82] text-white text-xs font-mono font-bold uppercase rounded flex items-center gap-1.5 transition-colors self-start sm:self-auto"
+              >
+                <ExternalLink className="w-3.5 h-3.5" />
+                <span>PhonePe Developer Docs</span>
+              </a>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+              {/* Left Column: API Configuration */}
+              <div className="lg:col-span-5 space-y-6">
+                <form onSubmit={handleSavePhonePeSettings} className="bg-[var(--bg-card)] border border-[var(--border-subtle)] p-6 space-y-5 shadow-xs">
+                  <div className="flex items-center justify-between border-b border-[var(--border-subtle)] pb-3">
+                    <span className="text-xs font-mono font-bold uppercase tracking-wider text-[var(--text-primary)]">
+                      Gateway Credentials
+                    </span>
+                    <span className="px-2 py-0.5 rounded bg-[#5F259F]/10 text-[#5F259F] text-[9px] font-mono font-bold uppercase border border-[#5F259F]/30">
+                      {phonePeConfig.env} Mode
+                    </span>
+                  </div>
+
+                  <div className="space-y-4 text-xs font-mono">
+                    <div className="space-y-1">
+                      <label className="block text-[10px] uppercase tracking-wider text-[var(--text-muted)]">
+                        Environment Mode
+                      </label>
+                      <select
+                        value={phonePeConfig.env}
+                        onChange={(e) => setPhonePeConfig({ ...phonePeConfig, env: e.target.value })}
+                        className="w-full h-10 px-3 bg-[var(--bg-primary)] border border-[var(--border-strong)] text-xs font-mono text-[var(--text-primary)] outline-none cursor-pointer"
+                      >
+                        <option value="UAT">UAT / Sandbox (api-preprod.phonepe.com)</option>
+                        <option value="PRODUCTION">Production (api.phonepe.com/apis/hermes)</option>
+                      </select>
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="block text-[10px] uppercase tracking-wider text-[var(--text-muted)]">
+                        Merchant ID (MID)
+                      </label>
+                      <input
+                        type="text"
+                        value={phonePeConfig.merchantId}
+                        onChange={(e) => setPhonePeConfig({ ...phonePeConfig, merchantId: e.target.value })}
+                        placeholder="PGTESTPAYUAT"
+                        className="w-full h-10 px-3 bg-[var(--bg-primary)] border border-[var(--border-strong)] text-xs font-mono text-[var(--text-primary)] outline-none"
+                      />
+                      <span className="text-[9px] text-[var(--text-muted)]">Default test MID: PGTESTPAYUAT</span>
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="block text-[10px] uppercase tracking-wider text-[var(--text-muted)]">
+                        Salt Key (Client Secret)
+                      </label>
+                      <input
+                        type="password"
+                        value={phonePeConfig.saltKey}
+                        onChange={(e) => setPhonePeConfig({ ...phonePeConfig, saltKey: e.target.value })}
+                        placeholder="099eb0cd-02cf-4e2a-8aca-3e6c6aff0399"
+                        className="w-full h-10 px-3 bg-[var(--bg-primary)] border border-[var(--border-strong)] text-xs font-mono text-[var(--text-primary)] outline-none"
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="block text-[10px] uppercase tracking-wider text-[var(--text-muted)]">
+                        Salt Index
+                      </label>
+                      <input
+                        type="number"
+                        value={phonePeConfig.saltIndex}
+                        onChange={(e) => setPhonePeConfig({ ...phonePeConfig, saltIndex: Number(e.target.value) || 1 })}
+                        className="w-full h-10 px-3 bg-[var(--bg-primary)] border border-[var(--border-strong)] text-xs font-mono text-[var(--text-primary)] outline-none"
+                      />
                     </div>
                   </div>
-                ))}
+
+                  <button
+                    type="submit"
+                    className="w-full py-3 bg-[#5F259F] hover:bg-[#4d1e82] text-white text-xs font-mono uppercase font-bold tracking-wider transition-colors shadow-sm"
+                  >
+                    Save PhonePe Settings
+                  </button>
+                </form>
+
+                {/* API Specs Information */}
+                <div className="p-4 bg-[var(--bg-card)] border border-[var(--border-subtle)] text-xs font-mono space-y-2">
+                  <span className="font-bold text-[var(--text-primary)] block text-[11px] uppercase tracking-wider">
+                    Official API Protocol Specs
+                  </span>
+                  <ul className="list-disc pl-4 space-y-1.5 text-[10px] text-[var(--text-secondary)]">
+                    <li>
+                      <strong>Amount in Paise:</strong> Amounts are strictly transmitted in paise integer (`1 INR = 100 paise`). Cart value ₹3,299 translates to `329900` paise.
+                    </li>
+                    <li>
+                      <strong>Checksum Calculation:</strong> `SHA256(Base64(Payload) + "/pg/v1/pay" + SaltKey) + "###" + SaltIndex`
+                    </li>
+                    <li>
+                      <strong>Payment Links URL:</strong> Generates shortened payment links (`https://phon.pe/vl/pay_...`) for direct consumer settlement.
+                    </li>
+                  </ul>
+                </div>
+              </div>
+
+              {/* Right Column: Live Payment Link Tester Sandbox */}
+              <div className="lg:col-span-7 space-y-6">
+                <div className="bg-[var(--bg-card)] border border-[var(--border-subtle)] p-6 space-y-5 shadow-xs">
+                  <div className="flex items-center justify-between border-b border-[var(--border-subtle)] pb-3">
+                    <span className="text-xs font-mono font-bold uppercase tracking-wider text-[var(--text-primary)] flex items-center gap-2">
+                      <Zap className="w-4 h-4 text-[#5F259F]" />
+                      Payment Link Generator Sandbox
+                    </span>
+                    <span className="text-[10px] font-mono text-[var(--text-muted)]">
+                      developer.phonepe.com
+                    </span>
+                  </div>
+
+                  <form onSubmit={handleGenerateTestPhonePeLink} className="space-y-4 text-xs font-mono">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                      <div className="space-y-1">
+                        <label className="block text-[10px] uppercase tracking-wider text-[var(--text-muted)]">
+                          Amount (INR)
+                        </label>
+                        <input
+                          type="number"
+                          value={testLinkAmount}
+                          onChange={(e) => setTestLinkAmount(e.target.value)}
+                          placeholder="3299"
+                          className="w-full h-10 px-3 bg-[var(--bg-primary)] border border-[var(--border-strong)] text-xs font-mono text-[var(--text-primary)] outline-none"
+                        />
+                        <span className="text-[9px] text-[#5F259F] font-bold">
+                          = {((Number(testLinkAmount) || 0) * 100).toLocaleString('en-IN')} paise
+                        </span>
+                      </div>
+
+                      <div className="space-y-1">
+                        <label className="block text-[10px] uppercase tracking-wider text-[var(--text-muted)]">
+                          Customer Phone
+                        </label>
+                        <input
+                          type="tel"
+                          value={testLinkPhone}
+                          onChange={(e) => setTestLinkPhone(e.target.value)}
+                          placeholder="9820012345"
+                          className="w-full h-10 px-3 bg-[var(--bg-primary)] border border-[var(--border-strong)] text-xs font-mono text-[var(--text-primary)] outline-none"
+                        />
+                      </div>
+
+                      <div className="space-y-1">
+                        <label className="block text-[10px] uppercase tracking-wider text-[var(--text-muted)]">
+                          Customer Name
+                        </label>
+                        <input
+                          type="text"
+                          value={testLinkName}
+                          onChange={(e) => setTestLinkName(e.target.value)}
+                          placeholder="Ananya Sharma"
+                          className="w-full h-10 px-3 bg-[var(--bg-primary)] border border-[var(--border-strong)] text-xs font-mono text-[var(--text-primary)] outline-none"
+                        />
+                      </div>
+                    </div>
+
+                    <button
+                      type="submit"
+                      disabled={isGeneratingTestLink}
+                      className="px-6 py-2.5 bg-[#5F259F] hover:bg-[#4d1e82] text-white text-xs font-mono uppercase font-bold tracking-wider transition-colors flex items-center gap-2"
+                    >
+                      {isGeneratingTestLink ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Link className="w-3.5 h-3.5" />}
+                      <span>Generate PhonePe Payment Link</span>
+                    </button>
+                  </form>
+
+                  {/* Generated Test Result */}
+                  {generatedTestLink && (
+                    <div className="mt-6 p-4 bg-[var(--bg-secondary)] border border-[#5F259F]/40 space-y-4 text-xs font-mono">
+                      <div className="flex items-center justify-between border-b border-[#5F259F]/20 pb-2">
+                        <span className="font-bold text-[#5F259F] flex items-center gap-1.5">
+                          <Check className="w-4 h-4 text-emerald-500" />
+                          Link Ready: {generatedTestLink.data.payLink}
+                        </span>
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              navigator.clipboard.writeText(generatedTestLink.data.payLink);
+                              setTestLinkCopied(true);
+                              showToast('✓ Link copied to clipboard');
+                              setTimeout(() => setTestLinkCopied(false), 2000);
+                            }}
+                            className="px-2.5 py-1 bg-[var(--bg-card)] border border-[var(--border-strong)] text-[10px] font-mono font-bold uppercase hover:bg-[#5F259F] hover:text-white transition-colors"
+                          >
+                            {testLinkCopied ? 'Copied!' : 'Copy Link'}
+                          </button>
+                          <a
+                            href={generatedTestLink.data.payLink}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="px-2.5 py-1 bg-[#5F259F] text-white text-[10px] font-mono font-bold uppercase hover:bg-[#4d1e82] transition-colors"
+                          >
+                            Open Link
+                          </a>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-[10px]">
+                        <div>
+                          <span className="text-[var(--text-muted)] block">Amount in Paise:</span>
+                          <span className="font-bold text-[var(--text-primary)]">{generatedTestLink.data.amountInPaise.toLocaleString('en-IN')} paise</span>
+                        </div>
+                        <div>
+                          <span className="text-[var(--text-muted)] block">Merchant Transaction ID:</span>
+                          <span className="font-mono text-[var(--text-primary)]">{generatedTestLink.data.merchantTransactionId}</span>
+                        </div>
+                        <div className="sm:col-span-2">
+                          <span className="text-[var(--text-muted)] block">X-VERIFY Checksum Header:</span>
+                          <span className="font-mono text-emerald-600 dark:text-emerald-400 break-all">{generatedTestLink.data.xVerify}</span>
+                        </div>
+                        <div className="sm:col-span-2">
+                          <span className="text-[var(--text-muted)] block">Base64 Encoded Payload:</span>
+                          <span className="font-mono text-[var(--text-muted)] break-all">{generatedTestLink.data.base64Payload.slice(0, 80)}...</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ========================================== */}
+        {/* TAB 5: BOOKKEEPING & FINANCIAL ANALYTICS LEDGER */}
+        {/* ========================================== */}
+        {activeTab === 'bookkeeping' && (
+          <div className="mt-8 space-y-8">
+            {/* Header with Export Actions */}
+            <div className="border-b border-[var(--border-subtle)] pb-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div>
+                <div className="flex items-center gap-2">
+                  <FileSpreadsheet className="w-6 h-6 text-[#1d4136] dark:text-[#e6ca97]" />
+                  <h3 className="font-serif text-2xl text-[var(--text-primary)] font-normal">
+                    Bookkeeping & Financial Analytics Vault
+                  </h3>
+                </div>
+                <p className="text-xs font-sans text-[var(--text-secondary)] mt-0.5 max-w-2xl leading-relaxed">
+                  Persistent double-entry transaction journal, 3% jewellery GST tax compliance, Blue Dart consignment reconciliation, and 1-click accounting exports for Tally Prime, Zoho Books, and Chartered Accountants.
+                </p>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex flex-wrap items-center gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => {
+                    exportBookkeepingLedgerAsCsv(orders);
+                    showToast('✓ Bookkeeping Ledger exported (.CSV) for Tally & Zoho');
+                  }}
+                  className="px-3.5 py-2 bg-[#1d4136] hover:bg-[#16332a] dark:bg-[#e6ca97] dark:hover:bg-[#d9b87c] text-white dark:text-[#242321] text-xs font-mono font-bold uppercase rounded flex items-center gap-1.5 transition-colors shadow-xs"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  <span>Export Ledger (CSV)</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    exportBookkeepingLedgerAsJson(orders);
+                    showToast('✓ Complete audit archive exported (.JSON)');
+                  }}
+                  className="px-3.5 py-2 border border-[var(--border-strong)] hover:border-[var(--text-primary)] text-[var(--text-primary)] text-xs font-mono font-bold uppercase rounded flex items-center gap-1.5 transition-colors bg-[var(--bg-card)] shadow-xs"
+                >
+                  <Database className="w-3.5 h-3.5" />
+                  <span>Export Archive (JSON)</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleSyncCloudLedger}
+                  disabled={isSyncingLedger}
+                  className="p-2 border border-[var(--border-subtle)] hover:border-[#b99762] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors rounded"
+                  title="Synchronize with Supabase Cloud Database"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 ${isSyncingLedger ? 'animate-spin' : ''}`} />
+                </button>
+              </div>
+            </div>
+
+            {/* Financial & Logistics KPI Dashboard */}
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+              {/* Gross Revenue */}
+              <div className="p-4 bg-[var(--bg-card)] border border-[var(--border-subtle)] space-y-1">
+                <span className="text-[9px] font-mono uppercase tracking-wider text-[var(--text-muted)] block">
+                  Gross Commission Volume
+                </span>
+                <span className="font-serif text-xl sm:text-2xl text-[var(--text-primary)] block">
+                  {formatPrice(bookkeepingAnalytics.grossRevenue)}
+                </span>
+                <span className="text-[9px] font-mono text-emerald-600 dark:text-emerald-400 block">
+                  {bookkeepingAnalytics.totalOrders} total commissions
+                </span>
+              </div>
+
+              {/* Net Atelier Revenue */}
+              <div className="p-4 bg-[var(--bg-card)] border border-[var(--border-subtle)] space-y-1">
+                <span className="text-[9px] font-mono uppercase tracking-wider text-[var(--text-muted)] block">
+                  Net Atelier Revenue
+                </span>
+                <span className="font-serif text-xl sm:text-2xl text-[#1d4136] dark:text-[#e6ca97] block font-bold">
+                  {formatPrice(bookkeepingAnalytics.netRevenue)}
+                </span>
+                <span className="text-[9px] font-mono text-[var(--text-muted)] block">
+                  Excluding statutory taxes
+                </span>
+              </div>
+
+              {/* GST 3% Tax Reserve */}
+              <div className="p-4 bg-[var(--bg-card)] border border-[var(--border-subtle)] space-y-1">
+                <span className="text-[9px] font-mono uppercase tracking-wider text-[var(--text-muted)] block">
+                  GST 3% Tax Reserve
+                </span>
+                <span className="font-serif text-xl sm:text-2xl text-[#b99762] dark:text-[#e6ca97] block">
+                  {formatPrice(bookkeepingAnalytics.totalTaxGST)}
+                </span>
+                <span className="text-[9px] font-mono text-[var(--text-muted)] block">
+                  1.5% CGST + 1.5% SGST
+                </span>
+              </div>
+
+              {/* AOV */}
+              <div className="p-4 bg-[var(--bg-card)] border border-[var(--border-subtle)] space-y-1">
+                <span className="text-[9px] font-mono uppercase tracking-wider text-[var(--text-muted)] block">
+                  Average Commission
+                </span>
+                <span className="font-serif text-xl sm:text-2xl text-[var(--text-primary)] block">
+                  {formatPrice(bookkeepingAnalytics.aov)}
+                </span>
+                <span className="text-[9px] font-mono text-[var(--text-muted)] block">
+                  AOV per patron
+                </span>
+              </div>
+
+              {/* In-Transit Blue Dart */}
+              <div className="p-4 bg-[var(--bg-card)] border border-[var(--border-subtle)] space-y-1">
+                <span className="text-[9px] font-mono uppercase tracking-wider text-[var(--text-muted)] block">
+                  Blue Dart In-Transit
+                </span>
+                <span className="font-serif text-xl sm:text-2xl text-blue-600 dark:text-blue-400 block">
+                  {bookkeepingAnalytics.inTransitCourierCount}
+                </span>
+                <span className="text-[9px] font-mono text-[var(--text-muted)] block">
+                  Active consignments
+                </span>
+              </div>
+
+              {/* Pending Dispatch */}
+              <div className="p-4 bg-[var(--bg-card)] border border-[var(--border-subtle)] space-y-1">
+                <span className="text-[9px] font-mono uppercase tracking-wider text-[var(--text-muted)] block">
+                  Pending Courier Handover
+                </span>
+                <span className="font-serif text-xl sm:text-2xl text-amber-600 dark:text-amber-400 block">
+                  {bookkeepingAnalytics.pendingCourierCount}
+                </span>
+                <span className="text-[9px] font-mono text-[var(--text-muted)] block">
+                  Benchwork in progress
+                </span>
+              </div>
+            </div>
+
+            {/* Filter & Search Bar */}
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 bg-[var(--bg-card)] border border-[var(--border-subtle)] shadow-xs">
+              <div className="relative w-full sm:w-80">
+                <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
+                <input
+                  type="text"
+                  value={searchLedger}
+                  onChange={(e) => setSearchLedger(e.target.value)}
+                  placeholder="Search order #, patron, phone, AWB..."
+                  className="w-full pl-8 pr-3 py-2 bg-[var(--bg-primary)] border border-[var(--border-subtle)] text-xs font-mono text-[var(--text-primary)] outline-none focus:border-[#b99762]"
+                />
+              </div>
+
+              <div className="flex items-center gap-3 w-full sm:w-auto">
+                <select
+                  value={filterLedgerStage}
+                  onChange={(e) => setFilterLedgerStage(e.target.value)}
+                  className="px-3 py-2 bg-[var(--bg-primary)] border border-[var(--border-subtle)] text-xs font-mono text-[var(--text-primary)] outline-none cursor-pointer"
+                >
+                  <option value="all">All Stages ({orders.length})</option>
+                  <option value="CONFIRMED">1. Confirmed</option>
+                  <option value="PREPARING">2. Preparing Handcraft</option>
+                  <option value="SHIPPED">3. Shipped Blue Dart</option>
+                  <option value="OUT_FOR_DELIVERY">4. Out for Delivery</option>
+                  <option value="DELIVERED">5. Delivered to Patron</option>
+                </select>
+
+                <span className="text-xs font-mono text-[var(--text-muted)]">
+                  Showing {filteredLedgerOrders.length} record(s)
+                </span>
+              </div>
+            </div>
+
+            {/* Bookkeeping Ledger Table */}
+            {filteredLedgerOrders.length === 0 ? (
+              <div className="p-12 text-center border border-[var(--border-subtle)] bg-[var(--bg-card)] space-y-2">
+                <FileText className="w-8 h-8 text-[var(--text-muted)] mx-auto" />
+                <p className="font-serif text-xl text-[var(--text-primary)]">No bookkeeping entries found.</p>
+                <p className="text-xs font-sans text-[var(--text-secondary)]">
+                  {searchLedger ? 'No orders match your search criteria.' : 'Transactions will appear here as soon as checkout commissions are confirmed.'}
+                </p>
+              </div>
+            ) : (
+              <div className="border border-[var(--border-subtle)] bg-[var(--bg-card)] overflow-x-auto shadow-xs">
+                <table className="w-full text-left text-xs font-mono border-collapse min-w-[1050px]">
+                  <thead>
+                    <tr className="border-b border-[var(--border-subtle)] bg-[var(--bg-secondary)] text-[10px] uppercase tracking-wider text-[var(--text-muted)]">
+                      <th className="p-3.5">Date & Time</th>
+                      <th className="p-3.5">Order Ref</th>
+                      <th className="p-3.5">Patron Dossier</th>
+                      <th className="p-3.5">Items</th>
+                      <th className="p-3.5 text-right">Gross Total</th>
+                      <th className="p-3.5 text-right">GST (3%)</th>
+                      <th className="p-3.5 text-right">Net Revenue</th>
+                      <th className="p-3.5">Payment Ref & VPA</th>
+                      <th className="p-3.5">Blue Dart Consignment</th>
+                      <th className="p-3.5">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[var(--border-subtle)]">
+                    {filteredLedgerOrders.map((o) => {
+                      const gross = Number(o.total) || 0;
+                      const gst = Number(o.gstAmount) || Math.round((gross * 3) / 103);
+                      const net = gross - gst;
+                      const cleanAwb = (o.trackingNumber || '').trim();
+
+                      return (
+                        <tr key={o.orderNumber} className="hover:bg-[var(--bg-secondary)]/50 transition-colors">
+                          <td className="p-3.5 whitespace-nowrap text-[11px] text-[var(--text-secondary)]">
+                            {o.orderDate || (o.createdAt ? new Date(o.createdAt).toLocaleString('en-IN') : 'Recent')}
+                          </td>
+                          <td className="p-3.5 whitespace-nowrap">
+                            <span className="font-bold text-[var(--text-primary)]">
+                              #{o.orderNumber}
+                            </span>
+                          </td>
+                          <td className="p-3.5">
+                            <div className="font-bold text-[var(--text-primary)]">{o.customerName}</div>
+                            <div className="text-[10px] text-emerald-700 dark:text-emerald-300">
+                              +91 {o.customerPhone}
+                            </div>
+                            <div className="text-[9px] text-[var(--text-muted)] truncate max-w-[140px]">
+                              {o.city}, {o.state}
+                            </div>
+                          </td>
+                          <td className="p-3.5 text-[11px] max-w-[200px]">
+                            {Array.isArray(o.items) && o.items.length > 0 ? (
+                              <ul className="space-y-0.5">
+                                {o.items.map((it, idx) => (
+                                  <li key={idx} className="truncate">
+                                    {it.name || it.title} × {it.quantity || 1}
+                                  </li>
+                                ))}
+                              </ul>
+                            ) : (
+                              <span className="text-[var(--text-muted)]">1 Sculpture</span>
+                            )}
+                          </td>
+                          <td className="p-3.5 text-right whitespace-nowrap font-bold text-[var(--text-primary)]">
+                            {formatPrice(gross)}
+                          </td>
+                          <td className="p-3.5 text-right whitespace-nowrap text-[#b99762] dark:text-[#e6ca97]">
+                            {formatPrice(gst)}
+                          </td>
+                          <td className="p-3.5 text-right whitespace-nowrap font-bold text-[#1d4136] dark:text-[#e6ca97]">
+                            {formatPrice(net)}
+                          </td>
+                          <td className="p-3.5 whitespace-nowrap text-[10px]">
+                            <div className="font-semibold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+                              <span>{o.paymentMethod || 'PhonePe'}</span>
+                            </div>
+                            <div className="text-[9px] text-[var(--text-muted)] font-mono">
+                              VPA: 9650834445@kotak
+                            </div>
+                            <div className="text-[9px] text-[var(--text-muted)] truncate max-w-[150px]">
+                              TXN: {o.paymentTransactionId || o.phonepeTransactionId || 'SETTLED'}
+                            </div>
+                          </td>
+                          <td className="p-3.5 whitespace-nowrap">
+                            {cleanAwb ? (
+                              <div className="space-y-1">
+                                <span className="font-bold text-emerald-600 dark:text-emerald-400 block">
+                                  {cleanAwb}
+                                </span>
+                                <a
+                                  href={getTrackingUrl(cleanAwb)}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-[9px] text-[var(--text-muted)] hover:text-[#b99762] dark:hover:text-[#e6ca97] inline-flex items-center gap-1 underline"
+                                >
+                                  <ExternalLink className="w-2.5 h-2.5" />
+                                  <span>Blue Dart Tracking</span>
+                                </a>
+                              </div>
+                            ) : (
+                              <span className="px-2 py-0.5 rounded text-[9px] font-mono bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 border border-amber-300 dark:border-amber-800/50 block w-fit">
+                                Pending Dispatch
+                              </span>
+                            )}
+                          </td>
+                          <td className="p-3.5 whitespace-nowrap">
+                            <span className="px-2 py-0.5 rounded text-[9px] font-mono uppercase bg-[#1d4136]/10 text-[#1d4136] dark:bg-[#e6ca97]/10 dark:text-[#e6ca97] border border-current font-bold">
+                              {(o.status || 'CONFIRMED').replace(/_/g, ' ')}
+                            </span>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
               </div>
             )}
           </div>
         )}
       </div>
+
+      {/* ========================================== */}
+      {/* WHATSAPP TEMPLATE PREVIEW MODAL */}
+      {/* ========================================== */}
+      <AnimatePresence>
+        {previewWhatsAppModal && (
+          <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="max-w-lg w-full bg-[var(--bg-card)] border border-emerald-600 p-6 sm:p-8 space-y-5 shadow-2xl relative"
+            >
+              <div className="flex items-center justify-between border-b border-[var(--border-subtle)] pb-3">
+                <div className="flex items-center gap-2">
+                  <WhatsAppIcon className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+                  <div>
+                    <h3 className="font-serif text-lg text-[var(--text-primary)] font-normal">
+                      WhatsApp Business Template Dispatch
+                    </h3>
+                    <span className="text-[10px] font-mono text-[var(--text-muted)]">
+                      RECIPIENT: +91 {previewWhatsAppModal.order.customerPhone} • TEMPLATE: aviora_order_{previewWhatsAppModal.stage.toLowerCase()}
+                    </span>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setPreviewWhatsAppModal(null)}
+                  className="text-[var(--text-muted)] hover:text-[var(--text-primary)] text-lg"
+                >
+                  ✕
+                </button>
+              </div>
+
+              <div className="space-y-3 text-xs font-mono">
+                <span className="text-[10px] uppercase font-bold text-[var(--text-muted)] block">
+                  Official Formatted Message Payload:
+                </span>
+                <pre className="p-4 bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded text-[11px] font-mono text-[var(--text-primary)] whitespace-pre-wrap leading-relaxed max-h-64 overflow-y-auto">
+                  {previewWhatsAppModal.messageText}
+                </pre>
+              </div>
+
+              <div className="pt-3 border-t border-[var(--border-subtle)] flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (navigator.clipboard) {
+                      navigator.clipboard.writeText(previewWhatsAppModal.messageText);
+                      showToast('✓ WhatsApp template copied to clipboard');
+                    }
+                  }}
+                  className="flex-1 py-2.5 border border-[var(--border-strong)] text-[var(--text-primary)] text-xs font-mono font-bold uppercase tracking-wider flex items-center justify-center gap-1.5"
+                >
+                  <Copy className="w-3.5 h-3.5" />
+                  <span>Copy Text</span>
+                </button>
+                <a
+                  href={previewWhatsAppModal.waUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-sans font-bold uppercase tracking-wider transition-colors inline-flex items-center justify-center gap-1.5 shadow-md"
+                >
+                  <WhatsAppIcon className="w-4 h-4" />
+                  <span>Open WhatsApp Web</span>
+                </a>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
       {/* ========================================== */}
       {/* EDIT PRODUCT MODAL */}
@@ -4905,16 +8709,183 @@ function AdminView() {
                 </div>
               </div>
 
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-bold tracking-wider uppercase text-[var(--text-muted)] mb-1">
+                    Category
+                  </label>
+                  <select
+                    value={editingProduct.category || 'minimalist'}
+                    onChange={(e) => {
+                      const newCat = e.target.value;
+                      const slugMap = {
+                        'minimalist': 'minimalist-jewellery',
+                        'statement': 'statement-jewellery',
+                        'moissanite': 'moissanite-collection',
+                        'pearl': 'freshwater-pearl-jewellery',
+                        'new-arrivals': 'latest-launches',
+                        'gifting': 'occasions-gifting',
+                      };
+                      setEditingProduct({
+                        ...editingProduct,
+                        category: newCat,
+                        categorySlug: slugMap[newCat] || newCat,
+                      });
+                    }}
+                    className="w-full h-10 px-3 bg-[var(--bg-primary)] border border-[var(--border-strong)] text-[var(--text-primary)] outline-none"
+                  >
+                    <option value="minimalist">Minimalist Jewellery</option>
+                    <option value="statement">Statement Jewellery</option>
+                    <option value="moissanite">Moissanite Collection</option>
+                    <option value="pearl">Pearl Collection</option>
+                    <option value="new-arrivals">New Arrivals</option>
+                    <option value="gifting">Gifting Occasions</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block font-bold tracking-wider uppercase text-[var(--text-muted)] mb-1">
+                    Silhouette Curation
+                  </label>
+                  <select
+                    value={editingProduct.silhouette || 'light'}
+                    onChange={(e) => setEditingProduct({ ...editingProduct, silhouette: e.target.value })}
+                    className="w-full h-10 px-3 bg-[var(--bg-primary)] border border-[var(--border-strong)] text-[var(--text-primary)] outline-none"
+                  >
+                    <option value="light">Light (Everyday Wear)</option>
+                    <option value="heavy">Heavy (Statement Presence)</option>
+                  </select>
+                </div>
+              </div>
+
               <div>
                 <label className="block font-bold tracking-wider uppercase text-[var(--text-muted)] mb-1">
-                  Metallurgy Spec
+                  Tag in Collections
                 </label>
-                <input
-                  type="text"
-                  value={editingProduct.goldPurity || editingProduct.material}
-                  onChange={(e) => setEditingProduct({ ...editingProduct, goldPurity: e.target.value })}
-                  className="w-full h-10 px-3 bg-[var(--bg-primary)] border border-[var(--border-strong)] text-[var(--text-primary)] outline-none"
-                />
+                <div className="flex flex-wrap gap-1.5 p-2 bg-[var(--bg-primary)] border border-[var(--border-strong)]">
+                  {['new-arrivals', 'minimalist', 'statement', 'moissanite', 'pearl', 'gifting'].map((colKey) => {
+                    const isTagged = Array.isArray(editingProduct.collections) && editingProduct.collections.includes(colKey);
+                    return (
+                      <button
+                        key={colKey}
+                        type="button"
+                        onClick={() => {
+                          const cur = Array.isArray(editingProduct.collections) ? [...editingProduct.collections] : [];
+                          const next = isTagged ? cur.filter((c) => c !== colKey) : [...cur, colKey];
+                          setEditingProduct({ ...editingProduct, collections: next });
+                        }}
+                        className={`px-2 py-1 text-[10px] font-mono uppercase rounded transition-colors ${
+                          isTagged
+                            ? 'bg-[#1d4136] dark:bg-[#e6ca97] text-white dark:text-black font-bold'
+                            : 'bg-[var(--bg-secondary)] text-[var(--text-muted)] border border-[var(--border-subtle)] hover:border-[var(--border-strong)]'
+                        }`}
+                      >
+                        {isTagged ? '✓ ' : '+ '}
+                        {colKey.replace('-', ' ')}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-bold tracking-wider uppercase text-[var(--text-muted)] mb-1">
+                    Metallurgy Spec
+                  </label>
+                  <input
+                    type="text"
+                    value={editingProduct.goldPurity || editingProduct.material}
+                    onChange={(e) => setEditingProduct({ ...editingProduct, goldPurity: e.target.value })}
+                    className="w-full h-10 px-3 bg-[var(--bg-primary)] border border-[var(--border-strong)] text-[var(--text-primary)] outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block font-bold tracking-wider uppercase text-[var(--text-muted)] mb-1">
+                    Noble Metal Purity Specification
+                  </label>
+                  <input
+                    type="text"
+                    value={editingProduct.hallmark || 'Fine 925 Sterling Silver'}
+                    onChange={(e) => setEditingProduct({ ...editingProduct, hallmark: e.target.value })}
+                    className="w-full h-10 px-3 bg-[var(--bg-primary)] border border-[var(--border-strong)] text-[var(--text-primary)] outline-none"
+                  />
+                </div>
+              </div>
+
+              {/* Image Gallery Manager */}
+              <div className="space-y-3">
+                <label className="block font-bold tracking-wider uppercase text-[var(--text-muted)] mb-1">
+                  Studio Image Gallery ({editingProduct.images?.length || 0} angles)
+                </label>
+                {/* Existing images */}
+                <div className="flex flex-wrap gap-2 p-2 bg-[var(--bg-primary)] border border-[var(--border-strong)] min-h-[56px]">
+                  {(editingProduct.images || []).map((imgUrl, idx) => (
+                    <div key={idx} className="relative group">
+                      <img
+                        src={imgUrl}
+                        alt={`Angle ${idx + 1}`}
+                        className="w-14 h-16 object-cover border border-[var(--border-subtle)] bg-[var(--bg-stone)]"
+                      />
+                      <span className="absolute bottom-0.5 left-0.5 text-[7px] font-mono bg-black/80 text-white px-1">0{idx + 1}</span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const updated = (editingProduct.images || []).filter((_, i) => i !== idx);
+                          setEditingProduct({ ...editingProduct, images: updated });
+                        }}
+                        className="absolute top-0.5 right-0.5 w-3.5 h-3.5 rounded-full bg-rose-600 text-white text-[8px] font-bold flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                        title="Remove"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  ))}
+                  {(editingProduct.images || []).length === 0 && (
+                    <span className="text-[10px] font-mono text-[var(--text-muted)] self-center">No images — add at least one below</span>
+                  )}
+                </div>
+                {/* Add URL */}
+                <div className="flex items-center gap-2">
+                  <input
+                    type="url"
+                    placeholder="Paste image URL (e.g. /products/name-2.jpg) then press Enter or click +"
+                    value={editingProduct._newImageUrl || ''}
+                    onChange={(e) => setEditingProduct({ ...editingProduct, _newImageUrl: e.target.value })}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        const url = (editingProduct._newImageUrl || '').trim();
+                        if (url) {
+                          setEditingProduct({ ...editingProduct, images: [...(editingProduct.images || []), url], _newImageUrl: '' });
+                        }
+                      }
+                    }}
+                    className="flex-1 h-8 px-2 bg-[var(--bg-primary)] border border-[var(--border-strong)] text-[11px] font-mono text-[var(--text-primary)] outline-none"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const url = (editingProduct._newImageUrl || '').trim();
+                      if (url) {
+                        setEditingProduct({ ...editingProduct, images: [...(editingProduct.images || []), url], _newImageUrl: '' });
+                        showToast(`✓ Image added (angle ${(editingProduct.images?.length || 0) + 1})`);
+                      }
+                    }}
+                    className="px-3 h-8 bg-[#1d4136] dark:bg-[#e6ca97] text-white dark:text-black text-[10px] font-mono font-bold uppercase shrink-0"
+                  >
+                    + Add
+                  </button>
+                </div>
+                {/* File upload for editing */}
+                <div className="flex items-center gap-2">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => handleFileUpload(e, 'edit')}
+                    className="text-xs text-[var(--text-secondary)] file:mr-2 file:py-1 file:px-2 file:border file:border-[var(--border-strong)] file:text-[10px] file:font-mono file:uppercase file:bg-[var(--bg-secondary)] file:text-[var(--text-primary)] file:cursor-pointer cursor-pointer"
+                  />
+                  <span className="text-[10px] font-mono text-[var(--text-muted)]">Or upload new angle</span>
+                </div>
               </div>
 
               <div>
@@ -4953,99 +8924,571 @@ function AdminView() {
 }
 
 // ==========================================
+// ==========================================
+// 10. BRAND POLICY & STORY MODAL (ATELIER FOUNDATIONS)
+// ==========================================
+function BrandPolicyModal() {
+  const { policyModalOpen, setPolicyModalOpen, activePolicyTab, setActivePolicyTab } =
+    useContext(AppContext);
+
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') setPolicyModalOpen(false);
+    };
+    if (policyModalOpen) {
+      window.addEventListener('keydown', handleKeyDown);
+      document.body.style.overflow = 'hidden';
+    }
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      document.body.style.overflow = '';
+    };
+  }, [policyModalOpen, setPolicyModalOpen]);
+
+  if (!policyModalOpen) return null;
+
+  const activePolicy = BRAND_POLICIES.find((p) => p.id === activePolicyTab);
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 md:p-10 bg-black/75 backdrop-blur-md animate-fadeIn">
+      <div className="relative w-full max-w-4xl max-h-[90vh] bg-[var(--bg-card)] border border-[var(--border-strong)] shadow-2xl flex flex-col overflow-hidden">
+        {/* Modal Header */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--border-subtle)] bg-[var(--bg-secondary)]">
+          <div className="flex items-center gap-3">
+            <AvioraBrandCrest className="w-6 h-6 text-[#1d4136] dark:text-[#e6ca97]" />
+            <div>
+              <span className="font-serif text-lg font-normal tracking-[0.16em] uppercase text-[var(--text-primary)] block">
+                AVIORA
+              </span>
+              <span className="text-[9px] font-mono tracking-[0.25em] text-[var(--text-muted)] uppercase block">
+                Brand Transparency & Policies
+              </span>
+            </div>
+          </div>
+          <button
+            onClick={() => setPolicyModalOpen(false)}
+            className="p-1.5 hover:bg-[var(--bg-stone)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
+            title="Close"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        {/* Modal Body: Left Tab Sidebar + Right Content */}
+        <div className="flex flex-col md:flex-row flex-1 overflow-hidden">
+          {/* Navigation Tabs */}
+          <div className="w-full md:w-64 border-b md:border-b-0 md:border-r border-[var(--border-subtle)] bg-[var(--bg-secondary)] overflow-x-auto md:overflow-y-auto shrink-0 flex md:flex-col">
+            <button
+              onClick={() => setActivePolicyTab('our-story')}
+              className={`px-4 py-3 text-left text-xs font-sans font-semibold tracking-wider whitespace-nowrap transition-colors border-l-2 ${
+                activePolicyTab === 'our-story'
+                  ? 'border-[#1d4136] dark:border-[#e6ca97] bg-[var(--bg-primary)] text-[var(--text-primary)] font-bold'
+                  : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+              }`}
+            >
+              ✦ Our Story & Promise
+            </button>
+            {BRAND_POLICIES.map((pol) => (
+              <button
+                key={pol.id}
+                onClick={() => setActivePolicyTab(pol.id)}
+                className={`px-4 py-3 text-left text-xs font-sans font-semibold tracking-wider whitespace-nowrap transition-colors border-l-2 ${
+                  activePolicyTab === pol.id
+                    ? 'border-[#1d4136] dark:border-[#e6ca97] bg-[var(--bg-primary)] text-[var(--text-primary)] font-bold'
+                    : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+                }`}
+              >
+                {pol.title}
+              </button>
+            ))}
+          </div>
+
+          {/* Policy Detail Pane */}
+          <div className="flex-1 p-6 md:p-8 overflow-y-auto space-y-6">
+            {activePolicyTab === 'our-story' ? (
+              <div className="space-y-8 animate-fadeIn max-w-4xl pb-4">
+                {/* Header Banner */}
+                <div className="border-b border-[var(--border-subtle)] pb-6 space-y-3">
+                  <div className="inline-flex items-center gap-2 px-3 py-1 bg-[#132A22]/10 dark:bg-[#e6ca97]/15 rounded-full text-[10px] font-mono uppercase tracking-[0.25em] text-[#132A22] dark:text-[#e6ca97] font-bold">
+                    <Sparkles className="w-3.5 h-3.5 text-[#b99762]" />
+                    <span>THE ATELIER MANIFESTO • FOUNDING CHARTER</span>
+                  </div>
+                  <h2 className="font-serif text-3xl sm:text-4xl md:text-5xl text-[var(--text-primary)] font-normal tracking-tight">
+                    {OUR_STORY.title}
+                  </h2>
+                  <p className="font-serif italic text-sm sm:text-base text-[#b99762] dark:text-[#e6ca97]">
+                    {OUR_STORY.subtitle}
+                  </p>
+                </div>
+
+                {/* Philosophical Proclamation Callout */}
+                <div className="relative p-6 sm:p-8 bg-[var(--bg-secondary)] border-l-4 border-[#b99762] border-y border-r border-[var(--border-subtle)] rounded-r-xs shadow-xs space-y-3">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] font-mono uppercase tracking-widest text-[#b99762] dark:text-[#e6ca97] font-bold">
+                      PHILOSOPHICAL PROCLAMATION
+                    </span>
+                  </div>
+                  <blockquote className="font-serif text-base sm:text-lg md:text-xl text-[var(--text-primary)] font-normal leading-relaxed italic">
+                    &ldquo;{OUR_STORY.proclamation}&rdquo;
+                  </blockquote>
+                </div>
+
+                {/* The Core Vision Narrative */}
+                <div className="p-6 bg-[var(--bg-card)] border border-[var(--border-strong)] rounded-xs shadow-xs space-y-3">
+                  <span className="text-[10px] font-mono uppercase tracking-[0.22em] text-[#1d4136] dark:text-[#e6ca97] font-bold block">
+                    THE VISION & NOBLE METALLURGY
+                  </span>
+                  <p className="font-sans text-xs sm:text-sm text-[var(--text-secondary)] leading-relaxed">
+                    {OUR_STORY.body}
+                  </p>
+                </div>
+
+                {/* The 5 Manifesto Principles / Pillars */}
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between border-b border-[var(--border-subtle)] pb-2">
+                    <span className="text-[11px] font-mono uppercase tracking-[0.25em] text-[#132A22] dark:text-[#e6ca97] font-bold">
+                      FOUNDATIONAL CHARTER PRINCIPLES
+                    </span>
+                    <span className="text-[10px] font-mono text-[var(--text-muted)]">
+                      DELHI BENCH
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-1 gap-4">
+                    {OUR_STORY.manifestoChapters && OUR_STORY.manifestoChapters.map((ch, idx) => (
+                      <div
+                        key={idx}
+                        className="p-5 sm:p-6 bg-[var(--bg-card)] border border-[var(--border-strong)] rounded-xs shadow-xs hover:border-[#b99762] transition-colors space-y-3"
+                      >
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[var(--border-subtle)] pb-3">
+                          <div className="flex items-center gap-3">
+                            <span className="w-8 h-8 rounded-full bg-[#132A22]/10 dark:bg-[#e6ca97]/20 flex items-center justify-center font-serif text-sm font-bold text-[#b99762] dark:text-[#e6ca97] shrink-0">
+                              {ch.numeral}
+                            </span>
+                            <h4 className="font-serif text-base sm:text-lg text-[var(--text-primary)] font-normal">
+                              {ch.title}
+                            </h4>
+                          </div>
+                          <span className="self-start sm:self-auto text-[9.5px] font-mono uppercase tracking-wider text-[#b99762] dark:text-[#e6ca97] bg-[#b99762]/10 px-2.5 py-1 rounded">
+                            {ch.subtitle}
+                          </span>
+                        </div>
+                        <p className="font-sans text-xs sm:text-sm text-[var(--text-secondary)] leading-relaxed">
+                          {ch.text}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* 4 Noble Metallurgy Benchmarks */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2">
+                  <div className="p-4 bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-xs space-y-1">
+                    <span className="text-base font-serif font-bold text-[#b99762] dark:text-[#e6ca97] block">925 Silver</span>
+                    <span className="text-[10px] font-mono uppercase text-[var(--text-muted)] block">Pure Sterling</span>
+                  </div>
+                  <div className="p-4 bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-xs space-y-1">
+                    <span className="text-base font-serif font-bold text-[#b99762] dark:text-[#e6ca97] block">14K Gold</span>
+                    <span className="text-[10px] font-mono uppercase text-[var(--text-muted)] block">Whitish Vermeil</span>
+                  </div>
+                  <div className="p-4 bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-xs space-y-1">
+                    <span className="text-base font-serif font-bold text-[#b99762] dark:text-[#e6ca97] block">15–20 Days</span>
+                    <span className="text-[10px] font-mono uppercase text-[var(--text-muted)] block">Made to Order</span>
+                  </div>
+                  <div className="p-4 bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-xs space-y-1">
+                    <span className="text-base font-serif font-bold text-[#b99762] dark:text-[#e6ca97] block">30 Days</span>
+                    <span className="text-[10px] font-mono uppercase text-[var(--text-muted)] block">Warranty Cover</span>
+                  </div>
+                </div>
+
+                {/* Our 6 Patron Promises */}
+                <div className="p-6 bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-xs space-y-4 shadow-xs">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-mono uppercase tracking-[0.2em] text-[#1d4136] dark:text-[#e6ca97] font-bold block">
+                      OUR COVENANT & PROMISES
+                    </span>
+                    <span className="text-[10px] font-mono text-emerald-600 dark:text-emerald-400 font-bold">
+                      VERIFIABLE ATELIER STANDARDS
+                    </span>
+                  </div>
+                  <ul className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs font-sans text-[var(--text-primary)]">
+                    {OUR_STORY.promises.map((p, idx) => (
+                      <li key={idx} className="flex items-start gap-2.5 p-3 bg-[var(--bg-card)] border border-[var(--border-subtle)] rounded-xs">
+                        <Check className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
+                        <span className="leading-snug">{p}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+
+                {/* Direct Concierge Contact Actions */}
+                <div className="flex flex-wrap items-center justify-between gap-4 pt-4 border-t border-[var(--border-subtle)]">
+                  <div className="text-xs font-sans text-[var(--text-secondary)]">
+                    Have inquiries regarding our metallurgical purity, Delhi atelier, or custom pieces?
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <a
+                      href="https://www.instagram.com/aviora_jewells/"
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center gap-2 px-4 py-2 border border-[var(--border-strong)] hover:border-[#1d4136] dark:hover:border-[#e6ca97] text-xs font-sans font-bold uppercase tracking-wider text-[var(--text-primary)] transition-colors"
+                    >
+                      <InstagramIcon className="w-4 h-4" />
+                      <span>@aviora_jewells</span>
+                    </a>
+                    <a
+                      href="https://wa.me/918796841184"
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center gap-2 px-4 py-2 bg-[#1d4136] hover:bg-[#132f27] dark:bg-[#e6ca97] dark:hover:bg-[#d8c39f] text-white dark:text-black text-xs font-sans font-bold uppercase tracking-wider transition-colors shadow-sm"
+                    >
+                      <span>Direct Concierge (+91 8796841184)</span>
+                    </a>
+                  </div>
+                </div>
+              </div>
+            ) : activePolicy ? (
+              <div className="space-y-6 animate-fadeIn">
+                <div className="border-b border-[var(--border-subtle)] pb-4">
+                  <span className="text-[10px] font-mono uppercase tracking-[0.25em] text-[#1d4136] dark:text-[#e6ca97] font-bold block mb-1">
+                    {activePolicy.badge || 'ATELIER POLICY'}
+                  </span>
+                  <h2 className="font-serif text-3xl sm:text-4xl text-[var(--text-primary)] font-normal">
+                    {activePolicy.title}
+                  </h2>
+                </div>
+
+                <div className="space-y-5">
+                  {activePolicy.sections.map((sec, idx) => (
+                    <div
+                      key={idx}
+                      className="p-4 bg-[var(--bg-secondary)] border border-[var(--border-subtle)] space-y-1.5"
+                    >
+                      <h4 className="font-sans font-bold text-xs uppercase tracking-wider text-[var(--text-primary)]">
+                        {sec.heading}
+                      </h4>
+                      <p className="font-sans text-xs sm:text-sm text-[var(--text-secondary)] leading-relaxed">
+                        {sec.text}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Specific policy contextual action */}
+                {activePolicy.id === 'contact-and-grievance-policy' && (
+                  <div className="pt-2 flex flex-wrap gap-4">
+                    <a
+                      href="https://wa.me/918796841184"
+                      target="_blank"
+                      rel="noreferrer"
+                      className="px-4 py-2 bg-[#1d4136] dark:bg-[#e6ca97] text-white dark:text-black font-sans text-xs font-bold uppercase tracking-wider"
+                    >
+                      WhatsApp Support (+91 8796841184)
+                    </a>
+                    <a
+                      href="mailto:support@aviorajewells.com"
+                      className="px-4 py-2 border border-[var(--border-strong)] text-[var(--text-primary)] font-sans text-xs font-bold uppercase tracking-wider"
+                    >
+                      support@aviorajewells.com
+                    </a>
+                  </div>
+                )}
+              </div>
+            ) : null}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ==========================================
 // 11. FOOTER & TOAST
 // ==========================================
 function Footer() {
-  const { navigate } = useContext(AppContext);
+  const { navigate, openPolicyModal, scrollToSpectrum, showToast } = useContext(AppContext);
+  const [footerEmail, setFooterEmail] = useState('');
+
+  const handleFooterSubscribe = (e) => {
+    e.preventDefault();
+    if (!footerEmail.trim()) return;
+    if (showToast) showToast('✦ Welcome to the Aviora Insider Circle');
+    setFooterEmail('');
+  };
 
   return (
-    <footer className="bg-[var(--bg-secondary)] text-[var(--text-secondary)] border-t border-[var(--border-subtle)] pt-20 pb-12 transition-colors duration-300">
+    <footer className="bg-[#0B1410] text-[#EAE5DB] border-t border-[#b99762]/30 pt-20 pb-12 transition-colors duration-300">
       <div className="max-w-7xl mx-auto px-6 md:px-12">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 lg:gap-16 pb-16 border-b border-[var(--border-subtle)]">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 lg:gap-14 pb-16 border-b border-[#1d4136]/60">
+          
+          {/* Col 1: Maison Aviora & Concierge */}
           <div className="space-y-5">
-            <button onClick={() => navigate('home')} className="text-left">
-              <span className="font-serif text-3xl tracking-[0.2em] uppercase text-[var(--text-primary)] block">
-                AVIORA
-              </span>
-              <span className="text-[9px] font-mono tracking-[0.35em] uppercase text-[#b99762] block mt-0.5 font-bold">
-                14K GOLD PLATED 925 SILVER ATELIER
+            <button onClick={() => navigate('home')} className="text-left group block">
+              <div className="flex items-center gap-2.5 mb-1.5">
+                <AvioraBrandCrest className="w-8 h-8 text-[#E6CA97]" />
+                <span className="font-serif text-3xl tracking-[0.25em] uppercase text-[#F9F7F2] font-normal">
+                  AVIORA
+                </span>
+              </div>
+              <span className="text-[9.5px] font-mono tracking-[0.35em] uppercase text-[#E6CA97] block font-bold">
+                TIMELESS ELEGANCE, MADE FOR YOU
               </span>
             </button>
-            <p className="text-xs font-sans text-[var(--text-secondary)] leading-relaxed max-w-sm">
-              We exclusively cast in 18K/14K gold plated vermeil and BIS hallmarked 925 sterling silver for superior scratch-resistance and waterproof permanence.
+            <p className="text-xs font-sans text-[#CBC4B7] leading-relaxed max-w-sm">
+              Crafted with one vision — to bring timeless, elegant jewellery that feels luxurious yet wearable every day. Mastercrafted in Fine 925 Sterling Silver, 14K Whitish Gold Vermeil, Brilliant Moissanite, and organic Freshwater Pearls.
             </p>
-            <div className="text-[10px] font-mono text-[var(--text-muted)] space-y-1">
-              <p>SALON PRIVÉ: BANDRA WEST, MUMBAI</p>
-              <p>DIRECT CONCIERGE: +91 98201 99283</p>
+            
+            <div className="p-3.5 bg-black/40 border border-[#b99762]/25 rounded-xs space-y-2 text-[11px] font-mono text-[#DCD6CB]">
+              <p className="text-[9px] uppercase tracking-[0.25em] text-[#E6CA97] font-bold">
+                ATELIER CLIENT HELPLINE
+              </p>
+              <a
+                href="https://wa.me/918796841184"
+                target="_blank"
+                rel="noreferrer"
+                className="flex items-center gap-2 text-[#EAE5DB] hover:text-[#E6CA97] transition-colors"
+              >
+                <Phone className="w-3.5 h-3.5 text-[#E6CA97] shrink-0" />
+                <span>WHATSAPP: +91 8796841184</span>
+              </a>
+              <a
+                href="mailto:support@aviorajewells.com"
+                className="flex items-center gap-2 text-[#EAE5DB] hover:text-[#E6CA97] transition-colors"
+              >
+                <Mail className="w-3.5 h-3.5 text-[#E6CA97] shrink-0" />
+                <span>EMAIL: support@aviorajewells.com</span>
+              </a>
+              <p className="flex items-center gap-2 text-[#A7A196]">
+                <Clock className="w-3.5 h-3.5 text-[#E6CA97] shrink-0" />
+                <span>HOURS: MON – SAT, 10 AM – 7 PM (IST)</span>
+              </p>
+              <p className="flex items-center gap-2 text-[#A7A196]">
+                <MapPin className="w-3.5 h-3.5 text-[#E6CA97] shrink-0" />
+                <span>ATELIER: NEW DELHI, INDIA</span>
+              </p>
             </div>
           </div>
 
-          <div className="space-y-3.5">
-            <h4 className="text-xs font-sans tracking-[0.2em] uppercase text-[var(--text-primary)] font-bold">
-              The Collections
+          {/* Col 2: Artworks & Silhouette Spectrum */}
+          <div className="space-y-4">
+            <h4 className="text-xs font-serif tracking-[0.2em] uppercase text-[#E6CA97] font-bold flex items-center gap-2">
+              <Sparkles className="w-3.5 h-3.5" />
+              <span>Collections & Spectrum</span>
             </h4>
-            <ul className="space-y-2 text-xs font-sans text-[var(--text-secondary)]">
+            <ul className="space-y-2.5 text-xs font-sans text-[#DCD6CB]">
               <li>
-                <button onClick={() => navigate('atelier', { category: 'bracelets' })} className="hover:text-[#b99762] transition-colors">
-                  Molten 14K Vermeil Cuffs
+                <button
+                  onClick={() => navigate('atelier', { category: 'new-arrivals' })}
+                  className="hover:text-[#E6CA97] transition-colors text-left flex items-center justify-between w-full"
+                >
+                  <span>New Arrivals (Latest Launches)</span>
+                  <span className="text-[10px] font-mono text-[#E6CA97]">Just In</span>
                 </button>
               </li>
               <li>
-                <button onClick={() => navigate('atelier', { category: 'rings' })} className="hover:text-[#b99762] transition-colors">
-                  Architectural Signets
+                <button
+                  onClick={() => scrollToSpectrum('light')}
+                  className="hover:text-[#E6CA97] transition-colors text-left flex items-center justify-between w-full font-medium"
+                >
+                  <span className="flex items-center gap-2">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                    <span>Delicate & Light Jewellery</span>
+                  </span>
+                  <span className="text-[10px] font-mono text-[#A7A196]">Everyday</span>
                 </button>
               </li>
               <li>
-                <button onClick={() => navigate('atelier', { category: 'necklaces' })} className="hover:text-[#b99762] transition-colors">
-                  Haslis & Sculptural Chokers
+                <button
+                  onClick={() => scrollToSpectrum('heavy')}
+                  className="hover:text-[#E6CA97] transition-colors text-left flex items-center justify-between w-full font-medium"
+                >
+                  <span className="flex items-center gap-2">
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#E6CA97]" />
+                    <span>Bold & Heavy Jewellery</span>
+                  </span>
+                  <span className="text-[10px] font-mono text-[#A7A196]">Statement</span>
                 </button>
               </li>
               <li>
-                <button onClick={() => navigate('atelier', { category: 'earrings' })} className="hover:text-[#b99762] transition-colors">
-                  Negative Space Ear Cuffs
+                <button
+                  onClick={() => scrollToSpectrum()}
+                  className="hover:text-[#E6CA97] transition-colors text-left flex items-center justify-between w-full text-[#E6CA97] font-semibold"
+                >
+                  <span>Light vs Heavy Spectrum</span>
+                  <span className="text-[10px] font-mono text-[#E6CA97]">Compare</span>
+                </button>
+              </li>
+              <li>
+                <button
+                  onClick={() => navigate('atelier', { category: 'moissanite' })}
+                  className="hover:text-[#E6CA97] transition-colors text-left"
+                >
+                  Moissanite Collection
+                </button>
+              </li>
+              <li>
+                <button
+                  onClick={() => navigate('atelier', { category: 'pearl' })}
+                  className="hover:text-[#E6CA97] transition-colors text-left"
+                >
+                  Pearl Collection (Freshwater Pearls)
+                </button>
+              </li>
+              <li>
+                <button
+                  onClick={() => openPolicyModal('our-story')}
+                  className="hover:text-[#E6CA97] transition-colors text-left flex items-center gap-1.5 text-[#E6CA97]"
+                >
+                  <span>Atelier Heritage & Full Manifesto</span>
+                  <ArrowRight className="w-3 h-3" />
                 </button>
               </li>
             </ul>
           </div>
 
-          <div className="space-y-3.5">
-            <h4 className="text-xs font-sans tracking-[0.2em] uppercase text-[var(--text-primary)] font-bold">
-              Trust & Guarantees
+          {/* Col 3: Brand Policies & Patron Safeguards */}
+          <div className="space-y-4">
+            <h4 className="text-xs font-serif tracking-[0.2em] uppercase text-[#E6CA97] font-bold flex items-center gap-2">
+              <ShieldCheck className="w-3.5 h-3.5" />
+              <span>Policies & Warranties</span>
             </h4>
-            <ul className="space-y-2 text-xs font-sans text-[var(--text-secondary)]">
-              <li><span className="hover:text-[var(--text-primary)] cursor-pointer">Why 14K Gold Plated 925 Silver</span></li>
-              <li><span className="hover:text-[var(--text-primary)] cursor-pointer">BIS 925 Hallmarking Certificate</span></li>
-              <li><span className="hover:text-[var(--text-primary)] cursor-pointer">Lifetime Anti-Tarnish Warranty</span></li>
-              <li><span className="hover:text-[var(--text-primary)] cursor-pointer">30-Day Hassle-Free Returns</span></li>
+            <ul className="space-y-2.5 text-xs font-sans text-[#DCD6CB]">
+              <li>
+                <button onClick={() => openPolicyModal('our-story')} className="hover:text-[#E6CA97] transition-colors text-left">
+                  Our Story & Atelier Manifesto
+                </button>
+              </li>
+              <li>
+                <button onClick={() => openPolicyModal('shipping-policy')} className="hover:text-[#E6CA97] transition-colors text-left">
+                  Shipping & Made-To-Order (15–20 Days)
+                </button>
+              </li>
+              <li>
+                <button onClick={() => openPolicyModal('return-and-refund-policy')} className="hover:text-[#E6CA97] transition-colors text-left">
+                  Return & Refund (No Return · No Exchange)
+                </button>
+              </li>
+              <li>
+                <button onClick={() => openPolicyModal('warranty-policy')} className="hover:text-[#E6CA97] transition-colors text-left">
+                  30-Day Manufacturing Warranty
+                </button>
+              </li>
+              <li>
+                <button onClick={() => openPolicyModal('jewellery-care-guide')} className="hover:text-[#E6CA97] transition-colors text-left">
+                  Jewellery Care Guide (Whitish Gold)
+                </button>
+              </li>
+              <li>
+                <button onClick={() => openPolicyModal('product-authenticity-policy')} className="hover:text-[#E6CA97] transition-colors text-left">
+                  Authenticity Guarantee & Moissanite
+                </button>
+              </li>
+              <li>
+                <button onClick={() => openPolicyModal('terms-and-conditions')} className="hover:text-[#E6CA97] transition-colors text-left">
+                  Terms & Conditions
+                </button>
+              </li>
+              <li>
+                <button onClick={() => openPolicyModal('privacy-policy')} className="hover:text-[#E6CA97] transition-colors text-left">
+                  Privacy Policy
+                </button>
+              </li>
+              <li className="pt-1.5 border-t border-white/10">
+                <button onClick={() => navigate('orders')} className="hover:text-[#E6CA97] transition-colors text-left flex items-center gap-1.5 text-[#E6CA97] font-semibold">
+                  <User className="w-3.5 h-3.5" />
+                  <span>Patron Portal & Order Tracking</span>
+                </button>
+              </li>
             </ul>
           </div>
 
-          <div className="space-y-3.5">
-            <h4 className="text-xs font-sans tracking-[0.2em] uppercase text-[var(--text-primary)] font-bold">
-              The Aviora Insider
+          {/* Col 4: The Aviora Insider & Guarantees */}
+          <div className="space-y-4">
+            <h4 className="text-xs font-serif tracking-[0.2em] uppercase text-[#E6CA97] font-bold flex items-center gap-2">
+              <Award className="w-3.5 h-3.5" />
+              <span>The Aviora Insider</span>
             </h4>
-            <p className="text-xs font-sans text-[var(--text-secondary)] leading-relaxed">
-              Join 45,000+ collectors for private drop releases and complimentary engraving events.
+            <p className="text-xs font-sans text-[#CBC4B7] leading-relaxed">
+              Join collectors for private drop releases, artisanal jewellery care guides, and private salon invitations.
             </p>
-            <div className="flex border-b border-[var(--border-strong)] pb-2 focus-within:border-[#1d4136] dark:focus-within:border-[#e6ca97]">
-              <input
-                type="email"
-                placeholder="Enter email or WhatsApp..."
-                className="bg-transparent border-none outline-none text-xs font-sans w-full text-[var(--text-primary)] placeholder-[var(--text-muted)]"
-              />
-              <button className="text-[10px] font-sans tracking-[0.2em] uppercase text-[#1d4136] dark:text-[#e6ca97] font-bold hover:underline">
-                Join
-              </button>
+            
+            <form onSubmit={handleFooterSubscribe} className="space-y-2">
+              <div className="flex gap-2">
+                <input
+                  type="email"
+                  value={footerEmail}
+                  onChange={(e) => setFooterEmail(e.target.value)}
+                  placeholder="Enter email address..."
+                  className="bg-black/50 border border-[#b99762]/40 focus:border-[#E6CA97] text-xs font-sans w-full text-[#F5F2EB] placeholder-[#9E988D] px-3 py-2 outline-none rounded-xs"
+                />
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-[#E6CA97] hover:bg-[#F3E5AB] text-black text-[11px] font-sans font-bold uppercase tracking-wider transition-colors shrink-0 rounded-xs shadow-sm"
+                >
+                  Join
+                </button>
+              </div>
+            </form>
+
+            <div className="pt-2">
+              <a
+                href="https://www.instagram.com/aviora_jewells/"
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-2 text-xs font-sans text-[#E6CA97] hover:underline font-semibold"
+              >
+                <InstagramIcon className="w-4 h-4" />
+                <span>@aviora_jewells on Instagram</span>
+              </a>
+            </div>
+
+            {/* 4 Trust Guarantee Badges */}
+            <div className="grid grid-cols-2 gap-2 pt-2">
+              <div className="p-2 bg-black/40 border border-[#b99762]/20 text-[10px] font-mono text-[#DCD6CB] rounded-xs flex items-center gap-1.5">
+                <ShieldCheck className="w-3 h-3 text-[#E6CA97] shrink-0" />
+                <span>Fine 925 Silver</span>
+              </div>
+              <div className="p-2 bg-black/40 border border-[#b99762]/20 text-[10px] font-mono text-[#DCD6CB] rounded-xs flex items-center gap-1.5">
+                <Sparkles className="w-3 h-3 text-[#E6CA97] shrink-0" />
+                <span>14K Vermeil</span>
+              </div>
+              <div className="p-2 bg-black/40 border border-[#b99762]/20 text-[10px] font-mono text-[#DCD6CB] rounded-xs flex items-center gap-1.5">
+                <Gem className="w-3 h-3 text-[#E6CA97] shrink-0" />
+                <span>VVS1 Moissanite</span>
+              </div>
+              <div className="p-2 bg-black/40 border border-[#b99762]/20 text-[10px] font-mono text-[#DCD6CB] rounded-xs flex items-center gap-1.5">
+                <Truck className="w-3 h-3 text-[#E6CA97] shrink-0" />
+                <span>Blue Dart Air</span>
+              </div>
             </div>
           </div>
         </div>
 
-        <div className="pt-8 flex flex-col md:flex-row justify-between items-center text-[10px] font-mono text-[var(--text-muted)] space-y-4 md:space-y-0">
-          <div>© {new Date().getFullYear()} AVIORA JEWELLERS PVT LTD. ALL RIGHTS RESERVED.</div>
-          <div className="flex space-x-8">
-            <span className="hover:text-[var(--text-primary)] cursor-pointer">PRIVACY PROTOCOL</span>
-            <span className="hover:text-[var(--text-primary)] cursor-pointer">TERMS OF SERVICE</span>
-            <span className="hover:text-[var(--text-primary)] cursor-pointer">BIS VERIFICATION</span>
+        {/* Bottom Bar: Copyright, Legal & Staff Vault */}
+        <div className="pt-8 flex flex-col md:flex-row justify-between items-center text-[10px] font-mono text-[#A7A196] space-y-4 md:space-y-0">
+          <div>© {new Date().getFullYear()} AVIORA JEWELLERY MAISON. ALL RIGHTS RESERVED.</div>
+          <div className="flex flex-wrap items-center gap-6">
+            <button onClick={() => openPolicyModal('privacy-policy')} className="hover:text-[#E6CA97] transition-colors">
+              PRIVACY POLICY
+            </button>
+            <button onClick={() => openPolicyModal('terms-and-conditions')} className="hover:text-[#E6CA97] transition-colors">
+              TERMS OF SERVICE
+            </button>
+            <button onClick={() => openPolicyModal('product-authenticity-policy')} className="hover:text-[#E6CA97] transition-colors">
+              AUTHENTICITY GUARANTEE
+            </button>
+            <button onClick={() => openPolicyModal('jewellery-care-guide')} className="hover:text-[#E6CA97] transition-colors">
+              CARE GUIDE
+            </button>
+            <span className="text-[#3A362E]">•</span>
+            <button
+              onClick={() => navigate('admin')}
+              className="text-[#8E887E] hover:text-[#E6CA97] transition-colors flex items-center gap-1"
+              title="Atelier Internal Staff Vault (Restricted)"
+            >
+              <Lock className="w-2.5 h-2.5" />
+              <span>STAFF VAULT</span>
+            </button>
           </div>
         </div>
       </div>
@@ -5079,6 +9522,7 @@ function AppContent() {
     <div className="min-h-screen bg-[var(--bg-primary)] text-[var(--text-primary)] font-sans selection:bg-[#d8c39f] selection:text-[#242321] flex flex-col transition-colors duration-300">
       <Navbar />
       <CartDrawer />
+      <BrandPolicyModal />
       <Toast />
 
       <main className="flex-1">

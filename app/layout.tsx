@@ -51,10 +51,10 @@ export const metadata: Metadata = {
     siteName: 'AVIORA JEWELLERS',
     images: [
       {
-        url: 'https://images.unsplash.com/photo-1611591437281-460bfbe1220a?auto=format&fit=crop&w=1600&q=85',
+        url: '/products/14k-gold-plated-double-layer-necklace-4200-1.jpg',
         width: 1600,
         height: 1000,
-        alt: 'AURA Architectural Sculpture',
+        alt: 'AVIORA Fine Jewellery Atelier',
       },
     ],
     locale: 'en_US',

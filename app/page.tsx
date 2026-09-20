@@ -26,8 +26,8 @@ export default async function HomePage() {
       <section className="relative h-[92vh] min-h-[660px] w-full flex flex-col justify-between p-6 md:p-14 overflow-hidden">
         <div className="absolute inset-0 z-0">
           <ArtisticImage
-            src="https://images.unsplash.com/photo-1611591437281-460bfbe1220a?auto=format&fit=crop&w=2400&q=90"
-            alt="AURA 14K Fine Jewellery Hero"
+            src="/products/14k-gold-plated-double-layer-necklace-4200-1.jpg"
+            alt="AVIORA 14K Fine Jewellery Hero"
             fill
             priority
             className="w-full h-full scale-105 animate-[pulse_14s_ease-in-out_infinite]"

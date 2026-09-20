@@ -26,3 +26,7 @@ node_modules/
 dist/
 .env
 .vercel
+
+# Product catalogue PDFs (large binary files — not needed in git)
+*.pdf
+public/pdfs/

@@ -576,8 +576,8 @@ export default function CheckoutPage() {
                   <span className="text-emerald-400 font-semibold">FREE</span>
                 </div>
                 <div className="flex justify-between">
-                  <span>GST & Hallmarking Charges:</span>
-                  <span className="text-zinc-200">INCLUDED (3%)</span>
+                  <span>Insured Keepsake Packaging:</span>
+                  <span className="text-zinc-200">INCLUDED</span>
                 </div>
                 <div className="flex justify-between items-baseline pt-4 border-t border-zinc-800 text-sm font-serif text-zinc-100">
                   <span className="uppercase font-mono text-xs tracking-widest">Total Payable</span>

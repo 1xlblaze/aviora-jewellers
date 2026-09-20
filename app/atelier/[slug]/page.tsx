@@ -43,8 +43,8 @@ export default function ProductDetailPage() {
   const [selectedQuantity, setSelectedQuantity] = useState(1);
   const [copiedLink, setCopiedLink] = useState(false);
 
-  // PRD Requirement: "View on Model" vs "View Product Only" toggle
-  const [viewMode, setViewMode] = useState<'product' | 'model'>('product');
+  // Studio Gallery state
+  const [viewMode] = useState<'product'>('product');
 
   // PRD Requirement: Complimentary Archival Engraving
   const [addEngraving, setAddEngraving] = useState(false);
@@ -143,30 +143,13 @@ export default function ProductDetailPage() {
         <div className="lg:col-span-7 space-y-4 lg:space-y-6 p-4 md:p-10 border-b lg:border-b-0 lg:border-r border-zinc-800/60">
           {/* Floating Gallery Controls: Model Scaling */}
           <div className="sticky top-24 z-30 flex items-center justify-between bg-black/70 backdrop-blur-md p-2.5 border border-zinc-800 text-xs font-mono">
-            {/* View on Model vs View Product Only */}
-            <div className="flex items-center gap-1.5">
-              <button
-                onClick={() => setViewMode('product')}
-                className={`px-3 py-1.5 uppercase tracking-wider text-[10px] transition-all flex items-center gap-1.5 ${
-                  viewMode === 'product'
-                    ? 'bg-[#D4AF37] text-zinc-950 font-bold'
-                    : 'text-zinc-400 hover:text-white'
-                }`}
-              >
-                <Eye className="w-3.5 h-3.5" />
-                <span>Product Only</span>
-              </button>
-              <button
-                onClick={() => setViewMode('model')}
-                className={`px-3 py-1.5 uppercase tracking-wider text-[10px] transition-all flex items-center gap-1.5 ${
-                  viewMode === 'model'
-                    ? 'bg-[#D4AF37] text-zinc-950 font-bold'
-                    : 'text-zinc-400 hover:text-white'
-                }`}
-              >
-                <User className="w-3.5 h-3.5" />
-                <span>View on Model (Scale)</span>
-              </button>
+            <div className="flex items-center gap-2">
+              <span className="px-2.5 py-1 bg-[#D4AF37] text-zinc-950 text-[10px] font-bold tracking-wider uppercase font-mono">
+                STUDIO GALLERY
+              </span>
+              <span className="text-[10px] text-zinc-400 font-mono uppercase tracking-widest hidden sm:inline">
+                {product.images?.length || 1} STUDIO PERSPECTIVES
+              </span>
             </div>
 
             <span className="text-[9px] font-mono text-zinc-500 uppercase tracking-widest hidden sm:inline">
@@ -296,7 +279,7 @@ export default function ProductDetailPage() {
                 )}
               </div>
               <p className="text-[11px] font-mono text-zinc-400">
-                Includes 3% GST · Certified BIS Hallmarking · Free Pan-India Express Delivery
+                Fine 925 Sterling Silver · Free Pan-India Express Delivery
               </p>
             </div>
 

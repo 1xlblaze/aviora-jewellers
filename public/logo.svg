@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 120" fill="none">
+  <!-- Crest Emblem (Left / Center) -->
+  <g transform="translate(10, 5) scale(0.95)">
+    <!-- Sunburst Rays -->
+    <line x1="50" y1="4" x2="50" y2="12" stroke="#D4AF37" stroke-width="2.2" stroke-linecap="round"/>
+    <line x1="39" y1="8" x2="43" y2="15" stroke="#D4AF37" stroke-width="2" stroke-linecap="round"/>
+    <line x1="61" y1="8" x2="57" y2="15" stroke="#D4AF37" stroke-width="2" stroke-linecap="round"/>
+    <line x1="30" y1="15" x2="37" y2="20" stroke="#D4AF37" stroke-width="1.8" stroke-linecap="round"/>
+    <line x1="70" y1="15" x2="63" y2="20" stroke="#D4AF37" stroke-width="1.8" stroke-linecap="round"/>
+
+    <!-- Brilliant Cut Diamond -->
+    <polygon points="50,17 40,24 44,31 56,31 60,24" fill="#F4EBD9" stroke="#B89758" stroke-width="1.2" stroke-linejoin="round"/>
+    <line x1="40" y1="24" x2="60" y2="24" stroke="#B89758" stroke-width="1"/>
+    <line x1="50" y1="17" x2="46" y2="24" stroke="#B89758" stroke-width="0.8"/>
+    <line x1="50" y1="17" x2="54" y2="24" stroke="#B89758" stroke-width="0.8"/>
+    <line x1="46" y1="24" x2="50" y2="31" stroke="#B89758" stroke-width="0.8"/>
+    <line x1="54" y1="24" x2="50" y2="31" stroke="#B89758" stroke-width="0.8"/>
+
+    <!-- Gold Ring Band -->
+    <circle cx="50" cy="56" r="26" stroke="#D4AF37" stroke-width="3" fill="none" opacity="0.95"/>
+    <circle cx="50" cy="56" r="23" stroke="#B89758" stroke-width="1" fill="none" opacity="0.5"/>
+
+    <!-- Interlocking Monogram 'A' -->
+    <path d="M50 36 L33 78 L40 78 L48 57 L58 78 L65 78 Z" fill="#EDE7DC" stroke="#C5B28D" stroke-width="1" stroke-linejoin="round"/>
+    <path d="M43 66 L62 66 L62 72 L41 72 Z" fill="#D4AF37" stroke="#9A7B38" stroke-width="0.8"/>
+    <path d="M50 46 L45 59 L55 59 Z" fill="#132A22"/>
+  </g>
+
+  <!-- Typography -->
+  <g transform="translate(120, 0)">
+    <text x="0" y="58" font-family="'Cinzel', 'Playfair Display', serif" font-size="44" font-weight="500" letter-spacing="0.28em" fill="currentColor">
+      AVIORA
+    </text>
+    <line x1="0" y1="76" x2="45" y2="76" stroke="#D4AF37" stroke-width="1" stroke-opacity="0.6"/>
+    <text x="55" y="79" font-family="'DM Sans', 'Inter', sans-serif" font-size="8.5" font-weight="600" letter-spacing="0.32em" fill="#C5B28D">
+      TIMELESS ELEGANCE, MADE FOR YOU
+    </text>
+    <line x1="238" y1="76" x2="280" y2="76" stroke="#D4AF37" stroke-width="1" stroke-opacity="0.6"/>
+  </g>
+</svg>

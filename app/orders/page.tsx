@@ -358,7 +358,7 @@ export default function OrdersPage() {
                       </span>
                     </div>
                     <div className="flex justify-between text-[10px] text-zinc-500">
-                      <span>Inclusive of 3% GST & Lifetime Anti-Tarnish Warranty</span>
+                      <span>Includes 30-Day Manufacturing Warranty & Certificate</span>
                       <span>Free Express Courier</span>
                     </div>
                   </div>
