@@ -90,15 +90,18 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   // Whenever catalog prices in PRODUCTS change, the cart automatically resolves
   // the live product and reflects current prices in cart & totals!
   const cart: CartItem[] = useMemo(() => {
-    return rawCart.map((item) => {
-      const liveProduct = PRODUCTS.find((p) => p.id === item.productId) || PRODUCTS[0];
-      return {
-        productId: item.productId,
-        product: liveProduct, // Always uses the latest catalog pricing & stock
-        quantity: item.quantity,
-        engraving: item.engraving,
-      };
-    });
+    return rawCart
+      .map((item) => {
+        const liveProduct = PRODUCTS.find((p) => p.id === item.productId || p.slug === item.productId);
+        if (!liveProduct) return null;
+        return {
+          productId: liveProduct.id,
+          product: liveProduct, // Always uses the latest catalog pricing & stock
+          quantity: item.quantity,
+          engraving: item.engraving,
+        };
+      })
+      .filter((item): item is CartItem => item !== null);
   }, [rawCart]);
 
   const addToCart = (product: Product, quantity = 1, engraving = '') => {
@@ -119,15 +122,21 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     setIsCartOpen(true);
   };
 
-  const removeFromCart = (productId: string) => {
-    setRawCart((prev) => prev.filter((item) => item.productId !== productId));
+  const removeFromCart = (productId: string, index?: number) => {
+    setRawCart((prev) => {
+      if (typeof index === 'number' && index >= 0 && index < prev.length) {
+        return prev.filter((_, i) => i !== index);
+      }
+      return prev.filter((item) => item.productId !== productId);
+    });
   };
 
-  const updateQuantity = (productId: string, delta: number) => {
+  const updateQuantity = (productId: string, delta: number, index?: number) => {
     setRawCart((prev) =>
       prev
-        .map((item) => {
-          if (item.productId === productId) {
+        .map((item, idx) => {
+          const isMatch = (typeof index === 'number' && idx === index) || item.productId === productId;
+          if (isMatch) {
             const newQty = item.quantity + delta;
             return newQty > 0 ? { ...item, quantity: newQty } : null;
           }

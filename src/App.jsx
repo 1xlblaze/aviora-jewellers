@@ -317,17 +317,26 @@ function AppProvider({ children }) {
     }
   }, [selectedProduct?.id]);
   
-  // Hydrate cart from localStorage
+  // Hydrate cart from localStorage (only for authenticated patrons, otherwise guest cart starts empty)
   const [rawCart, setRawCart] = useState(() => {
     try {
+      const patron = localStorage.getItem('aviora_patron_session');
+      if (!patron) {
+        // Unauthenticated guests start with a clean empty cart by default
+        return [];
+      }
       const stored = localStorage.getItem('aura_collection_cart');
       if (stored) {
         const parsed = JSON.parse(stored);
-        return parsed.map((item) => ({
-          productId: item.productId || item.product?.id,
-          quantity: item.quantity || 1,
-          engraving: item.engraving || '',
-        })).filter((item) => Boolean(item.productId));
+        if (Array.isArray(parsed)) {
+          return parsed
+            .map((item) => ({
+              productId: item.productId || item.product?.id,
+              quantity: Number(item.quantity) || 1,
+              engraving: item.engraving || '',
+            }))
+            .filter((item) => Boolean(item.productId));
+        }
       }
     } catch {
       // fallback
@@ -381,8 +390,10 @@ function AppProvider({ children }) {
 
   const logoutPatron = () => {
     setPatronUser(null);
+    setRawCart([]);
     try {
       localStorage.removeItem('aviora_patron_session');
+      localStorage.removeItem('aura_collection_cart');
     } catch {}
     showToast('Patron session signed out securely.');
   };
@@ -636,16 +647,35 @@ function AppProvider({ children }) {
   // Whenever catalog prices change in admin, the cart automatically resolves
   // the live product and reflects current prices in cart & totals!
   const cart = useMemo(() => {
-    return rawCart.map((item) => {
-      const liveProduct = products.find((p) => p.id === item.productId) || products[0] || PRODUCTS[0];
-      return {
-        productId: item.productId,
-        product: liveProduct, // Always fresh from live reactive catalog
-        quantity: item.quantity,
-        engraving: item.engraving,
-      };
-    });
+    return rawCart
+      .map((item) => {
+        const liveProduct =
+          products.find((p) => p.id === item.productId || p.slug === item.productId) ||
+          PRODUCTS.find((p) => p.id === item.productId || p.slug === item.productId);
+        // Do NOT default to products[0] for non-existent or orphan product IDs
+        if (!liveProduct) return null;
+        return {
+          productId: liveProduct.id,
+          product: liveProduct, // Always fresh from live reactive catalog
+          quantity: item.quantity,
+          engraving: item.engraving,
+        };
+      })
+      .filter(Boolean);
   }, [rawCart, products]);
+
+  // Sanitize rawCart: automatically purge any stale or non-existent items
+  useEffect(() => {
+    if (rawCart.length > 0) {
+      const allCatalog = products.length > 0 ? products : PRODUCTS;
+      const valid = rawCart.filter((item) =>
+        allCatalog.some((p) => p.id === item.productId || p.slug === item.productId)
+      );
+      if (valid.length !== rawCart.length) {
+        setRawCart(valid);
+      }
+    }
+  }, [products, rawCart]);
 
   const addToCart = (product, quantity = 1, engraving = '') => {
     // Enforce patron customer authentication before adding to cart
@@ -673,16 +703,27 @@ function AppProvider({ children }) {
     showToast(`Added to Bag: ${product.name}`);
   };
 
-  const removeFromCart = (productId) => {
-    setRawCart((prev) => prev.filter((item) => item.productId !== productId));
+  const removeFromCart = (productId, index = null) => {
+    setRawCart((prev) => {
+      if (typeof index === 'number' && index >= 0 && index < prev.length) {
+        return prev.filter((_, i) => i !== index);
+      }
+      return prev.filter(
+        (item) => item.productId !== productId && item.product?.id !== productId
+      );
+    });
     showToast('Item released from bag');
   };
 
-  const updateQuantity = (productId, delta) => {
+  const updateQuantity = (productId, delta, index = null) => {
     setRawCart((prev) =>
       prev
-        .map((item) => {
-          if (item.productId === productId) {
+        .map((item, idx) => {
+          const isMatch =
+            (typeof index === 'number' && idx === index) ||
+            item.productId === productId ||
+            item.product?.id === productId;
+          if (isMatch) {
             const newQty = item.quantity + delta;
             return newQty > 0 ? { ...item, quantity: newQty } : null;
           }
@@ -1667,8 +1708,8 @@ function CartDrawer() {
                   </div>
                 </div>
               ) : (
-                cart.map(({ product, quantity, engraving }) => (
-                  <div key={product.id} className="pt-5 first:pt-0 flex gap-4">
+                cart.map(({ productId, product, quantity, engraving }, idx) => (
+                  <div key={productId || product.id || idx} className="pt-5 first:pt-0 flex gap-4">
                     <div className="relative w-18 h-22 flex-shrink-0 bg-[var(--bg-stone)] overflow-hidden border border-[var(--border-subtle)]">
                       <img
                         src={product.images[0]}
@@ -1704,22 +1745,24 @@ function CartDrawer() {
                       <div className="flex items-center justify-between mt-2.5 pt-2 border-t border-[var(--border-subtle)] text-xs">
                         <div className="flex items-center border border-[var(--border-strong)] rounded bg-[var(--bg-primary)]">
                           <button
-                            onClick={() => updateQuantity(product.id, -1)}
-                            className="p-1 text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
+                            onClick={() => updateQuantity(productId || product.id, -1, idx)}
+                            className="p-1 text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors cursor-pointer"
+                            aria-label="Decrease quantity"
                           >
                             <Minus className="w-3 h-3" />
                           </button>
                           <span className="px-2.5 font-mono text-xs text-[var(--text-primary)] font-bold">{quantity}</span>
                           <button
-                            onClick={() => updateQuantity(product.id, 1)}
-                            className="p-1 text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
+                            onClick={() => updateQuantity(productId || product.id, 1, idx)}
+                            className="p-1 text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors cursor-pointer"
+                            aria-label="Increase quantity"
                           >
                             <Plus className="w-3 h-3" />
                           </button>
                         </div>
                         <button
-                          onClick={() => removeFromCart(product.id)}
-                          className="text-[10px] font-sans font-bold tracking-widest uppercase text-[var(--text-muted)] hover:text-rose-500 transition-colors"
+                          onClick={() => removeFromCart(productId || product.id, idx)}
+                          className="text-[10px] font-sans font-bold tracking-widest uppercase text-[var(--text-muted)] hover:text-rose-500 transition-colors cursor-pointer"
                         >
                           Remove
                         </button>
