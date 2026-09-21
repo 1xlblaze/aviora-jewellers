@@ -42,16 +42,18 @@ assert(Boolean(appearsUnderPearlBracelet), 'Test case: prod-014 is discoverable 
 const minCat = CATEGORIES.find((c) => c.id === 'minimalist');
 assert(!!minCat, 'Minimalist category taxonomy defined');
 const minSub = (minCat?.subcategories || []).map((s) => s.slug);
-['necklaces', 'earrings', 'rings', 'bracelets', 'sets', 'anklets'].forEach((tag) => {
+['necklaces', 'earrings', 'rings', 'bracelets', 'anklets'].forEach((tag) => {
   assert(minSub.includes(tag), `Minimalist includes tag ${tag}`);
 });
+assert(!minSub.includes('sets'), 'Sets filter removed from Minimalist');
 
 const stmtCat = CATEGORIES.find((c) => c.id === 'statement');
 assert(!!stmtCat, 'Statement category taxonomy defined');
 const stmtSub = (stmtCat?.subcategories || []).map((s) => s.slug);
-['necklaces', 'earrings', 'rings', 'bracelets', 'sets', 'anklets'].forEach((tag) => {
+['necklaces', 'earrings', 'rings', 'bracelets', 'anklets'].forEach((tag) => {
   assert(stmtSub.includes(tag), `Statement includes tag ${tag}`);
 });
+assert(!stmtSub.includes('sets'), 'Sets filter removed from Statement');
 
 const moisCat = CATEGORIES.find((c) => c.id === 'moissanite');
 assert(!!moisCat, 'Moissanite category taxonomy defined');

@@ -2970,7 +2970,6 @@ function ShopView() {
       { id: 'earrings', label: 'Earrings' },
       { id: 'rings', label: 'Rings' },
       { id: 'bracelets', label: 'Bracelets' },
-      { id: 'sets', label: 'Sets' },
       { id: 'anklets', label: 'Anklets' },
     ],
     'statement': [
@@ -2979,7 +2978,6 @@ function ShopView() {
       { id: 'earrings', label: 'Earrings' },
       { id: 'rings', label: 'Rings' },
       { id: 'bracelets', label: 'Bracelets' },
-      { id: 'sets', label: 'Sets' },
       { id: 'anklets', label: 'Anklets' },
     ],
     'moissanite': [
@@ -3017,7 +3015,6 @@ function ShopView() {
       { id: 'earrings', label: 'Earrings' },
       { id: 'rings', label: 'Rings' },
       { id: 'bracelets', label: 'Bracelets' },
-      { id: 'sets', label: 'Sets' },
       { id: 'anklets', label: 'Anklets' },
       { id: 'gra-certified', label: 'GRA Certified Jewellery' },
       { id: 'freshwater-pearls', label: 'Freshwater Pearls' },
@@ -8065,7 +8062,6 @@ function AdminView() {
                     { id: 'earrings', label: 'Earrings' },
                     { id: 'rings', label: 'Rings' },
                     { id: 'bracelets', label: 'Bracelets' },
-                    { id: 'sets', label: 'Sets' },
                     { id: 'anklets', label: 'Anklets' },
                     { id: 'gra-certified', label: 'GRA Certified Jewellery' },
                     { id: 'freshwater-pearls', label: 'Freshwater Pearl Jewellery' },
@@ -9391,7 +9387,6 @@ function AdminView() {
                     { id: 'earrings', label: 'Earrings' },
                     { id: 'rings', label: 'Rings' },
                     { id: 'bracelets', label: 'Bracelets' },
-                    { id: 'sets', label: 'Sets' },
                     { id: 'anklets', label: 'Anklets' },
                     { id: 'gra-certified', label: 'GRA Certified Jewellery' },
                     { id: 'freshwater-pearls', label: 'Freshwater Pearl Jewellery' },
@@ -9412,7 +9407,7 @@ function AdminView() {
                             ...editingProduct,
                             tags: next,
                             ...(tag.id === 'new' ? { isNew: !isTagged } : {}),
-                            subcategory: ['necklaces', 'earrings', 'rings', 'bracelets', 'sets', 'anklets'].includes(tag.id) && !isTagged
+                            subcategory: ['necklaces', 'earrings', 'rings', 'bracelets', 'anklets'].includes(tag.id) && !isTagged
                               ? tag.id
                               : editingProduct.subcategory,
                           });
