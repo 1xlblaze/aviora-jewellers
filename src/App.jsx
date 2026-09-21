@@ -43,6 +43,7 @@ import {
   Edit3,
   Trash2,
   Tag,
+  Camera,
   Layers,
   RefreshCw,
   ExternalLink,
@@ -1994,8 +1995,9 @@ function ProductArtworkCard({ product, index = 0, compact = false }) {
 
         {/* Multi-Angle Studio Badge */}
         {product.images?.length > 1 && (
-          <span className="absolute bottom-2.5 left-2.5 z-20 px-1.5 py-0.5 bg-black/75 backdrop-blur-xs text-white text-[8.5px] font-mono tracking-wider uppercase rounded-xs border border-white/10 group-hover:opacity-0 transition-opacity pointer-events-none">
-            {product.images.length} Angles
+          <span className="absolute bottom-11 sm:bottom-2.5 left-2 sm:left-2.5 z-10 inline-flex items-center gap-1 px-2 py-0.5 bg-[#0d281e]/90 dark:bg-[#181d1a]/95 backdrop-blur-xs text-[#fbf8f3] dark:text-[#e6ca97] text-[9px] sm:text-[9.5px] font-sans font-medium tracking-normal rounded-full border border-white/20 dark:border-[#b99762]/30 shadow-md sm:group-hover:opacity-0 transition-opacity pointer-events-none">
+            <Camera className="w-2.5 h-2.5 text-[#b99762] dark:text-[#e6ca97]" />
+            <span>{product.images.length} Angles</span>
           </span>
         )}
 
