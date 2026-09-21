@@ -1065,6 +1065,17 @@ function Navbar() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+  useEffect(() => {
+    if (mobileMenuOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [mobileMenuOpen]);
+
   const handleNavSearch = (e) => {
     e.preventDefault();
     if (!navSearchQuery.trim()) return;
@@ -1170,7 +1181,7 @@ function Navbar() {
 
       {/* 2. MAIN HEADER (UNCLUTTERED, ELEGANT, DYNAMIC SCROLL ELEVATION) */}
       <header
-        className={`sticky top-0 z-50 transition-all duration-300 w-full overflow-hidden ${
+        className={`sticky top-0 z-40 transition-all duration-300 w-full ${
           isScrolled
             ? 'bg-[var(--bg-primary)]/95 backdrop-blur-md border-b border-[var(--border-subtle)] py-2 sm:py-2.5 shadow-md'
             : 'bg-[var(--bg-primary)] border-b border-[var(--border-subtle)] py-2 sm:py-3.5'
@@ -1390,18 +1401,19 @@ function Navbar() {
             </form>
           </div>
         )}
+      </header>
 
-        {/* 3. LUXURY TOUCH-FIRST MOBILE DRAWER */}
-        {mobileMenuOpen && (
-          <div className="fixed inset-0 z-50 lg:hidden animate-fadeIn">
-            {/* Backdrop */}
-            <div
-              className="absolute inset-0 bg-black/60 backdrop-blur-xs transition-opacity"
-              onClick={() => setMobileMenuOpen(false)}
-            />
+      {/* 3. LUXURY TOUCH-FIRST MOBILE DRAWER */}
+      {mobileMenuOpen && (
+        <div className="fixed inset-0 z-50 lg:hidden animate-fadeIn">
+          {/* Backdrop */}
+          <div
+            className="fixed inset-0 bg-black/60 backdrop-blur-xs transition-opacity cursor-pointer"
+            onClick={() => setMobileMenuOpen(false)}
+          />
 
-            {/* Slide-in Menu Panel */}
-            <div className="absolute top-0 bottom-0 left-0 w-[85%] max-w-sm bg-[var(--bg-card)] border-r border-[var(--border-subtle)] p-6 flex flex-col justify-between shadow-2xl z-10 overflow-y-auto">
+          {/* Slide-in Menu Panel */}
+          <div className="fixed top-0 bottom-0 left-0 w-[85%] max-w-sm bg-[var(--bg-card)] border-r border-[var(--border-subtle)] p-6 flex flex-col justify-between shadow-2xl z-50 overflow-y-auto">
               <div>
                 {/* Drawer Header */}
                 <div className="flex items-center justify-between pb-6 border-b border-[var(--border-subtle)]">
@@ -1590,7 +1602,6 @@ function Navbar() {
             </div>
           </div>
         )}
-      </header>
     </>
   );
 }
@@ -3397,7 +3408,7 @@ function ShopView() {
   }, [searchQuery, selectedCollection, selectedCategory]);
 
   return (
-    <div className="min-h-screen bg-[var(--bg-primary)] text-[var(--text-primary)] transition-colors duration-300">
+    <div className="min-h-screen bg-[var(--bg-primary)] text-[var(--text-primary)] transition-colors duration-300 w-full max-w-full overflow-x-hidden">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-12 py-8 sm:py-12 md:py-16 space-y-6 sm:space-y-8">
         {/* Intro Section */}
         <div className="border-b border-[var(--border-subtle)] pb-8 sm:pb-10 text-center max-w-2xl mx-auto space-y-3">
@@ -10483,7 +10494,7 @@ function AppContent() {
   const { currentView } = useContext(AppContext);
 
   return (
-    <div className="min-h-screen bg-[var(--bg-primary)] text-[var(--text-primary)] font-sans selection:bg-[#d8c39f] selection:text-[#242321] flex flex-col transition-colors duration-300">
+    <div className="min-h-screen bg-[var(--bg-primary)] text-[var(--text-primary)] font-sans selection:bg-[#d8c39f] selection:text-[#242321] flex flex-col transition-colors duration-300 w-full max-w-full overflow-x-hidden">
       <Navbar />
       <CartDrawer />
       <BrandPolicyModal />
