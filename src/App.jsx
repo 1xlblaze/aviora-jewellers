@@ -261,11 +261,8 @@ function AppProvider({ children }) {
               return {
                 ...canonical,
                 ...p,
-                images:
-                  (canonical?.images?.length || 0) > (p.images?.length || 0)
-                    ? canonical.images
-                    : p.images || canonical?.images,
-                modelImage: canonical?.modelImage || p.modelImage,
+                images: p.id === 'prod-008' ? canonical.images : (canonical?.images || p.images),
+                modelImage: p.id === 'prod-008' ? canonical.modelImage : (canonical?.modelImage || p.modelImage),
               };
             });
           const existingIds = new Set(valid.map((p) => p.id));
@@ -519,11 +516,8 @@ function AppProvider({ children }) {
               return {
                 ...canonical,
                 ...p,
-                images:
-                  (canonical?.images?.length || 0) > (p.images?.length || 0)
-                    ? canonical.images
-                    : p.images || canonical?.images,
-                modelImage: canonical?.modelImage || p.modelImage,
+                images: p.id === 'prod-008' ? canonical.images : (canonical?.images || p.images),
+                modelImage: p.id === 'prod-008' ? canonical.modelImage : (canonical?.modelImage || p.modelImage),
               };
             });
           const remoteIds = new Set(valid.map((p) => p.id));
@@ -1016,12 +1010,12 @@ function ArtisticImage({ src, alt, className = '', exhibitNumber, materialTag })
   }
 
   return (
-    <div className={`relative overflow-hidden bg-[var(--bg-stone)] dark:bg-[#181d1a] ${className}`}>
+    <div className={`relative w-full h-full overflow-hidden bg-[var(--bg-stone)] dark:bg-[#181d1a] ${className}`}>
       <img
         ref={imgRef}
         src={src}
         alt={alt}
-        className="w-full h-full object-cover filter contrast-[1.05] saturate-[0.92] brightness-[0.99] transition-opacity duration-300"
+        className="w-full h-full object-cover object-center filter contrast-[1.05] saturate-[0.92] brightness-[0.99] transition-opacity duration-300"
         onError={() => setHasError(true)}
       />
       <div className="absolute inset-0 pointer-events-none bg-gradient-to-t from-black/25 via-transparent to-black/10 mix-blend-multiply" />
@@ -1082,84 +1076,113 @@ function Navbar() {
   return (
     <>
       {/* 1. AVIORA REFINED UTILITY & ANNOUNCEMENT BAR */}
-      <div className="bg-[#132A22] text-[#fbf8f3] dark:bg-[#0c1c16] py-2 px-3 sm:px-8 select-none font-sans text-[10px] sm:text-[10.5px] tracking-[0.12em] sm:tracking-[0.16em] uppercase flex justify-between items-center border-b border-black/15 transition-colors duration-300">
-        <div className="min-w-0 flex-1 text-center truncate pr-2 font-medium flex items-center justify-center gap-2">
-          <span className="truncate">✦ TIMELESS JEWELLERY, MADE FOR YOU • FINE 925 SILVER & 14K GOLD • MADE TO ORDER ✦</span>
-          <button
-            onClick={() => openPolicyModal('shipping-policy')}
-            className="hidden sm:inline-block text-[#EDE7DC] hover:text-[#D4AF37] underline underline-offset-2 ml-2 transition-colors lowercase font-mono text-[10px] shrink-0"
-          >
-            (15–20 days crafting)
-          </button>
-        </div>
-
-        <div className="hidden md:flex items-center space-x-3.5 shrink-0 text-[10px] font-mono border-l border-white/20 pl-4">
-          {/* Subtle Currency Switcher */}
-          <div className="flex items-center space-x-1 opacity-90 hover:opacity-100">
+      <div className="bg-[#132A22] text-[#fbf8f3] dark:bg-[#0c1c16] py-1.5 sm:py-2 px-2 sm:px-8 select-none font-sans text-[9px] sm:text-[10.5px] tracking-[0.1em] sm:tracking-[0.16em] uppercase border-b border-black/15 transition-colors duration-300 w-full overflow-hidden">
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-1 md:gap-4 w-full">
+          {/* Main Announcement Message with clean mobile line-break */}
+          <div className="w-full md:w-auto text-center font-medium flex flex-wrap items-center justify-center gap-x-1.5 gap-y-0.5 leading-snug">
+            <span className="text-[#e6ca97]">✦</span>
+            <span>Timeless Jewellery</span>
+            <span className="text-[#e6ca97]">•</span>
+            <span className="text-[#e6ca97] font-semibold">Made For You</span>
+            <span className="hidden lg:inline text-white/40">•</span>
+            <span className="hidden lg:inline">Fine 925 Silver & 14K Gold</span>
+            <span className="text-white/40">•</span>
             <button
-              onClick={() => setCurrencyMode('INR')}
-              className={`px-1 py-0.5 transition-all ${currencyMode === 'INR' ? 'font-bold text-[#e6ca97] underline underline-offset-2' : 'text-white/70 hover:text-white'}`}
+              onClick={() => openPolicyModal('shipping-policy')}
+              className="text-[#EDE7DC] hover:text-[#e6ca97] underline underline-offset-2 transition-colors inline-flex items-center gap-1 cursor-pointer font-medium"
+              title="Pan-India Shipping & Crafting Schedule"
             >
-              ₹ INR
+              <span>Pan-India Shipping</span>
+              <span className="opacity-80 lowercase font-mono text-[8.5px] sm:text-[9px]">(15–20d)</span>
             </button>
-            <span className="text-white/30">/</span>
-            <button
-              onClick={() => setCurrencyMode('USD')}
-              className={`px-1 py-0.5 transition-all ${currencyMode === 'USD' ? 'font-bold text-[#e6ca97] underline underline-offset-2' : 'text-white/70 hover:text-white'}`}
-            >
-              $ USD
-            </button>
+            <span className="text-[#e6ca97]">✦</span>
           </div>
 
-          <span className="text-white/30">•</span>
-
-          {/* Patron Customer Session & Order Tracking (Clear Customer Portal) */}
-          {patronUser ? (
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => navigate('orders')}
-                className="text-[#e6ca97] hover:underline flex items-center gap-1.5 transition-colors font-bold"
-                title={`Patron Account: ${patronUser.name} (+91 ${patronUser.phone})`}
-              >
-                <User className="w-3 h-3 text-[#e6ca97]" />
-                <span>Patron: {patronUser.name.split(' ')[0]}</span>
-              </button>
-              <button
-                onClick={logoutPatron}
-                className="text-white/50 hover:text-rose-300 text-[9px] uppercase tracking-wider transition-colors ml-0.5"
-                title="Sign out of patron dossier"
-              >
-                (Sign Out)
-              </button>
-            </div>
-          ) : (
+          {/* Quick Track Order & Utilities (VISIBLE ON BOTH MOBILE & DESKTOP!) */}
+          <div className="flex items-center justify-center space-x-2 sm:space-x-3 text-[9px] sm:text-[10px] font-mono shrink-0">
+            {/* Direct Track Order Button */}
             <button
               onClick={() => navigate('orders')}
-              className="text-white/85 hover:text-[#e6ca97] flex items-center gap-1.5 transition-colors font-medium"
-              title="Sign into Patron Account or Track Blue Dart Consignment"
+              className="px-2 sm:px-2.5 py-0.5 rounded-full bg-white/10 hover:bg-white/20 text-[#e6ca97] hover:text-white border border-[#e6ca97]/50 flex items-center gap-1 sm:gap-1.5 transition-all font-sans font-semibold tracking-wider uppercase text-[8.5px] sm:text-[9.5px] cursor-pointer shadow-2xs shrink-0"
+              title="Track Blue Dart Consignment & Workshop Status"
             >
-              <User className="w-3 h-3" />
-              <span>Patron Sign In / Track Order</span>
+              <Truck className="w-3 h-3 text-[#e6ca97]" />
+              <span>Track Order</span>
+              {patronUser && patronOrderCount > 0 && (
+                <span className="w-3.5 h-3.5 rounded-full bg-[#e6ca97] text-[#132A22] text-[7.5px] sm:text-[8px] font-bold flex items-center justify-center">
+                  {patronOrderCount}
+                </span>
+              )}
             </button>
-          )}
+
+            <span className="text-white/30">•</span>
+
+            {/* Currency Selector */}
+            <div className="flex items-center space-x-0.5 sm:space-x-1 opacity-90 hover:opacity-100">
+              <button
+                onClick={() => setCurrencyMode('INR')}
+                className={`px-1 py-0.5 transition-all ${currencyMode === 'INR' ? 'font-bold text-[#e6ca97] underline underline-offset-2' : 'text-white/70 hover:text-white'}`}
+              >
+                ₹ INR
+              </button>
+              <span className="text-white/30">/</span>
+              <button
+                onClick={() => setCurrencyMode('USD')}
+                className={`px-1 py-0.5 transition-all ${currencyMode === 'USD' ? 'font-bold text-[#e6ca97] underline underline-offset-2' : 'text-white/70 hover:text-white'}`}
+              >
+                $ USD
+              </button>
+            </div>
+
+            {/* Patron Session / Sign In */}
+            {patronUser ? (
+              <>
+                <span className="text-white/30">•</span>
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={() => navigate('orders')}
+                    className="text-[#e6ca97] hover:underline flex items-center gap-1 transition-colors font-bold"
+                  >
+                    <User className="w-3 h-3 text-[#e6ca97]" />
+                    <span className="truncate max-w-[65px] sm:max-w-[120px]">{patronUser.name.split(' ')[0]}</span>
+                  </button>
+                  <button
+                    onClick={logoutPatron}
+                    className="text-white/50 hover:text-rose-300 text-[8px] sm:text-[8.5px] uppercase tracking-wider transition-colors"
+                  >
+                    (Exit)
+                  </button>
+                </div>
+              </>
+            ) : (
+              <button
+                onClick={() => setPatronAuthModalOpen(true)}
+                className="text-white/80 hover:text-[#e6ca97] hidden sm:flex items-center gap-1 transition-colors font-sans text-[9.5px] tracking-wider uppercase"
+                title="Sign into Patron Account"
+              >
+                <User className="w-3 h-3 text-[#e6ca97]" />
+                <span>Sign In</span>
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
       {/* 2. MAIN HEADER (UNCLUTTERED, ELEGANT, DYNAMIC SCROLL ELEVATION) */}
       <header
-        className={`sticky top-0 z-50 transition-all duration-300 ${
+        className={`sticky top-0 z-50 transition-all duration-300 w-full overflow-hidden ${
           isScrolled
             ? 'bg-[var(--bg-primary)]/95 backdrop-blur-md border-b border-[var(--border-subtle)] py-2 sm:py-2.5 shadow-md'
-            : 'bg-[var(--bg-primary)] border-b border-[var(--border-subtle)] py-2.5 sm:py-3.5'
+            : 'bg-[var(--bg-primary)] border-b border-[var(--border-subtle)] py-2 sm:py-3.5'
         }`}
       >
-        <div className="max-w-7xl mx-auto px-3 sm:px-8 md:px-12 flex items-center justify-between gap-2 sm:gap-4">
+        <div className="max-w-7xl mx-auto px-2.5 sm:px-8 md:px-12 flex items-center justify-between gap-1.5 sm:gap-4 w-full">
           
           {/* Mobile Left: Menu Hamburger Trigger */}
-          <div className="flex items-center lg:hidden">
+          <div className="flex items-center lg:hidden shrink-0">
             <button
               onClick={() => setMobileMenuOpen(true)}
-              className="p-1.5 -ml-1.5 text-[var(--text-primary)] hover:text-[#b99762] transition-colors"
+              className="p-1 sm:p-1.5 text-[var(--text-primary)] hover:text-[#b99762] transition-colors"
               aria-label="Open Mobile Menu"
             >
               <Menu className="w-5 h-5" />
@@ -1169,14 +1192,14 @@ function Navbar() {
           {/* Brand Identity: Monogram Crest + AVIORA Wordmark */}
           <button
             onClick={() => navigate('home')}
-            className="group flex items-center gap-2 sm:gap-2.5 focus:outline-none shrink-0 text-left"
+            className="group flex items-center gap-1.5 sm:gap-2.5 focus:outline-none shrink-0 text-left min-w-0"
           >
-            <AvioraBrandCrest className="w-7 h-7 sm:w-9 sm:h-9 shrink-0 text-[#b99762] transition-transform duration-300 group-hover:scale-105" />
-            <div className="flex flex-col">
-              <span className="font-serif text-xl sm:text-3xl tracking-[0.2em] sm:tracking-[0.22em] uppercase font-normal text-[var(--text-primary)] transition-colors duration-300 group-hover:text-[#b99762] leading-tight">
+            <AvioraBrandCrest className="w-6 h-6 sm:w-9 sm:h-9 shrink-0 text-[#b99762] transition-transform duration-300 group-hover:scale-105" />
+            <div className="flex flex-col min-w-0">
+              <span className="font-serif text-lg sm:text-3xl tracking-[0.16em] sm:tracking-[0.22em] uppercase font-normal text-[var(--text-primary)] transition-colors duration-300 group-hover:text-[#b99762] leading-tight truncate">
                 AVIORA
               </span>
-              <span className="block text-[6.5px] sm:text-[7.5px] font-sans font-bold tracking-[0.16em] sm:tracking-[0.26em] uppercase text-[#1b4d3e] dark:text-emerald-400 -mt-0.5">
+              <span className="block text-[6px] sm:text-[7.5px] font-sans font-bold tracking-[0.12em] sm:tracking-[0.26em] uppercase text-[#0d281e] dark:text-[#3d7965] -mt-0.5 truncate">
                 TIMELESS ELEGANCE, MADE FOR YOU
               </span>
             </div>
@@ -1227,23 +1250,23 @@ function Navbar() {
           </nav>
 
           {/* Right Action Icons Suite (Clean, Minimal, Non-Cluttered) */}
-          <div className="flex items-center space-x-2 sm:space-x-3">
+          <div className="flex items-center space-x-1 sm:space-x-3 shrink-0">
             {/* Quick Search Toggle */}
             <button
               onClick={() => setSearchOpen(!searchOpen)}
-              className="p-1.5 sm:p-2 text-[var(--text-primary)] hover:text-[#b99762] transition-colors"
+              className="p-1 sm:p-2 text-[var(--text-primary)] hover:text-[#b99762] transition-colors"
               title="Search collection"
               aria-label="Search"
             >
               <Search className="w-4 h-4 sm:w-4.5 sm:h-4.5" />
             </button>
 
-            {/* Instagram Direct Link (@aviora_jewells) */}
+            {/* Instagram Direct Link (@aviora_jewells) - Hidden on ultra-narrow screens < 360px */}
             <a
               href={STORE_CONFIG.brand.instagramUrl}
               target="_blank"
               rel="noreferrer"
-              className="p-1.5 sm:p-2 text-[var(--text-primary)] hover:text-[#b99762] transition-colors"
+              className="p-1 sm:p-2 text-[var(--text-primary)] hover:text-[#b99762] transition-colors hidden xs:block"
               title="Follow @aviora_jewells on Instagram"
               aria-label="Instagram"
             >
@@ -1253,7 +1276,7 @@ function Navbar() {
             {/* Wishlist Link (Tablet/Desktop) */}
             <button
               onClick={() => navigate('atelier', { wishlistOnly: true })}
-              className="p-1.5 sm:p-2 text-[var(--text-primary)] hover:text-rose-500 transition-colors relative hidden sm:block"
+              className="p-1.5 sm:p-2 text-[var(--text-primary)] hover:text-rose-500 transition-colors relative hidden sm:block shrink-0"
               title="Wishlist"
               aria-label="Wishlist"
             >
@@ -1271,7 +1294,7 @@ function Navbar() {
                 if (patronUser) navigate('orders');
                 else setPatronAuthModalOpen(true);
               }}
-              className={`p-1.5 sm:px-2.5 sm:py-1 rounded-full border transition-all hidden md:flex items-center gap-1.5 ${
+              className={`p-1.5 sm:px-2.5 sm:py-1 rounded-full border transition-all hidden md:flex items-center gap-1.5 shrink-0 ${
                 patronUser
                   ? 'border-[#b99762]/60 bg-[#b99762]/10 text-[#132A22] dark:text-[#e6ca97] font-bold'
                   : 'border-[var(--border-subtle)] hover:border-[#b99762] text-[var(--text-primary)] hover:text-[#b99762]'
@@ -1288,7 +1311,7 @@ function Navbar() {
             {/* Orders Tracker Link (Desktop) */}
             <button
               onClick={() => navigate('orders')}
-              className="p-1.5 sm:p-2 text-[var(--text-primary)] hover:text-[#b99762] transition-colors relative hidden md:flex items-center gap-1.5"
+              className="p-1.5 sm:p-2 text-[var(--text-primary)] hover:text-[#b99762] transition-colors relative hidden md:flex items-center gap-1.5 shrink-0"
               title={patronUser ? `Track Orders for ${patronUser.name}` : 'Track Blue Dart Logistics'}
               aria-label="Track Orders"
             >
@@ -1303,7 +1326,7 @@ function Navbar() {
             {/* Sleek Theme Mode Toggle */}
             <button
               onClick={toggleTheme}
-              className="w-7.5 h-7.5 sm:w-8 sm:h-8 rounded-full border border-[var(--border-subtle)] flex items-center justify-center text-[var(--text-primary)] hover:border-[#b99762] hover:text-[#b99762] bg-[var(--bg-secondary)] transition-all"
+              className="w-7 h-7 sm:w-8 sm:h-8 rounded-full border border-[var(--border-subtle)] flex items-center justify-center text-[var(--text-primary)] hover:border-[#b99762] hover:text-[#b99762] bg-[var(--bg-secondary)] transition-all shrink-0"
               title={`Switch to ${theme === 'light' ? 'Dark' : 'Light'} Mode`}
               aria-label="Toggle light and dark mode"
             >
@@ -1317,11 +1340,11 @@ function Navbar() {
             {/* Shopping Bag Trigger */}
             <button
               onClick={() => setIsCartOpen(true)}
-              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-[var(--bg-secondary)] border border-[var(--border-subtle)] hover:border-[#b99762] text-[var(--text-primary)] transition-all group"
+              className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-2.5 py-1 sm:py-1.5 rounded-full bg-[var(--bg-secondary)] border border-[var(--border-subtle)] hover:border-[#b99762] text-[var(--text-primary)] transition-all group shrink-0"
               aria-label="Open Shopping Bag"
             >
-              <ShoppingBag className="w-4 h-4 text-[var(--text-primary)] group-hover:text-[#b99762] transition-colors" />
-              <span className="text-[11px] font-mono font-bold bg-[#132A22] dark:bg-[#e6ca97] text-white dark:text-[#242321] w-4.5 h-4.5 rounded-full flex items-center justify-center shadow-xs">
+              <ShoppingBag className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[var(--text-primary)] group-hover:text-[#b99762] transition-colors" />
+              <span className="text-[10px] sm:text-[11px] font-mono font-bold bg-[#132A22] dark:bg-[#e6ca97] text-white dark:text-[#242321] w-4 h-4 sm:w-4.5 sm:h-4.5 rounded-full flex items-center justify-center shadow-xs">
                 {itemCount}
               </span>
             </button>
@@ -1388,7 +1411,7 @@ function Navbar() {
                       <span className="font-serif text-2xl tracking-[0.2em] uppercase text-[var(--text-primary)] font-normal">
                         AVIORA
                       </span>
-                      <span className="text-[7px] font-sans font-bold tracking-[0.2em] text-[#1b4d3e] dark:text-emerald-400 uppercase -mt-0.5">
+                      <span className="text-[7px] font-sans font-bold tracking-[0.2em] text-[#0d281e] dark:text-[#3d7965] uppercase -mt-0.5">
                         TIMELESS ELEGANCE, MADE FOR YOU
                       </span>
                     </div>
@@ -1866,7 +1889,14 @@ function ProductArtworkCard({ product, index = 0, compact = false }) {
   const { navigate, addToCart, formatPrice, wishlist, toggleWishlist } = useContext(AppContext);
   const isWishlisted = wishlist?.includes(product.id);
 
-  const hasSecondaryImage = product.images && product.images.length > 1;
+  const primaryImage =
+    (Array.isArray(product.images) && product.images[0]) ||
+    product.modelImage ||
+    '/products/14k-gold-plated-double-layer-necklace-3828-1.jpg';
+  const secondaryImage =
+    (Array.isArray(product.images) && product.images[1]) || primaryImage;
+  const hasSecondaryImage =
+    Boolean(Array.isArray(product.images) && product.images.length > 1 && product.images[1] !== primaryImage);
 
   // Format material display
   const materialDisplay =
@@ -1894,9 +1924,13 @@ function ProductArtworkCard({ product, index = 0, compact = false }) {
     >
       <div className="relative aspect-[0.78] w-full overflow-hidden bg-[var(--bg-stone)] dark:bg-[#181d1a] border border-[var(--border-subtle)] transition-colors duration-300">
         {/* Badge: New */}
-        {product.isNew && (
-          <span className="absolute top-2.5 left-2.5 z-20 px-2 py-0.5 bg-[var(--badge-bg)] text-[var(--text-primary)] text-[9px] font-sans font-bold tracking-[0.14em] uppercase border border-[var(--border-subtle)] shadow-xs">
-            New
+        {Boolean(
+          product.isNew ||
+          (Array.isArray(product.collections) && (product.collections.includes('new-arrivals') || product.collections.includes('new') || product.collections.includes('new-arrival'))) ||
+          (Array.isArray(product.tags) && (product.tags.includes('new') || product.tags.includes('new-arrivals') || product.tags.includes('new-arrival')))
+        ) && (
+          <span className="absolute top-2.5 left-2.5 z-20 px-2.5 py-0.5 bg-[#0d281e] text-white dark:bg-[#e6ca97] dark:text-[#1c1b18] text-[9.5px] font-sans font-bold tracking-[0.16em] uppercase shadow-xs">
+            NEW
           </span>
         )}
 
@@ -1921,9 +1955,14 @@ function ProductArtworkCard({ product, index = 0, compact = false }) {
 
         {/* Primary Image */}
         <img
-          src={product.images[0]}
+          src={primaryImage}
           alt={product.name}
           loading="lazy"
+          onError={(e) => {
+            if (product.modelImage && e.currentTarget.src !== product.modelImage) {
+              e.currentTarget.src = product.modelImage;
+            }
+          }}
           className={`absolute inset-0 w-full h-full object-cover transition-all duration-700 ease-out group-hover:scale-103 ${
             hasSecondaryImage ? 'group-hover:opacity-0' : ''
           }`}
@@ -1932,9 +1971,12 @@ function ProductArtworkCard({ product, index = 0, compact = false }) {
         {/* Secondary Image for smooth crossfade on hover */}
         {hasSecondaryImage && (
           <img
-            src={product.images[1]}
+            src={secondaryImage}
             alt={`${product.name} alternate angle`}
             loading="lazy"
+            onError={(e) => {
+              e.currentTarget.style.display = 'none';
+            }}
             className="absolute inset-0 w-full h-full object-cover opacity-0 group-hover:opacity-100 transition-opacity duration-500 ease-out group-hover:scale-103"
           />
         )}
@@ -2138,7 +2180,12 @@ function HomeView() {
   }, [silhouetteFilter]);
 
   const newArrivals = useMemo(() => {
-    const arr = products.filter((p) => p.isNew);
+    const arr = products.filter((p) => 
+      p.isNew || 
+      p.category === 'new-arrivals' ||
+      (Array.isArray(p.collections) && (p.collections.includes('new-arrivals') || p.collections.includes('new') || p.collections.includes('new-arrival'))) ||
+      (Array.isArray(p.tags) && (p.tags.includes('new') || p.tags.includes('new-arrivals') || p.tags.includes('new-arrival')))
+    );
     return (arr.length >= 4 ? arr : products).slice(0, 4);
   }, [products]);
 
@@ -2169,53 +2216,55 @@ function HomeView() {
   return (
     <div className="relative w-full overflow-hidden bg-[var(--bg-primary)] text-[var(--text-primary)] transition-colors duration-300">
       {/* 1. HERO SECTION (CRISP HIGH-CONTRAST IN LIGHT & DARK MODES) */}
-      <section className="relative min-h-[660px] md:min-h-[740px] w-full flex items-end overflow-hidden bg-[var(--bg-stone)]">
+      <section className="relative min-h-[580px] sm:min-h-[640px] md:min-h-[720px] w-full flex items-center md:items-end overflow-hidden bg-[var(--bg-stone)]">
         <img
           src={STORE_CONFIG.hero.image}
           alt={STORE_CONFIG.hero.alt}
-          className="absolute inset-0 w-full h-full object-cover object-center scale-102 transition-transform duration-1000"
+          className="absolute inset-0 w-full h-full object-cover object-[center_right] sm:object-center scale-102 transition-transform duration-1000"
           fetchPriority="high"
         />
         {/* Subtle directional vignette for enhanced legibility and warmth */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-black/10 md:bg-gradient-to-r md:from-black/55 md:via-black/20 md:to-transparent pointer-events-none" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/35 to-black/20 md:bg-gradient-to-r md:from-black/65 md:via-black/30 md:to-transparent pointer-events-none" />
 
         {/* Elevated Editorial Card - Solid High-Contrast Architecture */}
-        <div className="relative z-10 max-w-7xl mx-auto w-full px-6 md:px-12 py-12 md:py-16">
-          <div className="max-w-lg bg-[#fffdfa] dark:bg-[#141816] p-8 sm:p-10 md:p-12 border border-[#d8c39f]/50 dark:border-white/15 shadow-2xl shadow-black/25 space-y-6">
+        <div className="relative z-10 max-w-7xl mx-auto w-full px-2.5 sm:px-6 md:px-12 py-6 sm:py-12 md:py-16 flex justify-center md:justify-start">
+          <div className="w-full max-w-lg bg-[#fffdfa]/95 dark:bg-[#121915]/95 backdrop-blur-md p-4 sm:p-8 md:p-12 border border-[#d8c39f]/60 dark:border-[#e6ca97]/30 shadow-2xl shadow-black/30 rounded-xs space-y-3.5 sm:space-y-6">
             <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-[#b99762] animate-pulse" />
-              <p className="text-[10.5px] font-sans font-bold tracking-[0.24em] uppercase text-[#132A22] dark:text-[#e6ca97]">
+              <span className="w-2 h-2 rounded-full bg-[#b99762] animate-pulse shrink-0" />
+              <p className="text-[9px] sm:text-[10.5px] font-sans font-bold tracking-[0.18em] sm:tracking-[0.24em] uppercase text-[#132A22] dark:text-[#e6ca97] truncate">
                 {STORE_CONFIG.hero.eyebrow}
               </p>
             </div>
             
             {/* "Timeless pieces for every moment." - High Contrast Crisp Display */}
-            <h1 className="font-serif text-4xl sm:text-5xl md:text-6xl text-[#181614] dark:text-[#fbf8f3] tracking-tight leading-[1.02] font-normal">
+            <h1 className="font-serif text-2xl sm:text-4xl md:text-5xl lg:text-6xl text-[#181614] dark:text-[#fbf8f3] tracking-tight leading-[1.08] sm:leading-[1.04] font-normal break-words">
               {STORE_CONFIG.hero.title}
             </h1>
             
-            <p className="text-sm sm:text-base font-sans text-[#423c34] dark:text-[#c9ceca] leading-relaxed">
-              {STORE_CONFIG.hero.body}
-            </p>
+            <div className="border-l-2 border-[#b38f56] dark:border-[#e6ca97] pl-3 sm:pl-3.5 py-1">
+              <p className="font-editorial text-[13px] sm:text-base md:text-lg text-[#2c2720] dark:text-[#f0eae0] leading-relaxed">
+                “{STORE_CONFIG.hero.body}”
+              </p>
+            </div>
 
             {/* Authentic Brand Trust Micro-Badges */}
-            <div className="pt-2 pb-2 border-y border-[#181614]/10 dark:border-white/10 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[10px] font-mono tracking-wider text-[#685f52] dark:text-[#a0a8a3]">
+            <div className="pt-2 pb-2 border-y border-[#181614]/10 dark:border-white/15 flex flex-wrap items-center gap-x-2 sm:gap-x-4 gap-y-1 text-[8.5px] sm:text-[10px] font-mono tracking-wider text-[#685f52] dark:text-[#d4bf98]">
               <span className="flex items-center gap-1">✦ Fine 925 Sterling Silver</span>
               <span className="flex items-center gap-1">✦ 14K Whitish Gold Vermeil</span>
               <span className="flex items-center gap-1">✦ 30-Day Manufacturing Warranty</span>
             </div>
 
-            <div className="pt-2 flex flex-wrap items-center gap-3.5">
+            <div className="pt-2 flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3.5 w-full">
               <button
                 onClick={() => navigate('atelier', { category: 'new-arrivals' })}
-                className="px-6 py-3.5 bg-[#132A22] hover:bg-[#0c1c16] text-[#fbf8f3] dark:bg-[#e6ca97] dark:text-[#141816] dark:hover:bg-[#d8c39f] font-sans text-xs font-bold tracking-[0.16em] uppercase transition-all shadow-md hover:shadow-lg flex items-center gap-2"
+                className="w-full sm:w-auto px-3.5 sm:px-6 py-2.5 sm:py-3.5 bg-[#132A22] hover:bg-[#0c1c16] text-[#fbf8f3] dark:bg-[#e6ca97] dark:text-[#141816] dark:hover:bg-[#d8c39f] font-sans text-[11px] sm:text-xs font-bold tracking-[0.12em] sm:tracking-[0.16em] uppercase transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-1.5 sm:gap-2 cursor-pointer"
               >
                 <span>Shop new arrivals</span>
-                <ArrowRight className="w-3.5 h-3.5" />
+                <ArrowRight className="w-3.5 h-3.5 shrink-0" />
               </button>
               <button
                 onClick={() => navigate('atelier', {})}
-                className="px-6 py-3.5 bg-white/70 hover:bg-white text-[#181614] dark:bg-white/5 dark:hover:bg-white/10 dark:text-[#fbf8f3] border border-[#181614]/30 dark:border-white/25 font-sans text-xs font-bold tracking-[0.16em] uppercase transition-all"
+                className="w-full sm:w-auto px-3.5 sm:px-6 py-2.5 sm:py-3.5 bg-white/80 hover:bg-white text-[#181614] dark:bg-white/10 dark:hover:bg-white/20 dark:text-[#fbf8f3] border border-[#181614]/30 dark:border-white/25 font-sans text-[11px] sm:text-xs font-bold tracking-[0.12em] sm:tracking-[0.16em] uppercase transition-all text-center cursor-pointer"
               >
                 Explore collections
               </button>
@@ -2344,14 +2393,20 @@ function HomeView() {
 
       {/* 5. THE EVERYDAY EDIT (EDITORIAL SPLIT SECTION) */}
       <section className="border-t border-[var(--border-subtle)] bg-[var(--bg-primary)] overflow-hidden">
-        <div className="grid grid-cols-1 md:grid-cols-2 min-h-[540px]">
-          <div className="relative min-h-[380px] md:min-h-full overflow-hidden bg-[var(--bg-stone)]">
+        <div className="grid grid-cols-1 md:grid-cols-2">
+          <div className="relative aspect-[4/3] sm:aspect-[16/11] md:aspect-auto md:min-h-[520px] lg:min-h-[580px] w-full overflow-hidden bg-[var(--bg-stone)] group">
             <img
               src={STORE_CONFIG.editorial.image}
               alt={STORE_CONFIG.editorial.alt}
               loading="lazy"
-              className="w-full h-full object-cover"
+              className="w-full h-full object-cover object-center transition-transform duration-700 group-hover:scale-105"
             />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent md:hidden" />
+            <div className="absolute bottom-4 left-4 z-10">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-[var(--bg-card)]/95 dark:bg-[#0d281e]/90 backdrop-blur-md text-[10px] font-mono font-bold tracking-[0.18em] uppercase text-[#1d4136] dark:text-[#e6ca97] border border-[#b38f56]/40 shadow-xs rounded-xs">
+                <span>✦</span> Atelier Exhibit // 14K Whitish Gold
+              </span>
+            </div>
           </div>
 
           <div className="flex flex-col justify-center p-8 sm:p-14 lg:p-20 bg-[var(--bg-secondary)] dark:bg-[#131715] space-y-6">
@@ -2361,9 +2416,11 @@ function HomeView() {
             <h2 className="font-serif text-4xl sm:text-5xl lg:text-6xl text-[var(--text-primary)] font-normal tracking-tight leading-[0.96]">
               {STORE_CONFIG.editorial.title}
             </h2>
-            <p className="font-sans text-sm sm:text-base text-[var(--text-secondary)] leading-relaxed max-w-md">
-              {STORE_CONFIG.editorial.body} We exclusively craft in 14K Whitish Gold Vermeil over Fine 925 Sterling Silver for enduring elegance and everyday luxury.
-            </p>
+            <div className="border-l-2 border-[#b38f56] dark:border-[#e6ca97]/70 pl-4 py-1.5">
+              <p className="font-editorial text-base sm:text-lg text-[var(--text-secondary)] leading-relaxed max-w-md">
+                {STORE_CONFIG.editorial.body} We exclusively craft in 14K Whitish Gold Vermeil over Fine 925 Sterling Silver for enduring elegance and everyday luxury.
+              </p>
+            </div>
             <div className="pt-2">
               <button
                 onClick={() => navigate('atelier', { collection: 'everyday-edit' })}
@@ -2452,9 +2509,11 @@ function HomeView() {
               <h2 className="font-serif text-4xl sm:text-5xl md:text-6xl text-[var(--text-primary)] font-normal tracking-tight leading-[0.98]">
                 Our Story.
               </h2>
-              <p className="font-sans text-sm sm:text-base text-[var(--text-secondary)] leading-relaxed">
-                AVIORA was created with one vision — to bring timeless, elegant jewellery that feels luxurious yet wearable every day. Discover the foundational principles that define our craft, noble materials, and commitments.
-              </p>
+              <div className="border-l-2 border-[#b38f56] dark:border-[#e6ca97]/70 pl-4 py-1">
+                <p className="font-editorial text-base sm:text-lg text-[var(--text-secondary)] leading-relaxed">
+                  AVIORA was created with one vision — to bring timeless, elegant jewellery that feels luxurious yet wearable every day. Discover the foundational principles that define our craft, noble materials, and commitments.
+                </p>
+              </div>
             </div>
             
             <div className="flex items-center gap-3">
@@ -2499,14 +2558,14 @@ function HomeView() {
                 <span className="text-[10px] font-mono tracking-[0.24em] uppercase text-[#b99762] dark:text-[#e6ca97] font-bold block">
                   THE FOUNDING VISION // INCEPTION & CRAFT
                 </span>
-                <blockquote className="font-serif text-2xl sm:text-3xl text-[var(--text-primary)] font-normal leading-snug italic">
+                <blockquote className="font-serif text-2xl sm:text-3xl text-[var(--text-primary)] font-normal leading-snug italic border-l-2 border-[#b38f56] dark:border-[#e6ca97] pl-4">
                   &ldquo;AVIORA was created with one vision — to bring timeless, elegant jewellery that feels luxurious yet wearable every day.&rdquo;
                 </blockquote>
               </div>
 
-              <div className="space-y-4 font-sans text-xs sm:text-sm text-[var(--text-secondary)] leading-relaxed">
+              <div className="space-y-4 font-serif text-[14.5px] sm:text-[15.5px] text-[var(--text-secondary)] leading-[1.85]">
                 <p>
-                  Our collections feature carefully selected pieces crafted from <strong>Fine 925 Sterling Silver</strong>, <strong>14K Whitish Gold-Plated Sterling Silver</strong>, <strong>Brilliant Moissanite</strong>, <strong>Freshwater Pearls</strong>, and other premium materials mentioned on individual product pages. Every design is chosen for elegance, craftsmanship, and comfort.
+                  Our collections feature carefully selected pieces crafted from <strong className="text-[var(--text-primary)] font-semibold">Fine 925 Sterling Silver</strong>, <strong className="text-[var(--text-primary)] font-semibold">14K Whitish Gold-Plated Sterling Silver</strong>, <strong className="text-[var(--text-primary)] font-semibold">Brilliant Moissanite</strong>, <strong className="text-[var(--text-primary)] font-semibold">Freshwater Pearls</strong>, and other premium materials mentioned on individual product pages. Every design is chosen for elegance, craftsmanship, and comfort.
                 </p>
                 <p>
                   Drawing inspiration from the bespoke salons of Place Vendôme and modern design houses like Mejuri, Catbird, and Monica Vinader, we questioned why authentic fine jewellery was locked away in bank vaults or inflated with 10x traditional retail markups. Aviora pieces are created for living — made to be layered, personalized, and cherished from sunrise meetings to midnight celebrations.
@@ -2609,22 +2668,24 @@ function HomeView() {
 
                   <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
                     <div className="lg:col-span-7 space-y-4">
-                      <p className="text-xs font-mono uppercase tracking-wider text-[var(--text-muted)]">
+                      <p className="text-xs font-mono uppercase tracking-wider text-[#b38f56] dark:text-[#e6ca97] font-semibold">
                         {ch.subtitle}
                       </p>
-                      <p className="font-sans text-sm sm:text-base text-[var(--text-secondary)] leading-relaxed">
-                        {ch.summary}
-                      </p>
+                      <div className="border-l-2 border-[#b38f56] dark:border-[#e6ca97]/70 pl-4 py-2 bg-[#b38f56]/5 rounded-r-xs">
+                        <p className="font-editorial text-[15px] sm:text-[17px] text-[var(--text-primary)] leading-[1.85]">
+                          {ch.summary}
+                        </p>
+                      </div>
                     </div>
 
-                    <div className="lg:col-span-5 p-5 bg-[var(--bg-secondary)] border border-[var(--border-subtle)] space-y-3">
-                      <span className="text-[10px] font-mono tracking-[0.2em] uppercase text-[var(--text-primary)] font-bold block border-b border-[var(--border-subtle)] pb-2">
+                    <div className="lg:col-span-5 p-5 bg-[var(--bg-secondary)] border border-[var(--border-subtle)] space-y-3.5 rounded-xs shadow-xs">
+                      <span className="text-[10px] font-mono tracking-[0.2em] uppercase text-[#b38f56] dark:text-[#e6ca97] font-bold block border-b border-[var(--border-subtle)] pb-2">
                         Key Commitments & Takeaways
                       </span>
                       <div className="space-y-2.5">
                         {ch.highlights.map((h, i) => (
-                          <div key={i} className="flex items-start gap-2.5 text-xs font-sans text-[var(--text-secondary)]">
-                            <Check className="w-4 h-4 text-[#b99762] dark:text-[#e6ca97] shrink-0 mt-0.5" />
+                          <div key={i} className="flex items-start gap-2.5 text-xs sm:text-[13px] font-serif text-[var(--text-secondary)] leading-relaxed">
+                            <Check className="w-4 h-4 text-[#b38f56] dark:text-[#e6ca97] shrink-0 mt-0.5" />
                             <span>{h}</span>
                           </div>
                         ))}
@@ -2645,7 +2706,7 @@ function HomeView() {
               <h3 className="font-serif text-3xl sm:text-4xl text-[var(--text-primary)] font-normal">
                 The Modern Fine Jewellery Standard.
               </h3>
-              <p className="font-sans text-xs sm:text-sm text-[var(--text-secondary)] leading-relaxed">
+              <p className="font-editorial text-sm sm:text-base text-[var(--text-secondary)] leading-relaxed">
                 Inspired by transparent fine jewellery ateliers worldwide, we built Aviora to challenge the conventional jewelry retail markup model.
               </p>
             </div>
@@ -2819,7 +2880,7 @@ function HomeView() {
             <h2 className="font-serif text-3xl sm:text-5xl md:text-6xl font-normal tracking-tight leading-[0.97]">
               A little sparkle in your inbox.
             </h2>
-            <p className="text-xs sm:text-sm font-sans text-zinc-300 max-w-md leading-relaxed">
+            <p className="text-xs sm:text-sm font-editorial text-zinc-300 max-w-md leading-relaxed">
               Join 45,000+ patrons for early private collection access, rare gem insights, and private VIP salon invitations.
             </p>
           </div>
@@ -2885,9 +2946,78 @@ function ShopView() {
   const [selectedFinish, setSelectedFinish] = useState('all');
   const [selectedAvailability, setSelectedAvailability] = useState('all');
   const [selectedPrice, setSelectedPrice] = useState('all');
+  const [selectedTag, setSelectedTag] = useState('all');
   const [sortBy, setSortBy] = useState('featured');
   const [searchQuery, setSearchQuery] = useState('');
   const [filterPanelOpen, setFilterPanelOpen] = useState(false);
+
+  // Dynamic Subcategory & Taxonomy Tags Map
+  const categoryTagMap = useMemo(() => ({
+    'minimalist': [
+      { id: 'all', label: 'All Minimalist' },
+      { id: 'necklaces', label: 'Necklaces' },
+      { id: 'earrings', label: 'Earrings' },
+      { id: 'rings', label: 'Rings' },
+      { id: 'bracelets', label: 'Bracelets' },
+      { id: 'sets', label: 'Sets' },
+      { id: 'anklets', label: 'Anklets' },
+    ],
+    'statement': [
+      { id: 'all', label: 'All Statement' },
+      { id: 'necklaces', label: 'Necklaces' },
+      { id: 'earrings', label: 'Earrings' },
+      { id: 'rings', label: 'Rings' },
+      { id: 'bracelets', label: 'Bracelets' },
+      { id: 'sets', label: 'Sets' },
+      { id: 'anklets', label: 'Anklets' },
+    ],
+    'moissanite': [
+      { id: 'all', label: 'All Moissanite' },
+      { id: 'gra-certified', label: 'GRA Certified Jewellery' },
+      { id: 'rings', label: 'Rings' },
+      { id: 'bracelets', label: 'Bracelets' },
+      { id: 'earrings', label: 'Earrings' },
+      { id: 'necklaces', label: 'Necklaces' },
+    ],
+    'pearl': [
+      { id: 'all', label: 'All Pearls' },
+      { id: 'freshwater-pearls', label: 'Freshwater Pearl Jewellery' },
+      { id: 'bracelets', label: 'Bracelets' },
+      { id: 'necklaces', label: 'Necklaces' },
+      { id: 'earrings', label: 'Earrings' },
+    ],
+    'gifting': [
+      { id: 'all', label: 'All Gifting' },
+      { id: 'rakhi', label: 'Rakhi' },
+      { id: 'birthday', label: 'Birthday' },
+      { id: 'anniversary', label: 'Anniversary' },
+      { id: 'bridesmaid', label: 'Bridesmaid' },
+    ],
+    'new-arrivals': [
+      { id: 'all', label: 'All Launches' },
+      { id: 'necklaces', label: 'Necklaces' },
+      { id: 'earrings', label: 'Earrings' },
+      { id: 'bracelets', label: 'Bracelets' },
+      { id: 'rings', label: 'Rings' },
+    ],
+    'all': [
+      { id: 'all', label: 'All Pieces' },
+      { id: 'necklaces', label: 'Necklaces' },
+      { id: 'earrings', label: 'Earrings' },
+      { id: 'rings', label: 'Rings' },
+      { id: 'bracelets', label: 'Bracelets' },
+      { id: 'sets', label: 'Sets' },
+      { id: 'anklets', label: 'Anklets' },
+      { id: 'gra-certified', label: 'GRA Certified Jewellery' },
+      { id: 'freshwater-pearls', label: 'Freshwater Pearls' },
+      { id: 'gifting', label: 'Gifting' },
+    ],
+  }), []);
+
+  // Reset tag when category switches
+  useEffect(() => {
+    setSelectedTag('all');
+  }, [selectedCategory]);
 
   // Sync external filters
   useEffect(() => {
@@ -2925,8 +3055,14 @@ function ShopView() {
     // Category
     if (selectedCategory !== 'all') {
       if (selectedCategory === 'new-arrivals') {
-        // All products in new arrival for now
-        list = list.filter((p) => p.isNew !== false || p.collections?.includes('new-arrivals') || true);
+        list = list.filter(
+          (p) =>
+            p.isNew ||
+            p.category === 'new-arrivals' ||
+            p.categorySlug === 'new-arrivals' ||
+            (Array.isArray(p.collections) && (p.collections.includes('new-arrivals') || p.collections.includes('new') || p.collections.includes('new-arrival'))) ||
+            (Array.isArray(p.tags) && (p.tags.includes('new') || p.tags.includes('new-arrivals') || p.tags.includes('new-arrival')))
+        );
       } else if (selectedCategory === 'minimalist') {
         // Minimalist is light silhouette
         list = list.filter(
@@ -2988,7 +3124,14 @@ function ShopView() {
     // Collection
     if (selectedCollection !== 'all') {
       if (selectedCollection === 'new-arrivals') {
-        list = list.filter((p) => p.isNew !== false || p.collections?.includes('new-arrivals') || true);
+        list = list.filter(
+          (p) =>
+            p.isNew ||
+            p.category === 'new-arrivals' ||
+            p.categorySlug === 'new-arrivals' ||
+            (Array.isArray(p.collections) && (p.collections.includes('new-arrivals') || p.collections.includes('new') || p.collections.includes('new-arrival'))) ||
+            (Array.isArray(p.tags) && (p.tags.includes('new') || p.tags.includes('new-arrivals') || p.tags.includes('new-arrival')))
+        );
       } else if (selectedCollection === 'minimalist') {
         list = list.filter((p) => p.collections?.includes('minimalist') || p.silhouette === 'light' || p.category === 'minimalist');
       } else if (selectedCollection === 'statement') {
@@ -3039,6 +3182,125 @@ function ShopView() {
       list = list.filter((p) => p.silhouette === selectedSilhouette);
     }
 
+    // Subcategory & Taxonomy Tag Filter
+    if (selectedTag && selectedTag !== 'all') {
+      list = list.filter((p) => {
+        if (p.subcategory === selectedTag) return true;
+        if (Array.isArray(p.tags) && p.tags.includes(selectedTag)) return true;
+        if (Array.isArray(p.collections) && p.collections.includes(selectedTag)) return true;
+        if (Array.isArray(p.materials) && p.materials.includes(selectedTag)) return true;
+
+        const nameLower = (p.name || '').toLowerCase();
+        const descLower = (p.description || '').toLowerCase();
+        const catSlug = (p.categorySlug || '').toLowerCase();
+
+        if (selectedTag === 'new' || selectedTag === 'new-arrivals') {
+          return (
+            Boolean(p.isNew) ||
+            p.category === 'new-arrivals' ||
+            (Array.isArray(p.collections) && (p.collections.includes('new-arrivals') || p.collections.includes('new') || p.collections.includes('new-arrival'))) ||
+            (Array.isArray(p.tags) && (p.tags.includes('new') || p.tags.includes('new-arrivals') || p.tags.includes('new-arrival')))
+          );
+        }
+
+        if (selectedTag === 'gra-certified') {
+          return (
+            (Array.isArray(p.tags) && p.tags.includes('gra-certified')) ||
+            p.category === 'moissanite' ||
+            p.categorySlug === 'moissanite' ||
+            nameLower.includes('moissanite') ||
+            descLower.includes('moissanite') ||
+            (Array.isArray(p.materials) && p.materials.includes('moissanite'))
+          );
+        }
+
+        if (selectedTag === 'freshwater-pearls') {
+          return (
+            (Array.isArray(p.tags) && (p.tags.includes('freshwater-pearls') || p.tags.includes('freshwater-pearl'))) ||
+            p.category === 'pearl' ||
+            p.categorySlug === 'pearl' ||
+            nameLower.includes('pearl') ||
+            descLower.includes('pearl') ||
+            (Array.isArray(p.materials) && (p.materials.includes('freshwater-pearls') || p.materials.includes('freshwater-pearl')))
+          );
+        }
+
+        if (selectedTag === 'bracelets') {
+          return (
+            p.subcategory === 'bracelets' ||
+            nameLower.includes('bracelet') ||
+            nameLower.includes('kada') ||
+            nameLower.includes('bangle') ||
+            catSlug.includes('bracelet')
+          );
+        }
+
+        if (selectedTag === 'necklaces') {
+          return (
+            p.subcategory === 'necklaces' ||
+            nameLower.includes('necklace') ||
+            nameLower.includes('chain') ||
+            nameLower.includes('pendant') ||
+            nameLower.includes('choker') ||
+            nameLower.includes('hasli')
+          );
+        }
+
+        if (selectedTag === 'earrings') {
+          return (
+            p.subcategory === 'earrings' ||
+            nameLower.includes('earring') ||
+            nameLower.includes('stud') ||
+            nameLower.includes('droplet')
+          );
+        }
+
+        if (selectedTag === 'rings') {
+          return (
+            p.subcategory === 'rings' ||
+            nameLower.includes('ring') ||
+            catSlug.includes('ring')
+          );
+        }
+
+        if (selectedTag === 'sets') {
+          return (
+            p.subcategory === 'sets' ||
+            p.subcategory === 'jewellery-sets' ||
+            nameLower.includes('set') ||
+            nameLower.includes('suite')
+          );
+        }
+
+        if (selectedTag === 'anklets') {
+          return (
+            p.subcategory === 'anklets' ||
+            nameLower.includes('anklet') ||
+            nameLower.includes('payal')
+          );
+        }
+
+        if (selectedTag === 'rakhi') {
+          return (
+            (Array.isArray(p.tags) && p.tags.includes('rakhi')) ||
+            nameLower.includes('rakhi') ||
+            (Array.isArray(p.collections) && p.collections.includes('gifting'))
+          );
+        }
+
+        if (selectedTag === 'birthday' || selectedTag === 'anniversary' || selectedTag === 'bridesmaid') {
+          return (
+            (Array.isArray(p.tags) && p.tags.includes(selectedTag)) ||
+            (Array.isArray(p.collections) && p.collections.includes('gifting')) ||
+            p.occasionVibe === 'Bridal' ||
+            p.category === 'gifting'
+          );
+        }
+
+        return false;
+      });
+    }
+
     // Search query
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
@@ -3071,6 +3333,7 @@ function ShopView() {
     selectedFinish,
     selectedAvailability,
     selectedPrice,
+    selectedTag,
     searchQuery,
     sortBy,
   ]);
@@ -3085,6 +3348,7 @@ function ShopView() {
     if (selectedFinish !== 'all') count++;
     if (selectedAvailability !== 'all') count++;
     if (selectedPrice !== 'all') count++;
+    if (selectedTag !== 'all') count++;
     if (searchQuery.trim()) count++;
     return count;
   }, [
@@ -3096,6 +3360,7 @@ function ShopView() {
     selectedFinish,
     selectedAvailability,
     selectedPrice,
+    selectedTag,
     searchQuery,
   ]);
 
@@ -3108,6 +3373,7 @@ function ShopView() {
     setSelectedFinish('all');
     setSelectedAvailability('all');
     setSelectedPrice('all');
+    setSelectedTag('all');
     setSearchQuery('');
     setCategoryFilter('');
     setMaterialFilter('');
@@ -3141,78 +3407,252 @@ function ShopView() {
           <h1 className="font-serif text-3xl sm:text-5xl md:text-6xl text-[var(--text-primary)] font-normal tracking-tight">
             {pageTitle}
           </h1>
-          <p className="font-sans text-xs sm:text-sm text-[var(--text-secondary)] leading-relaxed">
+          <p className="font-editorial text-sm sm:text-base text-[var(--text-secondary)] leading-relaxed max-w-xl mx-auto">
             Explore the current Aviora edit across delicate everyday and statement pieces crafted from 14K Whitish Gold Plated vermeil and Fine 925 Sterling Silver.
           </p>
         </div>
 
         {/* Sticky Controls Bar */}
-        <div className="sticky top-[58px] sm:top-[68px] z-30 bg-[var(--bg-primary)]/95 backdrop-blur-md border-b border-[var(--border-subtle)] py-2.5 sm:py-3 -mx-4 px-4 sm:-mx-6 sm:px-6 md:-mx-12 md:px-12 transition-colors">
-          <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
-            {/* Filter Toggle Button */}
-            <button
-              onClick={() => setFilterPanelOpen(!filterPanelOpen)}
-              className={`inline-flex items-center gap-2 px-3.5 py-2 text-xs font-sans font-bold tracking-[0.12em] uppercase border transition-all ${
-                filterPanelOpen || activeFilterCount > 0
-                  ? 'border-[#1d4136] bg-[#1d4136] text-white dark:border-[#e6ca97] dark:bg-[#e6ca97] dark:text-black'
-                  : 'border-[var(--border-strong)] bg-transparent text-[var(--text-primary)] hover:border-[#1d4136]'
-              }`}
-            >
-              <SlidersHorizontal className="w-3.5 h-3.5" />
-              <span>Filters {activeFilterCount > 0 ? `(${activeFilterCount})` : ''}</span>
-            </button>
+        <div className="sticky top-[58px] sm:top-[68px] z-30 bg-[var(--bg-primary)]/95 backdrop-blur-md border-b border-[var(--border-subtle)] py-2 sm:py-2.5 -mx-4 px-4 sm:-mx-6 sm:px-6 md:-mx-12 md:px-12 transition-colors">
+          <div className="max-w-7xl mx-auto space-y-2 sm:space-y-0">
+            <div className="flex items-center justify-between gap-3">
+              {/* Filter Drawer Toggle & Desktop Tag Chips */}
+              <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
+                <button
+                  type="button"
+                  onClick={() => setFilterPanelOpen(!filterPanelOpen)}
+                  className={`inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-3.5 py-1.5 text-xs font-sans font-bold tracking-[0.12em] uppercase border shrink-0 transition-all cursor-pointer ${
+                    filterPanelOpen || activeFilterCount > 0
+                      ? 'border-[#0d281e] bg-[#0d281e] text-white dark:border-[#e6ca97] dark:bg-[#e6ca97] dark:text-black'
+                      : 'border-[var(--border-strong)] bg-transparent text-[var(--text-primary)] hover:border-[#0d281e]'
+                  }`}
+                >
+                  <SlidersHorizontal className="w-3.5 h-3.5" />
+                  <span>Filters {activeFilterCount > 0 ? `(${activeFilterCount})` : ''}</span>
+                </button>
 
-            {/* Sort Dropdown */}
-            <div className="flex items-center gap-2 text-xs font-sans font-bold tracking-[0.1em] uppercase text-[var(--text-secondary)]">
-              <span>Sort:</span>
-              <select
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value)}
-                className="bg-[var(--bg-card)] text-[var(--text-primary)] border border-[var(--border-strong)] text-xs font-sans font-semibold px-2.5 py-1.5 outline-none cursor-pointer"
-              >
-                <option value="featured">Featured</option>
-                <option value="newest">New arrivals</option>
-                <option value="price-low">Price: low to high</option>
-                <option value="price-high">Price: high to low</option>
-                <option value="name-az">Name: A–Z</option>
-              </select>
+                <div className="h-4 w-px bg-[var(--border-subtle)] shrink-0 hidden sm:block" />
+
+                {/* Tag Chips in Sticky Bar (Desktop) */}
+                <div className="hidden sm:flex items-center gap-1.5 sm:gap-2 overflow-x-auto scrollbar-none py-0.5">
+                  {(categoryTagMap[selectedCategory] || categoryTagMap.all).map((tag) => {
+                    const isTagActive = selectedTag === tag.id;
+                    return (
+                      <button
+                        key={tag.id}
+                        type="button"
+                        onClick={() => setSelectedTag(isTagActive ? 'all' : tag.id)}
+                        className={`px-3 py-1 rounded-full text-xs font-sans tracking-wide uppercase whitespace-nowrap transition-all duration-200 border shrink-0 cursor-pointer ${
+                          isTagActive
+                            ? 'bg-[#0d281e] text-white border-[#0d281e] dark:bg-[#e6ca97] dark:text-black dark:border-[#e6ca97] font-bold shadow-xs'
+                            : 'bg-[var(--bg-card)] text-[var(--text-secondary)] border-[var(--border-subtle)] hover:border-[#b38f56] hover:text-[var(--text-primary)]'
+                        }`}
+                      >
+                        {isTagActive && tag.id !== 'all' ? '✓ ' : ''}
+                        {tag.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Right: Results Count & Sort Dropdown */}
+              <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+                <span className="text-[11px] font-mono text-[var(--text-muted)] hidden md:inline">
+                  {filteredProducts.length} {filteredProducts.length === 1 ? 'piece' : 'pieces'}
+                </span>
+                <div className="flex items-center gap-1.5 text-xs font-sans font-bold tracking-[0.1em] uppercase text-[var(--text-secondary)]">
+                  <span className="hidden sm:inline">Sort:</span>
+                  <select
+                    value={sortBy}
+                    onChange={(e) => setSortBy(e.target.value)}
+                    className="bg-[var(--bg-card)] text-[var(--text-primary)] border border-[var(--border-strong)] text-xs font-sans font-semibold px-2 sm:px-2.5 py-1.5 outline-none cursor-pointer"
+                  >
+                    <option value="featured">Featured</option>
+                    <option value="newest">New arrivals</option>
+                    <option value="price-low">Price: low to high</option>
+                    <option value="price-high">Price: high to low</option>
+                    <option value="name-az">Name: A–Z</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            {/* Mobile Tag Chips: Full-width horizontal swipeable row */}
+            <div className="flex sm:hidden items-center gap-1.5 overflow-x-auto scrollbar-none py-1 -mx-1 px-1">
+              {(categoryTagMap[selectedCategory] || categoryTagMap.all).map((tag) => {
+                const isTagActive = selectedTag === tag.id;
+                return (
+                  <button
+                    key={tag.id}
+                    type="button"
+                    onClick={() => setSelectedTag(isTagActive ? 'all' : tag.id)}
+                    className={`px-3 py-1 rounded-full text-[11px] font-sans tracking-wide uppercase whitespace-nowrap transition-all duration-200 border shrink-0 cursor-pointer ${
+                      isTagActive
+                        ? 'bg-[#0d281e] text-white border-[#0d281e] dark:bg-[#e6ca97] dark:text-black dark:border-[#e6ca97] font-bold shadow-xs'
+                        : 'bg-[var(--bg-card)] text-[var(--text-secondary)] border-[var(--border-subtle)] hover:border-[#b38f56] hover:text-[var(--text-primary)]'
+                    }`}
+                  >
+                    {isTagActive && tag.id !== 'all' ? '✓ ' : ''}
+                    {tag.label}
+                  </button>
+                );
+              })}
             </div>
           </div>
 
-          {/* Collapsible Filter Panel */}
-          <AnimatePresence>
-            {filterPanelOpen && (
-              <motion.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: 'auto' }}
-                exit={{ opacity: 0, height: 0 }}
-                className="overflow-hidden border-t border-[var(--border-subtle)] mt-3 pt-6 pb-2"
+          {/* Active Filter Chips Pills (Removable) */}
+          {activeFilterCount > 0 && (
+            <div className="max-w-7xl mx-auto flex flex-wrap items-center gap-2 pt-2 mt-2 border-t border-[var(--border-subtle)] text-xs">
+              <span className="text-[10px] font-mono uppercase text-[var(--text-muted)] font-semibold mr-1">
+                Active Filters:
+              </span>
+              {selectedCategory !== 'all' && (
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 bg-[#1d4136]/10 dark:bg-[#e6ca97]/15 text-[#1d4136] dark:text-[#e6ca97] border border-[#1d4136]/30 dark:border-[#e6ca97]/40 rounded-full font-sans text-[11px]">
+                  Category: {selectedCategory}
+                  <button
+                    type="button"
+                    onClick={() => setSelectedCategory('all')}
+                    className="hover:opacity-75 font-bold cursor-pointer ml-1"
+                  >
+                    ✕
+                  </button>
+                </span>
+              )}
+              {selectedTag !== 'all' && (
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 bg-[#1d4136]/10 dark:bg-[#e6ca97]/15 text-[#1d4136] dark:text-[#e6ca97] border border-[#1d4136]/30 dark:border-[#e6ca97]/40 rounded-full font-sans text-[11px]">
+                  Tag: {selectedTag}
+                  <button
+                    type="button"
+                    onClick={() => setSelectedTag('all')}
+                    className="hover:opacity-75 font-bold cursor-pointer ml-1"
+                  >
+                    ✕
+                  </button>
+                </span>
+              )}
+              {selectedMaterial !== 'all' && (
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 bg-[#1d4136]/10 dark:bg-[#e6ca97]/15 text-[#1d4136] dark:text-[#e6ca97] border border-[#1d4136]/30 dark:border-[#e6ca97]/40 rounded-full font-sans text-[11px]">
+                  Material: {selectedMaterial}
+                  <button
+                    type="button"
+                    onClick={() => setSelectedMaterial('all')}
+                    className="hover:opacity-75 font-bold cursor-pointer ml-1"
+                  >
+                    ✕
+                  </button>
+                </span>
+              )}
+              {selectedColour !== 'all' && (
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 bg-[#1d4136]/10 dark:bg-[#e6ca97]/15 text-[#1d4136] dark:text-[#e6ca97] border border-[#1d4136]/30 dark:border-[#e6ca97]/40 rounded-full font-sans text-[11px]">
+                  Metal: {selectedColour}
+                  <button
+                    type="button"
+                    onClick={() => setSelectedColour('all')}
+                    className="hover:opacity-75 font-bold cursor-pointer ml-1"
+                  >
+                    ✕
+                  </button>
+                </span>
+              )}
+              {selectedSilhouette !== 'all' && (
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 bg-[#1d4136]/10 dark:bg-[#e6ca97]/15 text-[#1d4136] dark:text-[#e6ca97] border border-[#1d4136]/30 dark:border-[#e6ca97]/40 rounded-full font-sans text-[11px]">
+                  Silhouette: {selectedSilhouette}
+                  <button
+                    type="button"
+                    onClick={() => setSelectedSilhouette('all')}
+                    className="hover:opacity-75 font-bold cursor-pointer ml-1"
+                  >
+                    ✕
+                  </button>
+                </span>
+              )}
+              {selectedPrice !== 'all' && (
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 bg-[#1d4136]/10 dark:bg-[#e6ca97]/15 text-[#1d4136] dark:text-[#e6ca97] border border-[#1d4136]/30 dark:border-[#e6ca97]/40 rounded-full font-sans text-[11px]">
+                  Price: {selectedPrice}
+                  <button
+                    type="button"
+                    onClick={() => setSelectedPrice('all')}
+                    className="hover:opacity-75 font-bold cursor-pointer ml-1"
+                  >
+                    ✕
+                  </button>
+                </span>
+              )}
+              <button
+                type="button"
+                onClick={handleResetFilters}
+                className="text-[11px] font-sans font-bold tracking-wider uppercase text-[#1d4136] dark:text-[#e6ca97] hover:underline ml-1 cursor-pointer"
               >
-                <div className="flex items-center justify-between mb-4">
-                  <span className="font-serif text-2xl text-[var(--text-primary)]">
-                    Refine your edit
-                  </span>
-                  {activeFilterCount > 0 && (
+                Clear all
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* Luxury Slide-Over Filter Drawer */}
+        <AnimatePresence>
+          {filterPanelOpen && (
+            <>
+              {/* Dim Backdrop Overlay */}
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={() => setFilterPanelOpen(false)}
+                className="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 transition-opacity cursor-pointer"
+              />
+
+              {/* Drawer Container */}
+              <motion.div
+                initial={{ x: '100%' }}
+                animate={{ x: 0 }}
+                exit={{ x: '100%' }}
+                transition={{ type: 'spring', damping: 26, stiffness: 280 }}
+                className="fixed inset-y-0 right-0 max-w-lg w-full bg-[var(--bg-card)] border-l border-[var(--border-strong)] shadow-2xl z-50 flex flex-col overflow-hidden"
+              >
+                {/* Drawer Header */}
+                <div className="p-5 border-b border-[var(--border-subtle)] bg-[var(--bg-secondary)] flex items-center justify-between">
+                  <div>
+                    <h2 className="font-serif text-2xl text-[var(--text-primary)]">
+                      Refine your edit
+                    </h2>
+                    <p className="text-xs font-sans text-[var(--text-muted)] mt-0.5">
+                      {filteredProducts.length} {filteredProducts.length === 1 ? 'piece' : 'pieces'} found
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    {activeFilterCount > 0 && (
+                      <button
+                        type="button"
+                        onClick={handleResetFilters}
+                        className="text-xs font-sans font-bold tracking-[0.1em] uppercase text-[#1d4136] dark:text-[#e6ca97] hover:underline cursor-pointer"
+                      >
+                        Clear all
+                      </button>
+                    )}
                     <button
-                      onClick={handleResetFilters}
-                      className="text-xs font-sans font-bold tracking-[0.1em] uppercase text-[#1d4136] dark:text-[#e6ca97] hover:underline"
+                      type="button"
+                      onClick={() => setFilterPanelOpen(false)}
+                      className="w-8 h-8 rounded-full flex items-center justify-center bg-[var(--bg-card)] border border-[var(--border-subtle)] hover:bg-[var(--border-strong)] text-[var(--text-primary)] text-sm cursor-pointer"
+                      aria-label="Close filters"
                     >
-                      Clear all
+                      ✕
                     </button>
-                  )}
+                  </div>
                 </div>
 
-                {/* 7 Filter Selectors Grid */}
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 text-xs font-sans">
-                  {/* Category */}
+                {/* Drawer Body (Scrollable) */}
+                <div className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-6 custom-scrollbar">
+                  {/* Category Selector */}
                   <div>
-                    <label className="block text-[10px] font-bold tracking-[0.14em] uppercase text-[var(--text-muted)] mb-1">
+                    <label className="block text-[11px] font-bold tracking-[0.14em] uppercase text-[var(--text-muted)] mb-2">
                       Category
                     </label>
                     <select
                       value={selectedCategory}
                       onChange={(e) => setSelectedCategory(e.target.value)}
-                      className="w-full h-10 px-2 bg-[var(--bg-card)] border border-[var(--border-strong)] text-[var(--text-primary)] outline-none"
+                      className="w-full h-11 px-3 bg-[var(--bg-primary)] border border-[var(--border-strong)] text-[var(--text-primary)] outline-none text-xs"
                     >
                       <option value="all">All categories</option>
                       {STORE_CONFIG.categories.map((c) => (
@@ -3223,34 +3663,42 @@ function ShopView() {
                     </select>
                   </div>
 
-                  {/* Material */}
+                  {/* Taxonomy & Subcategory Tags Chips */}
                   <div>
-                    <label className="block text-[10px] font-bold tracking-[0.14em] uppercase text-[var(--text-muted)] mb-1">
-                      Material
+                    <label className="block text-[11px] font-bold tracking-[0.14em] uppercase text-[var(--text-muted)] mb-2">
+                      Subcategory & Item Type Tags
                     </label>
-                    <select
-                      value={selectedMaterial}
-                      onChange={(e) => setSelectedMaterial(e.target.value)}
-                      className="w-full h-10 px-2 bg-[var(--bg-card)] border border-[var(--border-strong)] text-[var(--text-primary)] outline-none"
-                    >
-                      <option value="all">All materials</option>
-                      {STORE_CONFIG.materials.map((m) => (
-                        <option key={m.id} value={m.id}>
-                          {m.label}
-                        </option>
-                      ))}
-                    </select>
+                    <div className="flex flex-wrap gap-1.5 p-3 bg-[var(--bg-primary)] border border-[var(--border-strong)]">
+                      {(categoryTagMap[selectedCategory] || categoryTagMap.all).map((tag) => {
+                        const isTagActive = selectedTag === tag.id;
+                        return (
+                          <button
+                            key={tag.id}
+                            type="button"
+                            onClick={() => setSelectedTag(isTagActive ? 'all' : tag.id)}
+                            className={`px-3 py-1 text-[11px] font-mono uppercase rounded transition-colors cursor-pointer ${
+                              isTagActive
+                                ? 'bg-[#1d4136] dark:bg-[#e6ca97] text-white dark:text-black font-bold shadow-xs'
+                                : 'bg-[var(--bg-secondary)] text-[var(--text-secondary)] border border-[var(--border-subtle)] hover:border-[var(--border-strong)]'
+                            }`}
+                          >
+                            {isTagActive && tag.id !== 'all' ? '✓ ' : '+ '}
+                            {tag.label}
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
 
-                  {/* Silhouette Curation (No weight bifurcation) */}
+                  {/* Silhouette Curation */}
                   <div>
-                    <label className="block text-[10px] font-bold tracking-[0.14em] uppercase text-[#1d4136] dark:text-[#e6ca97] font-semibold mb-1">
+                    <label className="block text-[11px] font-bold tracking-[0.14em] uppercase text-[#1d4136] dark:text-[#e6ca97] font-semibold mb-2">
                       ✦ Silhouette & Presence
                     </label>
                     <select
                       value={selectedSilhouette}
                       onChange={(e) => setSelectedSilhouette(e.target.value)}
-                      className="w-full h-10 px-2 bg-[var(--bg-card)] border border-[var(--border-strong)] text-[var(--text-primary)] outline-none cursor-pointer"
+                      className="w-full h-11 px-3 bg-[var(--bg-primary)] border border-[var(--border-strong)] text-[var(--text-primary)] outline-none text-xs cursor-pointer"
                     >
                       <option value="all">All Silhouettes</option>
                       <option value="light">Delicate & Light (Everyday Minimalist)</option>
@@ -3258,113 +3706,129 @@ function ShopView() {
                     </select>
                   </div>
 
-                  {/* Colour */}
-                  <div>
-                    <label className="block text-[10px] font-bold tracking-[0.14em] uppercase text-[var(--text-muted)] mb-1">
-                      Colour
-                    </label>
-                    <select
-                      value={selectedColour}
-                      onChange={(e) => setSelectedColour(e.target.value)}
-                      className="w-full h-10 px-2 bg-[var(--bg-card)] border border-[var(--border-strong)] text-[var(--text-primary)] outline-none"
-                    >
-                      <option value="all">All colours</option>
-                      {uniqueColours.map((c) => (
-                        <option key={c} value={c}>
-                          {c}
-                        </option>
-                      ))}
-                    </select>
+                  {/* Material & Finish Grid */}
+                  <div className="grid grid-cols-2 gap-3 text-xs">
+                    <div>
+                      <label className="block text-[10px] font-bold tracking-[0.14em] uppercase text-[var(--text-muted)] mb-1.5">
+                        Material
+                      </label>
+                      <select
+                        value={selectedMaterial}
+                        onChange={(e) => setSelectedMaterial(e.target.value)}
+                        className="w-full h-10 px-2 bg-[var(--bg-primary)] border border-[var(--border-strong)] text-[var(--text-primary)] outline-none text-xs"
+                      >
+                        <option value="all">All materials</option>
+                        {STORE_CONFIG.materials.map((m) => (
+                          <option key={m.id} value={m.id}>
+                            {m.label}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-[10px] font-bold tracking-[0.14em] uppercase text-[var(--text-muted)] mb-1.5">
+                        Finish
+                      </label>
+                      <select
+                        value={selectedFinish}
+                        onChange={(e) => setSelectedFinish(e.target.value)}
+                        className="w-full h-10 px-2 bg-[var(--bg-primary)] border border-[var(--border-strong)] text-[var(--text-primary)] outline-none text-xs"
+                      >
+                        <option value="all">All finishes</option>
+                        {uniqueFinishes.map((f) => (
+                          <option key={f} value={f}>
+                            {f}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
                   </div>
 
-                  {/* Finish */}
+                  {/* Quick Metal Swatches */}
                   <div>
-                    <label className="block text-[10px] font-bold tracking-[0.14em] uppercase text-[var(--text-muted)] mb-1">
-                      Finish
+                    <label className="block text-[11px] font-bold tracking-[0.14em] uppercase text-[var(--text-muted)] mb-2">
+                      Color Tone & Metallurgy
                     </label>
-                    <select
-                      value={selectedFinish}
-                      onChange={(e) => setSelectedFinish(e.target.value)}
-                      className="w-full h-10 px-2 bg-[var(--bg-card)] border border-[var(--border-strong)] text-[var(--text-primary)] outline-none"
-                    >
-                      <option value="all">All finishes</option>
-                      {uniqueFinishes.map((f) => (
-                        <option key={f} value={f}>
-                          {f}
-                        </option>
-                      ))}
-                    </select>
+                    <div className="flex flex-wrap gap-2">
+                      {METAL_SWATCHES.map((swatch) => {
+                        const isActive =
+                          selectedColour.toLowerCase().includes(swatch.name.toLowerCase()) ||
+                          selectedColour === swatch.name;
+                        return (
+                          <button
+                            key={swatch.name}
+                            type="button"
+                            onClick={() => setSelectedColour(isActive ? 'all' : swatch.name)}
+                            className={`flex items-center gap-2 px-3 py-1.5 text-xs font-sans border transition-all cursor-pointer ${
+                              isActive
+                                ? 'border-[#1d4136] bg-[#1d4136]/10 text-[#1d4136] font-bold dark:border-[#e6ca97] dark:text-[#e6ca97]'
+                                : 'border-[var(--border-strong)] bg-[var(--bg-primary)] text-[var(--text-secondary)] hover:border-[#1d4136]'
+                            }`}
+                          >
+                            <span
+                              className="w-3 h-3 rounded-full border border-black/20"
+                              style={{ backgroundColor: swatch.hex }}
+                            />
+                            <span>{swatch.name}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
 
-                  {/* Availability */}
-                  <div>
-                    <label className="block text-[10px] font-bold tracking-[0.14em] uppercase text-[var(--text-muted)] mb-1">
-                      Availability
-                    </label>
-                    <select
-                      value={selectedAvailability}
-                      onChange={(e) => setSelectedAvailability(e.target.value)}
-                      className="w-full h-10 px-2 bg-[var(--bg-card)] border border-[var(--border-strong)] text-[var(--text-primary)] outline-none"
-                    >
-                      <option value="all">All availability</option>
-                      <option value="available">Available</option>
-                      <option value="sold-out">Sold out</option>
-                    </select>
+                  {/* Availability & Price Tier Grid */}
+                  <div className="grid grid-cols-2 gap-3 text-xs">
+                    <div>
+                      <label className="block text-[10px] font-bold tracking-[0.14em] uppercase text-[var(--text-muted)] mb-1.5">
+                        Availability
+                      </label>
+                      <select
+                        value={selectedAvailability}
+                        onChange={(e) => setSelectedAvailability(e.target.value)}
+                        className="w-full h-10 px-2 bg-[var(--bg-primary)] border border-[var(--border-strong)] text-[var(--text-primary)] outline-none text-xs"
+                      >
+                        <option value="all">All availability</option>
+                        <option value="available">Available</option>
+                        <option value="sold-out">Sold out</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-[10px] font-bold tracking-[0.14em] uppercase text-[var(--text-muted)] mb-1.5">
+                        Price Tier
+                      </label>
+                      <select
+                        value={selectedPrice}
+                        onChange={(e) => setSelectedPrice(e.target.value)}
+                        className="w-full h-10 px-2 bg-[var(--bg-primary)] border border-[var(--border-strong)] text-[var(--text-primary)] outline-none text-xs"
+                      >
+                        <option value="all">All prices</option>
+                        <option value="under-3000">Under ₹3,000</option>
+                        <option value="3000-5000">₹3,000–₹5,000</option>
+                        <option value="over-5000">Over ₹5,000</option>
+                      </select>
+                    </div>
                   </div>
 
-                  {/* Collection */}
+                  {/* Search Query */}
                   <div>
-                    <label className="block text-[10px] font-bold tracking-[0.14em] uppercase text-[var(--text-muted)] mb-1">
-                      Collection
-                    </label>
-                    <select
-                      value={selectedCollection}
-                      onChange={(e) => setSelectedCollection(e.target.value)}
-                      className="w-full h-10 px-2 bg-[var(--bg-card)] border border-[var(--border-strong)] text-[var(--text-primary)] outline-none"
-                    >
-                      <option value="all">All collections</option>
-                      {(STORE_CONFIG.collections || []).map((col) => (
-                        <option key={col.id} value={col.id}>
-                          {col.label}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  {/* Price Tier */}
-                  <div>
-                    <label className="block text-[10px] font-bold tracking-[0.14em] uppercase text-[var(--text-muted)] mb-1">
-                      Price Tier
-                    </label>
-                    <select
-                      value={selectedPrice}
-                      onChange={(e) => setSelectedPrice(e.target.value)}
-                      className="w-full h-10 px-2 bg-[var(--bg-card)] border border-[var(--border-strong)] text-[var(--text-primary)] outline-none"
-                    >
-                      <option value="all">All prices</option>
-                      <option value="under-3000">Under ₹3,000</option>
-                      <option value="3000-5000">₹3,000–₹5,000</option>
-                      <option value="over-5000">Over ₹5,000</option>
-                    </select>
-                  </div>
-
-                  {/* Search text filter */}
-                  <div>
-                    <label className="block text-[10px] font-bold tracking-[0.14em] uppercase text-[var(--text-muted)] mb-1">
-                      Search Query
+                    <label className="block text-[11px] font-bold tracking-[0.14em] uppercase text-[var(--text-muted)] mb-2">
+                      Search Keyword
                     </label>
                     <div className="relative">
                       <input
                         type="text"
-                        placeholder="Filter by keyword..."
+                        placeholder="Search by piece name, stone, or style..."
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
-                        className="w-full h-10 px-3 bg-[var(--bg-card)] border border-[var(--border-strong)] text-[var(--text-primary)] placeholder-[var(--text-muted)] outline-none pr-7"
+                        className="w-full h-11 px-3 bg-[var(--bg-primary)] border border-[var(--border-strong)] text-[var(--text-primary)] placeholder-[var(--text-muted)] outline-none pr-8 text-xs"
                       />
                       {searchQuery && (
                         <button
+                          type="button"
                           onClick={() => setSearchQuery('')}
-                          className="absolute right-2 top-2.5 text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+                          className="absolute right-2.5 top-3 text-[var(--text-muted)] hover:text-[var(--text-primary)] cursor-pointer"
                         >
                           ✕
                         </button>
@@ -3373,38 +3837,27 @@ function ShopView() {
                   </div>
                 </div>
 
-                {/* Metal Swatches Row */}
-                <div className="mt-4 pt-3 border-t border-[var(--border-subtle)] flex flex-wrap items-center gap-4">
-                  <span className="text-[10px] font-sans font-bold tracking-[0.14em] uppercase text-[var(--text-muted)]">
-                    Quick Metal Filter:
-                  </span>
-                  <div className="flex items-center gap-3">
-                    {METAL_SWATCHES.map((swatch) => {
-                      const isActive = selectedColour.toLowerCase().includes(swatch.name.toLowerCase()) || selectedColour === swatch.name;
-                      return (
-                        <button
-                          key={swatch.name}
-                          onClick={() => setSelectedColour(isActive ? 'all' : swatch.name)}
-                          className={`flex items-center gap-1.5 px-2.5 py-1 text-[10px] font-sans border transition-all ${
-                            isActive
-                              ? 'border-[#1d4136] bg-[#1d4136]/10 text-[#1d4136] font-bold dark:border-[#e6ca97] dark:text-[#e6ca97]'
-                              : 'border-[var(--border-strong)] text-[var(--text-secondary)] hover:border-[#1d4136]'
-                          }`}
-                        >
-                          <span
-                            className="w-2.5 h-2.5 rounded-full border border-black/20"
-                            style={{ backgroundColor: swatch.hex }}
-                          />
-                          <span>{swatch.name}</span>
-                        </button>
-                      );
-                    })}
-                  </div>
+                {/* Drawer Pinned Action Footer */}
+                <div className="p-4 border-t border-[var(--border-subtle)] bg-[var(--bg-secondary)] flex items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={handleResetFilters}
+                    className="px-4 py-3 border border-[var(--border-strong)] text-xs font-sans font-bold tracking-[0.1em] uppercase text-[var(--text-secondary)] hover:text-[var(--text-primary)] cursor-pointer"
+                  >
+                    Reset
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setFilterPanelOpen(false)}
+                    className="flex-1 py-3 bg-[#1d4136] dark:bg-[#e6ca97] text-white dark:text-black text-xs font-sans font-bold tracking-[0.14em] uppercase hover:opacity-90 shadow-md transition-all cursor-pointer text-center"
+                  >
+                    Show {filteredProducts.length} {filteredProducts.length === 1 ? 'Piece' : 'Pieces'} →
+                  </button>
                 </div>
               </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
+            </>
+          )}
+        </AnimatePresence>
 
         {/* Results Bar */}
         <div className="flex items-center justify-between text-xs font-sans font-semibold tracking-[0.1em] uppercase text-[var(--text-muted)]">
@@ -3559,10 +4012,10 @@ function ProductView() {
       <div className="grid grid-cols-1 lg:grid-cols-12 min-h-screen">
         {/* Left Column: Interactive Multi-Angle Studio Gallery */}
         <div className="lg:col-span-7 space-y-4 lg:space-y-6 p-4 md:p-10 border-b lg:border-b-0 lg:border-r border-[var(--border-subtle)]">
-          {/* Top Bar: Angle indicator & Quick Switchers */}
-          <div className="sticky top-24 z-30 flex items-center justify-between bg-[var(--bg-card)]/90 backdrop-blur-md p-2.5 border border-[var(--border-subtle)] text-xs font-mono">
+          {/* Top Bar: Angle indicator & Quick Switchers (Non-sticky to avoid lingering white strip) */}
+          <div className="flex items-center justify-between bg-[var(--bg-secondary)]/80 p-2.5 border border-[var(--border-subtle)] text-xs font-mono">
             <div className="flex items-center gap-2">
-              <span className="px-2.5 py-1 bg-[#1d4136] dark:bg-[#e6ca97] text-white dark:text-[#242321] text-[10px] font-bold tracking-wider uppercase font-mono">
+              <span className="px-2.5 py-1 bg-[#0d281e] dark:bg-[#e6ca97] text-white dark:text-[#242321] text-[10px] font-bold tracking-wider uppercase font-mono">
                 ANGLE 0{activeImageIndex + 1} OF 0{product.images?.length || 1}
               </span>
               <span className="text-[10px] text-[var(--text-muted)] font-mono uppercase tracking-widest hidden sm:inline">
@@ -3579,7 +4032,7 @@ function ProductView() {
                   onClick={() =>
                     setActiveImageIndex((prev) => (prev > 0 ? prev - 1 : product.images.length - 1))
                   }
-                  className="px-2.5 py-1 bg-[var(--bg-secondary)] hover:bg-[#b99762]/15 border border-[var(--border-subtle)] hover:border-[#b99762] text-[10px] font-mono text-[var(--text-primary)] transition-colors flex items-center gap-1"
+                  className="px-2.5 py-1 bg-[var(--bg-card)] hover:bg-[#b99762]/15 border border-[var(--border-subtle)] hover:border-[#b99762] text-[10px] font-mono text-[var(--text-primary)] transition-colors flex items-center gap-1 cursor-pointer"
                   title="Previous Angle"
                 >
                   <ChevronLeft className="w-3.5 h-3.5" />
@@ -3590,7 +4043,7 @@ function ProductView() {
                   onClick={() =>
                     setActiveImageIndex((prev) => (prev < product.images.length - 1 ? prev + 1 : 0))
                   }
-                  className="px-2.5 py-1 bg-[var(--bg-secondary)] hover:bg-[#b99762]/15 border border-[var(--border-subtle)] hover:border-[#b99762] text-[10px] font-mono text-[var(--text-primary)] transition-colors flex items-center gap-1"
+                  className="px-2.5 py-1 bg-[var(--bg-card)] hover:bg-[#b99762]/15 border border-[var(--border-subtle)] hover:border-[#b99762] text-[10px] font-mono text-[var(--text-primary)] transition-colors flex items-center gap-1 cursor-pointer"
                   title="Next Angle"
                 >
                   <span className="hidden sm:inline">Next</span>
@@ -3601,7 +4054,7 @@ function ProductView() {
           </div>
 
           {/* Main Stage View with Floating Arrows */}
-          <div className="relative w-full min-h-[70vh] lg:min-h-[88vh] bg-[var(--bg-stone)] dark:bg-[#181d1a] overflow-hidden border border-[var(--border-subtle)] group">
+          <div className="relative w-full aspect-[4/5] sm:aspect-[4/5] lg:aspect-auto lg:min-h-[85vh] bg-[var(--bg-stone)] dark:bg-[#181d1a] overflow-hidden border border-[var(--border-subtle)] group">
             <div className="absolute top-6 left-6 z-20 pointer-events-none">
               <span className="text-[10px] font-mono tracking-[0.3em] uppercase text-[var(--text-primary)] bg-[var(--bg-card)]/85 backdrop-blur-md px-3 py-1 border border-[var(--border-subtle)]">
                 PLATE // 0{activeImageIndex + 1} (STUDIO CAPTURE)
@@ -3616,7 +4069,7 @@ function ProductView() {
                     e.stopPropagation();
                     setActiveImageIndex((prev) => (prev > 0 ? prev - 1 : product.images.length - 1));
                   }}
-                  className="absolute left-3 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-[var(--bg-card)]/85 hover:bg-[var(--bg-card)] text-[var(--text-primary)] border border-[var(--border-subtle)] flex items-center justify-center transition-all opacity-80 hover:opacity-100 shadow-md"
+                  className="absolute left-3 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-[var(--bg-card)]/85 hover:bg-[var(--bg-card)] text-[var(--text-primary)] border border-[var(--border-subtle)] flex items-center justify-center transition-all opacity-80 hover:opacity-100 shadow-md cursor-pointer"
                   aria-label="Previous image"
                 >
                   <ChevronLeft className="w-5 h-5" />
@@ -3627,7 +4080,7 @@ function ProductView() {
                     e.stopPropagation();
                     setActiveImageIndex((prev) => (prev < product.images.length - 1 ? prev + 1 : 0));
                   }}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-[var(--bg-card)]/85 hover:bg-[var(--bg-card)] text-[var(--text-primary)] border border-[var(--border-subtle)] flex items-center justify-center transition-all opacity-80 hover:opacity-100 shadow-md"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-[var(--bg-card)]/85 hover:bg-[var(--bg-card)] text-[var(--text-primary)] border border-[var(--border-subtle)] flex items-center justify-center transition-all opacity-80 hover:opacity-100 shadow-md cursor-pointer"
                   aria-label="Next image"
                 >
                   <ChevronRight className="w-5 h-5" />
@@ -3644,12 +4097,12 @@ function ProductView() {
             />
           </div>
 
-          {/* Clickable Thumbnail Strip */}
+          {/* Clickable Perspective Thumbnail Strip */}
           {product.images && product.images.length > 1 && (
             <div className="space-y-2 pt-1">
               <div className="flex items-center justify-between text-[10px] font-mono uppercase text-[var(--text-muted)]">
                 <span>Select Perspective ({product.images.length} studio angles)</span>
-                <span>Click to expand</span>
+                <span>Click thumbnail to inspect</span>
               </div>
               <div className="flex items-center gap-3 overflow-x-auto pb-2">
                 {product.images.map((imgUrl, i) => (
@@ -3657,9 +4110,9 @@ function ProductView() {
                     key={i}
                     type="button"
                     onClick={() => setActiveImageIndex(i)}
-                    className={`relative w-20 h-24 sm:w-24 sm:h-28 shrink-0 overflow-hidden transition-all border-2 ${
+                    className={`relative w-20 h-24 sm:w-24 sm:h-28 shrink-0 overflow-hidden transition-all border-2 cursor-pointer ${
                       activeImageIndex === i
-                        ? 'border-[#b99762] dark:border-[#e6ca97] ring-2 ring-[#b99762]/30 scale-102 shadow-md'
+                        ? 'border-[#0d281e] dark:border-[#e6ca97] ring-2 ring-[#0d281e]/30 scale-102 shadow-md'
                         : 'border-[var(--border-subtle)] hover:border-[var(--border-strong)] opacity-70 hover:opacity-100'
                     }`}
                   >
@@ -3668,7 +4121,7 @@ function ProductView() {
                       alt={`${product.name} Angle 0${i + 1}`}
                       className="w-full h-full object-cover"
                     />
-                    <span className="absolute bottom-1 right-1 text-[8.5px] font-mono px-1 py-0.5 bg-black/80 text-white font-bold rounded-xs">
+                    <span className="absolute bottom-1 right-1 text-[8.5px] font-mono px-1.5 py-0.5 bg-black/85 text-white font-bold rounded-xs">
                       0{i + 1}
                     </span>
                   </button>
@@ -3676,40 +4129,11 @@ function ProductView() {
               </div>
             </div>
           )}
-
-          {/* Full High-Resolution Exhibition Plates (Continuous Scroll) */}
-          {product.images && product.images.length > 1 && (
-            <div className="pt-6 space-y-6 border-t border-[var(--border-subtle)]">
-              <div className="flex items-center gap-2 text-[10px] font-mono uppercase tracking-wider text-[var(--text-muted)]">
-                <Sparkles className="w-3 h-3 text-[#b99762]" />
-                <span>All {product.images.length} Angles In High-Resolution</span>
-              </div>
-              {product.images.map((imgUrl, idx) => (
-                <div
-                  key={idx}
-                  className="relative w-full min-h-[60vh] lg:min-h-[85vh] bg-[var(--bg-stone)] dark:bg-[#181d1a] overflow-hidden border border-[var(--border-subtle)] group"
-                >
-                  <div className="absolute top-6 left-6 z-20 pointer-events-none">
-                    <span className="text-[10px] font-mono tracking-[0.3em] uppercase text-[var(--text-primary)] bg-[var(--bg-card)]/85 backdrop-blur-md px-3 py-1 border border-[var(--border-subtle)]">
-                      PERSPECTIVE 0{idx + 1} OF 0{product.images.length}
-                    </span>
-                  </div>
-                  <ArtisticImage
-                    src={imgUrl}
-                    alt={`${product.name} Perspective ${idx + 1}`}
-                    className="w-full h-full"
-                    exhibitNumber={`PERSPECTIVE // 0${idx + 1}`}
-                    materialTag={product.material}
-                  />
-                </div>
-              ))}
-            </div>
-          )}
         </div>
 
-        {/* Right Column: Sticky Product Info */}
+        {/* Right Column: Sticky Product Info with Smooth Overflow */}
         <div className="lg:col-span-5 p-4 sm:p-6 md:p-12 lg:p-16 flex flex-col justify-start">
-          <div className="lg:sticky lg:top-28 space-y-7">
+          <div className="lg:sticky lg:top-20 lg:self-start lg:max-h-[calc(100vh-5.5rem)] lg:overflow-y-auto overscroll-contain pr-2 space-y-7 custom-scrollbar">
             <div className="space-y-2.5">
               <div className="flex items-center justify-between text-[10px] font-mono tracking-[0.3em] uppercase text-[#b99762] dark:text-[#e6ca97]">
                 <span className="flex items-center gap-1.5 font-bold">
@@ -3733,6 +4157,38 @@ function ProductView() {
               </p>
             </div>
 
+            {/* Atelier Curatorial Description & Archival Notes */}
+            {product.description && (
+              <div className="p-4 sm:p-5 rounded-xs bg-[#fdfbf7] dark:bg-[#1a221e] border border-[#b38f56]/35 dark:border-[#e6ca97]/30 shadow-xs space-y-3.5 relative overflow-hidden">
+                <div className="flex items-center justify-between border-b border-[#b38f56]/20 pb-2.5">
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="w-3.5 h-3.5 text-[#8c6527] dark:text-[#e6ca97]" />
+                    <span className="text-[10.5px] font-mono tracking-[0.25em] uppercase text-[#8c6527] dark:text-[#e6ca97] font-bold">
+                      Atelier Curatorial Description
+                    </span>
+                  </div>
+                  <span className="text-[9px] font-mono tracking-wider uppercase px-2.5 py-0.5 rounded-full bg-[#0d281e]/8 dark:bg-[#e6ca97]/15 text-[#0d281e] dark:text-[#e6ca97] border border-[#0d281e]/15 dark:border-[#e6ca97]/25 font-semibold">
+                    Atelier Edition
+                  </span>
+                </div>
+                <div className="relative pl-3.5 border-l-2 border-[#b38f56] dark:border-[#e6ca97]">
+                  <p className="font-playfair italic text-[15px] sm:text-[16px] leading-[1.85] text-[#1c1b18] dark:text-[#fbf8f3] font-normal tracking-wide">
+                    “{product.description}”
+                  </p>
+                </div>
+                {product.editorialNote && (
+                  <div className="pt-2.5 flex items-start gap-2.5 border-t border-[#b38f56]/20 text-xs">
+                    <span className="font-mono text-[9px] uppercase tracking-wider font-bold text-[#8c6527] dark:text-[#e6ca97] shrink-0 mt-0.5 px-2 py-0.5 bg-[#b38f56]/15 dark:bg-[#e6ca97]/15 rounded-xs border border-[#b38f56]/25 dark:border-[#e6ca97]/30">
+                      Artisan Note
+                    </span>
+                    <span className="font-sans text-xs sm:text-[12.5px] leading-relaxed italic text-[#4a453e] dark:text-[#d4cebf]">
+                      {product.editorialNote}
+                    </span>
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* Scarcity Urgency Trigger */}
             {product.inventory < 3 && (
               <div className="p-3 bg-amber-500/10 border border-amber-500/30 flex items-center justify-between text-xs font-mono text-amber-700 dark:text-amber-300">
@@ -3747,7 +4203,7 @@ function ProductView() {
             )}
 
             {/* 3-Badge Trust Pill */}
-            <div className="grid grid-cols-3 gap-2 p-3 bg-[var(--bg-secondary)] border border-[var(--border-subtle)] text-center">
+            <div className="grid grid-cols-3 gap-2 p-3.5 bg-[var(--bg-card)] border border-[var(--border-subtle)] text-center rounded-xs shadow-xs">
               <div className="space-y-1 p-2">
                 <Sparkles className="w-4 h-4 text-emerald-600 dark:text-emerald-400 mx-auto" />
                 <span className="text-[10px] font-mono text-[var(--text-primary)] block font-semibold leading-tight">
@@ -3773,15 +4229,15 @@ function ProductView() {
 
             {/* Complimentary Engraving */}
             {product.isEngravable && (
-              <div className="p-4 bg-[var(--bg-secondary)] border border-[var(--border-subtle)] space-y-2.5">
+              <div className="p-4 sm:p-4.5 bg-[var(--bg-card)] border border-[var(--border-subtle)] space-y-2.5 rounded-xs shadow-xs">
                 <label className="flex items-center gap-2 text-xs font-mono text-[var(--text-primary)] cursor-pointer select-none">
                   <input
                     type="checkbox"
                     checked={addEngraving}
                     onChange={(e) => setAddEngraving(e.target.checked)}
-                    className="accent-[#1d4136] dark:accent-[#e6ca97] w-4 h-4"
+                    className="accent-[#0d281e] dark:accent-[#e6ca97] w-4 h-4"
                   />
-                  <span className="font-semibold text-[#b99762] dark:text-[#e6ca97] flex items-center gap-1.5">
+                  <span className="font-semibold text-[#8c6527] dark:text-[#e6ca97] flex items-center gap-1.5">
                     <Type className="w-3.5 h-3.5" /> Add Complimentary Archival Engraving (Free)
                   </span>
                 </label>
@@ -3793,7 +4249,7 @@ function ProductView() {
                       value={engravingText}
                       onChange={(e) => setEngravingText(e.target.value.toUpperCase())}
                       placeholder="ENTER INITIALS (MAX 4 LETTERS, e.g. 'AS')"
-                      className="w-full bg-[var(--bg-card)] border border-[var(--border-subtle)] focus:border-[#b99762] px-3.5 py-2 text-xs font-mono text-[var(--text-primary)] uppercase tracking-widest outline-none"
+                      className="w-full bg-[var(--bg-primary)] border border-[var(--border-subtle)] focus:border-[#b38f56] px-3.5 py-2 text-xs font-mono text-[var(--text-primary)] uppercase tracking-widest outline-none"
                     />
                   </div>
                 )}
@@ -3801,9 +4257,9 @@ function ProductView() {
             )}
 
             {/* Pincode Checker */}
-            <div className="p-4 bg-[var(--bg-secondary)] border border-[var(--border-subtle)] space-y-2">
+            <div className="p-4 sm:p-4.5 bg-[var(--bg-card)] border border-[var(--border-subtle)] space-y-2.5 rounded-xs shadow-xs">
               <div className="flex items-center gap-1.5 text-xs font-mono text-[var(--text-primary)]">
-                <MapPin className="w-4 h-4 text-[#b99762] dark:text-[#e6ca97]" />
+                <MapPin className="w-4 h-4 text-[#8c6527] dark:text-[#e6ca97]" />
                 <span>Check Express Delivery & COD by PIN Code</span>
               </div>
               <form onSubmit={handleCheckPincode} className="flex gap-2">
@@ -3813,11 +4269,11 @@ function ProductView() {
                   value={pincode}
                   onChange={(e) => setPincode(e.target.value)}
                   placeholder="Enter 6-digit PIN (e.g. 400001)"
-                  className="flex-1 bg-[var(--bg-card)] border border-[var(--border-subtle)] focus:border-[#b99762] px-3 py-2 text-xs font-mono text-[var(--text-primary)] placeholder-[var(--text-muted)] outline-none"
+                  className="flex-1 bg-[var(--bg-primary)] border border-[var(--border-subtle)] focus:border-[#b38f56] px-3 py-2 text-xs font-mono text-[var(--text-primary)] placeholder-[var(--text-muted)] outline-none"
                 />
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-[#1d4136] hover:bg-[#16332a] dark:bg-[#e6ca97] dark:hover:bg-[#d9b87c] text-white dark:text-[#242321] text-xs font-mono uppercase tracking-wider font-semibold transition-colors"
+                  className="px-4 py-2 bg-[#0d281e] hover:bg-[#163e2f] dark:bg-[#e6ca97] dark:hover:bg-[#d9b87c] text-white dark:text-[#242321] text-xs font-mono uppercase tracking-wider font-semibold transition-colors"
                 >
                   Check
                 </button>
@@ -3830,8 +4286,8 @@ function ProductView() {
             </div>
 
             {/* Made-to-Order Luxury Notice */}
-            <div className="p-4 bg-[var(--bg-secondary)] border-l-2 border-[#b99762] border-[var(--border-subtle)] space-y-1.5">
-              <div className="flex items-center gap-2 text-[10px] font-mono uppercase tracking-wider text-[#b99762] dark:text-[#e6ca97] font-bold">
+            <div className="p-4 sm:p-4.5 bg-[var(--bg-card)] border-l-2 border-[#b38f56] border-[var(--border-subtle)] space-y-1.5 rounded-xs shadow-xs">
+              <div className="flex items-center gap-2 text-[10px] font-mono uppercase tracking-wider text-[#8c6527] dark:text-[#e6ca97] font-bold">
                 <Clock className="w-3.5 h-3.5" />
                 <span>Made to Order Luxury</span>
               </div>
@@ -3967,6 +4423,38 @@ function ProductView() {
                   </div>
                 )}
               </div>
+
+              {/* Product Story & Description Accordion */}
+              {product.description && (
+                <div className="py-4">
+                  <button
+                    onClick={() => toggleAccordion('description')}
+                    className="w-full flex justify-between items-center text-left text-[var(--text-primary)] hover:text-[#b99762] dark:hover:text-[#e6ca97] transition-colors"
+                  >
+                    <span className="tracking-[0.2em] uppercase flex items-center gap-2">
+                      <FileText className="w-3.5 h-3.5" />
+                      Product Overview & Details
+                    </span>
+                    <ChevronDown
+                      className={`w-4 h-4 transition-transform duration-300 ${
+                        activeAccordion === 'description' ? 'rotate-180 text-[#b99762] dark:text-[#e6ca97]' : ''
+                      }`}
+                    />
+                  </button>
+                  {activeAccordion === 'description' && (
+                    <div className="text-[var(--text-secondary)] pt-3 space-y-3 leading-relaxed">
+                      <p className="font-playfair italic text-[13.5px] sm:text-[14.5px] leading-relaxed text-[var(--text-primary)] border-l-2 border-[#b38f56] pl-3 py-0.5">
+                        {product.description}
+                      </p>
+                      {product.craftsmanship && (
+                        <p className="text-xs font-mono text-[var(--text-muted)] pt-1 pl-3">
+                          <strong className="text-[#8c6527] dark:text-[#d4bf98] uppercase tracking-wider font-semibold">Bench Craft:</strong> {product.craftsmanship}
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -4482,10 +4970,10 @@ function CheckoutView() {
           <div className="pt-6 border-t border-[var(--border-subtle)] flex flex-col sm:flex-row items-center justify-center gap-4">
             <button
               onClick={() => navigate('orders', completedOrder)}
-              className="w-full sm:w-auto px-8 py-3.5 bg-[#1d4136] hover:bg-[#16332a] dark:bg-[#e6ca97] dark:hover:bg-[#d9b87c] text-white dark:text-[#242321] font-mono text-xs tracking-[0.2em] uppercase font-bold transition-all flex items-center justify-center gap-2 shadow-md"
+              className="w-full sm:w-auto px-4 sm:px-8 py-3.5 bg-[#1d4136] hover:bg-[#16332a] dark:bg-[#e6ca97] dark:hover:bg-[#d9b87c] text-white dark:text-[#242321] font-mono text-xs tracking-normal sm:tracking-[0.16em] uppercase font-bold transition-all flex items-center justify-center gap-2 shadow-md text-center"
             >
-              <Truck className="w-4 h-4" />
-              <span>
+              <Truck className="w-4 h-4 shrink-0" />
+              <span className="break-words">
                 {completedOrder.trackingNumber
                   ? `Track Blue Dart Consignment (${completedOrder.trackingNumber})`
                   : 'Track Order Lifecycle (In Atelier Benchwork)'}
@@ -5894,32 +6382,34 @@ function OrdersView() {
                     </div>
 
                     {activeOrder.trackingNumber ? (
-                      <div className="flex items-center gap-3">
-                        <div className="text-right">
+                      <div className="flex flex-wrap items-center justify-start sm:justify-end gap-2.5 sm:gap-3 w-full sm:w-auto">
+                        <div className="text-left sm:text-right min-w-[130px]">
                           <span className="text-[9px] font-mono text-[var(--text-muted)] uppercase tracking-wider block">
                             Blue Dart Consignment No
                           </span>
-                          <span className="font-mono text-xs text-emerald-600 dark:text-emerald-400 font-bold">
+                          <span className="font-mono text-xs text-emerald-600 dark:text-emerald-400 font-bold break-all">
                             {activeOrder.trackingNumber}
                           </span>
                         </div>
-                        <button
-                          onClick={() => handleCopyAWB(activeOrder.trackingNumber)}
-                          className="p-2 border border-[var(--border-subtle)] hover:border-[#b99762] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
-                          title="Copy Consignment Tracking Number"
-                        >
-                          {copiedAWB ? <Check className="w-4 h-4 text-emerald-600 dark:text-emerald-400" /> : <Copy className="w-4 h-4" />}
-                        </button>
-                        <a
-                          href={getTrackingUrl(activeOrder.trackingNumber)}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="px-2.5 py-1.5 bg-[#1d4136] dark:bg-[#e6ca97] text-white dark:text-black text-[10px] font-mono uppercase tracking-wider font-bold hover:bg-[#132f27] transition-colors inline-flex items-center gap-1"
-                          title="Open live Blue Dart tracker"
-                        >
-                          <ExternalLink className="w-3.5 h-3.5" />
-                          <span>Track</span>
-                        </a>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <button
+                            onClick={() => handleCopyAWB(activeOrder.trackingNumber)}
+                            className="p-2 border border-[var(--border-subtle)] hover:border-[#b99762] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
+                            title="Copy Consignment Tracking Number"
+                          >
+                            {copiedAWB ? <Check className="w-4 h-4 text-emerald-600 dark:text-emerald-400" /> : <Copy className="w-4 h-4" />}
+                          </button>
+                          <a
+                            href={getTrackingUrl(activeOrder.trackingNumber)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="px-2.5 py-1.5 bg-[#1d4136] dark:bg-[#e6ca97] text-white dark:text-black text-[10px] font-mono uppercase tracking-wider font-bold hover:bg-[#132f27] transition-colors inline-flex items-center gap-1 shrink-0 shadow-xs"
+                            title="Open live Blue Dart tracker"
+                          >
+                            <ExternalLink className="w-3.5 h-3.5" />
+                            <span>Track</span>
+                          </a>
+                        </div>
                       </div>
                     ) : (
                       <div className="flex items-center gap-2.5 px-3 py-2 bg-amber-500/10 border border-amber-500/30 text-amber-700 dark:text-amber-300">
@@ -6385,7 +6875,9 @@ function AdminView() {
     name: '',
     category: 'minimalist',
     categorySlug: 'minimalist-jewellery',
-    collection: 'new-arrivals',
+    collection: 'minimalist',
+    collections: ['minimalist', 'new-arrivals'],
+    tags: ['bracelets'],
     silhouette: 'light',
     price: 3299,
     originalPrice: 3299,
@@ -6406,6 +6898,7 @@ function AdminView() {
     pairsWithId: '',
     upsellReason: '',
     newImageUrl: '', // temp input for adding image URLs
+    _addToFront: false,
   });
 
   const [isUploadingImage, setIsUploadingImage] = useState(false);
@@ -6419,21 +6912,30 @@ function AdminView() {
       setUploadFeedback(`Uploading ${file.name}...`);
       const publicUrl = await uploadProductImageToStorage(file);
       if (target === 'new') {
-        // Add to new product images array
-        setNewProductForm((prev) => ({
-          ...prev,
-          images: [...(prev.images || []), publicUrl],
-          modelImage: prev.images?.length === 0 ? publicUrl : prev.modelImage,
-        }));
+        // Add to new product images array — ALWAYS at index 0 so it appears first on PDP & catalogue
+        setNewProductForm((prev) => {
+          const cur = prev.images || [];
+          const updated = [publicUrl, ...cur.filter((u) => u !== publicUrl)];
+          return {
+            ...prev,
+            images: updated,
+            modelImage: updated[0] || publicUrl,
+          };
+        });
       } else {
-        // Add to editing product images array
-        setEditingProduct((prev) => ({
-          ...prev,
-          images: [...(prev.images || []), publicUrl],
-        }));
+        // Add to editing product images array — ALWAYS at index 0 so it appears first on PDP & catalogue
+        setEditingProduct((prev) => {
+          const cur = prev.images || [];
+          const updated = [publicUrl, ...cur.filter((u) => u !== publicUrl)];
+          return {
+            ...prev,
+            images: updated,
+            modelImage: updated[0] || publicUrl,
+          };
+        });
       }
-      setUploadFeedback(`✓ Uploaded & Rendered: ${file.name}`);
-      showToast('Image uploaded and rendered to catalog successfully');
+      setUploadFeedback(`✓ Uploaded as Front Cover (Angle 01): ${file.name}`);
+      showToast('✓ Image uploaded as primary front angle for PDP');
     } catch (err) {
       console.error('Upload failed:', err);
       setUploadFeedback('Upload failed. Please try again or paste image URL.');
@@ -6487,7 +6989,10 @@ function AdminView() {
       category: newProductForm.category,
       categorySlug: newProductForm.categorySlug,
       silhouette: newProductForm.silhouette || 'light',
-      collections: [newProductForm.collection],
+      collections: newProductForm.collections && newProductForm.collections.length > 0
+        ? newProductForm.collections
+        : [newProductForm.collection || newProductForm.category],
+      tags: newProductForm.tags || [],
       price: Number(newProductForm.price),
       originalPrice: Number(newProductForm.price),
       inventory: Number(newProductForm.inventory || 5),
@@ -6503,7 +7008,7 @@ function AdminView() {
       dimensions: newProductForm.dimensions,
       weight: newProductForm.weight,
       images,
-      modelImage: newProductForm.modelImage || images[0],
+      modelImage: images[0],
       description: newProductForm.description,
       editorialNote: newProductForm.editorialNote,
       pairsWithId: newProductForm.pairsWithId || undefined,
@@ -6518,6 +7023,18 @@ function AdminView() {
   const handleSaveEdit = (e) => {
     e.preventDefault();
     if (!editingProduct) return;
+    const collections = Array.isArray(editingProduct.collections) ? editingProduct.collections : [];
+    const tags = Array.isArray(editingProduct.tags) ? editingProduct.tags : [];
+    const isNewFlag = Boolean(
+      editingProduct.isNew ||
+      collections.includes('new-arrivals') ||
+      collections.includes('new') ||
+      collections.includes('new-arrival') ||
+      tags.includes('new') ||
+      tags.includes('new-arrivals') ||
+      tags.includes('new-arrival')
+    );
+
     adminUpdateProduct(editingProduct.id, {
       name: editingProduct.name,
       price: Number(editingProduct.price),
@@ -6525,14 +7042,19 @@ function AdminView() {
       inventory: Number(editingProduct.inventory),
       inStock: Number(editingProduct.inventory) > 0,
       description: editingProduct.description,
+      editorialNote: editingProduct.editorialNote,
       goldPurity: editingProduct.goldPurity,
       colorTone: editingProduct.colorTone,
       material: editingProduct.material,
       images: editingProduct.images,
+      modelImage: editingProduct.images?.[0] || editingProduct.modelImage,
       category: editingProduct.category,
       categorySlug: editingProduct.categorySlug,
+      subcategory: editingProduct.subcategory,
       silhouette: editingProduct.silhouette || 'light',
-      collections: editingProduct.collections || [],
+      collections,
+      tags,
+      isNew: isNewFlag,
       hallmark: editingProduct.hallmark || 'Fine 925 Sterling Silver',
     });
     setEditingProduct(null);
@@ -6718,7 +7240,7 @@ function AdminView() {
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3">
             <button
               onClick={() => navigate('orders')}
               className="px-3.5 py-1.5 text-xs font-sans font-bold tracking-[0.1em] uppercase border border-[#b99762]/60 hover:bg-[#b99762]/10 text-[#b99762] dark:text-[#e6ca97] transition-colors flex items-center gap-1.5"
@@ -7169,7 +7691,11 @@ function AdminView() {
                                 onClick={() => {
                                   const cur = Array.isArray(product.collections) ? [...product.collections] : [];
                                   const next = isTagged ? cur.filter((c) => c !== colKey) : [...cur, colKey];
-                                  adminUpdateProduct(product.id, { collections: next });
+                                  const isNewUpdate = colKey === 'new-arrivals' ? !isTagged : undefined;
+                                  adminUpdateProduct(product.id, {
+                                    collections: next,
+                                    ...(isNewUpdate !== undefined ? { isNew: isNewUpdate } : {}),
+                                  });
                                 }}
                                 className={`px-1.5 py-0.5 text-[8px] font-mono uppercase rounded transition-colors ${
                                   isTagged
@@ -7198,7 +7724,11 @@ function AdminView() {
                                     type="button"
                                     onClick={() => {
                                       const next = product.collections.filter((c) => c !== customTag);
-                                      adminUpdateProduct(product.id, { collections: next });
+                                      const isNewVal = (customTag === 'new' || customTag === 'new-arrivals') ? false : undefined;
+                                      adminUpdateProduct(product.id, {
+                                        collections: next,
+                                        ...(isNewVal !== undefined ? { isNew: isNewVal } : {}),
+                                      });
                                     }}
                                     className="hover:text-rose-600 ml-0.5"
                                   >
@@ -7222,7 +7752,11 @@ function AdminView() {
                                 if (rawTag) {
                                   const cur = Array.isArray(product.collections) ? [...product.collections] : [];
                                   if (!cur.includes(rawTag)) {
-                                    adminUpdateProduct(product.id, { collections: [...cur, rawTag] });
+                                    const isNewVal = (rawTag === 'new' || rawTag === 'new-arrivals' || rawTag === 'new-arrival') ? true : undefined;
+                                    adminUpdateProduct(product.id, {
+                                      collections: [...cur, rawTag],
+                                      ...(isNewVal !== undefined ? { isNew: isNewVal } : {}),
+                                    });
                                     showToast(`✓ Tagged with #${rawTag}`);
                                   }
                                   setCustomTagInputs({ ...customTagInputs, [product.id]: '' });
@@ -7238,7 +7772,11 @@ function AdminView() {
                               if (rawTag) {
                                 const cur = Array.isArray(product.collections) ? [...product.collections] : [];
                                 if (!cur.includes(rawTag)) {
-                                  adminUpdateProduct(product.id, { collections: [...cur, rawTag] });
+                                  const isNewVal = (rawTag === 'new' || rawTag === 'new-arrivals' || rawTag === 'new-arrival') ? true : undefined;
+                                  adminUpdateProduct(product.id, {
+                                    collections: [...cur, rawTag],
+                                    ...(isNewVal !== undefined ? { isNew: isNewVal } : {}),
+                                  });
                                   showToast(`✓ Tagged with #${rawTag}`);
                                 }
                                 setCustomTagInputs({ ...customTagInputs, [product.id]: '' });
@@ -7467,13 +8005,103 @@ function AdminView() {
                 </div>
               </div>
 
+              {/* Tag in Collections */}
+              <div>
+                <label className="block font-bold tracking-wider uppercase text-[var(--text-muted)] mb-1 text-xs">
+                  Tag in Collections
+                </label>
+                <div className="flex flex-wrap gap-1.5 p-2.5 bg-[var(--bg-primary)] border border-[var(--border-strong)]">
+                  {[
+                    { id: 'new-arrivals', label: 'New Arrivals' },
+                    { id: 'minimalist', label: 'Minimalist' },
+                    { id: 'statement', label: 'Statement' },
+                    { id: 'moissanite', label: 'Moissanite' },
+                    { id: 'pearl', label: 'Pearl' },
+                    { id: 'gifting', label: 'Gifting' },
+                  ].map((col) => {
+                    const isTagged = Array.isArray(newProductForm.collections) && newProductForm.collections.includes(col.id);
+                    return (
+                      <button
+                        key={col.id}
+                        type="button"
+                        onClick={() => {
+                          const cur = Array.isArray(newProductForm.collections) ? [...newProductForm.collections] : [];
+                          const next = isTagged ? cur.filter((c) => c !== col.id) : [...cur, col.id];
+                          setNewProductForm({ ...newProductForm, collections: next, collection: next[0] || newProductForm.category });
+                        }}
+                        className={`px-2.5 py-1 text-[10.5px] font-mono uppercase rounded transition-colors cursor-pointer ${
+                          isTagged
+                            ? 'bg-[#1d4136] dark:bg-[#e6ca97] text-white dark:text-black font-bold shadow-xs'
+                            : 'bg-[var(--bg-secondary)] text-[var(--text-muted)] border border-[var(--border-subtle)] hover:border-[var(--border-strong)]'
+                        }`}
+                      >
+                        {isTagged ? '✓ ' : '+ '}
+                        {col.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Taxonomy & Subcategory Tags (Storefront Filter Pills) */}
+              <div>
+                <label className="block font-bold tracking-wider uppercase text-[var(--text-muted)] mb-1 text-xs">
+                  Taxonomy & Subcategory Tags (Storefront Filter Pills)
+                </label>
+                <div className="flex flex-wrap gap-1.5 p-2.5 bg-[var(--bg-primary)] border border-[var(--border-strong)]">
+                  {[
+                    { id: 'necklaces', label: 'Necklaces' },
+                    { id: 'earrings', label: 'Earrings' },
+                    { id: 'rings', label: 'Rings' },
+                    { id: 'bracelets', label: 'Bracelets' },
+                    { id: 'sets', label: 'Sets' },
+                    { id: 'anklets', label: 'Anklets' },
+                    { id: 'gra-certified', label: 'GRA Certified Jewellery' },
+                    { id: 'freshwater-pearls', label: 'Freshwater Pearl Jewellery' },
+                    { id: 'rakhi', label: 'Rakhi' },
+                    { id: 'birthday', label: 'Birthday' },
+                    { id: 'anniversary', label: 'Anniversary' },
+                    { id: 'bridesmaid', label: 'Bridesmaid' },
+                  ].map((tag) => {
+                    const isTagged = Array.isArray(newProductForm.tags) && newProductForm.tags.includes(tag.id);
+                    return (
+                      <button
+                        key={tag.id}
+                        type="button"
+                        onClick={() => {
+                          const cur = Array.isArray(newProductForm.tags) ? [...newProductForm.tags] : [];
+                          const next = isTagged ? cur.filter((t) => t !== tag.id) : [...cur, tag.id];
+                          setNewProductForm({
+                            ...newProductForm,
+                            tags: next,
+                          });
+                        }}
+                        className={`px-2.5 py-1 text-[10.5px] font-mono uppercase rounded transition-colors cursor-pointer ${
+                          isTagged
+                            ? 'bg-[#b99762] text-white font-bold shadow-xs'
+                            : 'bg-[var(--bg-secondary)] text-[var(--text-muted)] border border-[var(--border-subtle)] hover:border-[var(--border-strong)]'
+                        }`}
+                      >
+                        {isTagged ? '✓ ' : '+ '}
+                        {tag.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
               {/* Image Gallery Manager */}
               <div className="space-y-4 p-4 bg-[var(--bg-secondary)] border border-[var(--border-subtle)]">
                 <div className="flex items-center justify-between">
-                  <label className="block font-bold tracking-[0.14em] uppercase text-[#1d4136] dark:text-[#e6ca97] text-xs flex items-center gap-2">
-                    <UploadCloud className="w-4 h-4" />
-                    Studio Image Gallery ({newProductForm.images?.length || 0} angles)
-                  </label>
+                  <div>
+                    <label className="block font-bold tracking-[0.14em] uppercase text-[#1d4136] dark:text-[#e6ca97] text-xs flex items-center gap-2">
+                      <UploadCloud className="w-4 h-4" />
+                      Studio Image Gallery ({newProductForm.images?.length || 0} angles)
+                    </label>
+                    <p className="text-[10px] font-mono text-[var(--text-muted)] mt-0.5">
+                      Angle 01 (leftmost) represents the primary catalogue cover. Use ◀ ▶ or ★ Front to reorder.
+                    </p>
+                  </div>
                   {isUploadingImage && (
                     <span className="text-[10px] font-mono text-amber-500 animate-pulse">
                       Uploading...
@@ -7485,42 +8113,118 @@ function AdminView() {
                   <p className="text-[11px] font-mono text-emerald-600 dark:text-emerald-400">{uploadFeedback}</p>
                 )}
 
-                {/* Existing images with remove */}
-                {(newProductForm.images || []).length > 0 && (
-                  <div className="flex flex-wrap gap-2">
-                    {(newProductForm.images || []).map((imgUrl, idx) => (
-                      <div key={idx} className="relative group">
+                {/* Existing images with remove, reorder, and set cover */}
+                <div className="flex flex-wrap gap-3 min-h-[110px] p-2 bg-[var(--bg-primary)] border border-[var(--border-subtle)]">
+                  {(newProductForm.images || []).map((imgUrl, idx) => (
+                    <div
+                      key={idx}
+                      className={`relative flex flex-col items-center p-1.5 border transition-all ${
+                        idx === 0
+                          ? 'border-amber-500/80 bg-amber-500/5 shadow-xs'
+                          : 'border-[var(--border-strong)] bg-[var(--bg-card)]'
+                      }`}
+                    >
+                      <div className="relative w-20 h-24 bg-[var(--bg-stone)] overflow-hidden">
                         <img
                           src={imgUrl}
                           alt={`Angle ${idx + 1}`}
-                          className="w-16 h-20 object-cover border border-[var(--border-subtle)] bg-[var(--bg-stone)]"
+                          className="w-full h-full object-cover"
                         />
-                        <span className="absolute bottom-1 left-1 text-[7px] font-mono bg-black/80 text-white px-1">0{idx + 1}</span>
+                        <span
+                          className={`absolute bottom-0 left-0 text-[8px] font-mono px-1 py-0.5 ${
+                            idx === 0
+                              ? 'bg-amber-600 text-white font-bold'
+                              : 'bg-black/80 text-white'
+                          }`}
+                        >
+                          {idx === 0 ? 'COVER 01' : `0${idx + 1}`}
+                        </span>
+                        {/* Always-visible Remove Button */}
                         <button
                           type="button"
                           onClick={() => {
                             const updated = (newProductForm.images || []).filter((_, i) => i !== idx);
-                            setNewProductForm({ ...newProductForm, images: updated, modelImage: updated[0] || '' });
+                            setNewProductForm({
+                              ...newProductForm,
+                              images: updated,
+                              modelImage: updated[0] || '',
+                            });
                           }}
-                          className="absolute top-0.5 right-0.5 w-4 h-4 rounded-full bg-rose-600 text-white text-[9px] font-bold flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                          title="Remove image"
+                          className="absolute top-1 right-1 w-6 h-6 rounded-full bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold flex items-center justify-center shadow-md transition-transform active:scale-90 cursor-pointer touch-manipulation z-10"
+                          title="Remove this angle"
                         >
                           ✕
                         </button>
                       </div>
-                    ))}
-                  </div>
-                )}
 
-                {/* Add new image: URL input + file upload */}
-                <div className="space-y-2 border border-dashed border-[var(--border-strong)] p-3 bg-[var(--bg-card)]">
-                  <span className="text-[10px] font-mono uppercase text-[var(--text-muted)] font-semibold block">
-                    Add Image (Angle {(newProductForm.images?.length || 0) + 1})
-                  </span>
+                      {/* Reorder and Set Cover Controls (Touch-Friendly on Phone & Web) */}
+                      <div className="flex items-center justify-between w-full mt-1.5 gap-1">
+                        <button
+                          type="button"
+                          disabled={idx === 0}
+                          onClick={() => {
+                            if (idx === 0) return;
+                            const copy = [...(newProductForm.images || [])];
+                            const temp = copy[idx - 1];
+                            copy[idx - 1] = copy[idx];
+                            copy[idx] = temp;
+                            setNewProductForm({ ...newProductForm, images: copy, modelImage: copy[0] });
+                          }}
+                          className="flex-1 py-1.5 sm:py-0.5 text-[11px] sm:text-[9px] font-mono font-bold border border-[var(--border-subtle)] disabled:opacity-20 hover:bg-[var(--bg-secondary)] active:bg-[var(--bg-secondary)] text-[var(--text-primary)] cursor-pointer touch-manipulation flex items-center justify-center min-h-[30px] sm:min-h-[22px] rounded-xs"
+                          title="Move angle left (earlier in gallery)"
+                        >
+                          ◀
+                        </button>
+                        {idx !== 0 ? (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const cur = [...(newProductForm.images || [])];
+                              const [chosen] = cur.splice(idx, 1);
+                              cur.unshift(chosen);
+                              setNewProductForm({ ...newProductForm, images: cur, modelImage: cur[0] });
+                              showToast('✓ Image set as front cover!');
+                            }}
+                            className="flex-1 py-1.5 sm:py-0.5 text-[9px] sm:text-[8px] font-mono uppercase bg-amber-500/15 border border-amber-500/40 text-amber-700 dark:text-amber-300 font-bold hover:bg-amber-500/30 active:bg-amber-500/30 cursor-pointer touch-manipulation flex items-center justify-center min-h-[30px] sm:min-h-[22px] rounded-xs"
+                            title="Make this angle the primary catalogue cover"
+                          >
+                            ★ Front
+                          </button>
+                        ) : (
+                          <span className="flex-1 text-[8px] sm:text-[7.5px] font-mono text-amber-600 dark:text-amber-400 font-bold text-center flex items-center justify-center">COVER</span>
+                        )}
+                        <button
+                          type="button"
+                          disabled={idx === (newProductForm.images || []).length - 1}
+                          onClick={() => {
+                            if (idx === (newProductForm.images || []).length - 1) return;
+                            const copy = [...(newProductForm.images || [])];
+                            const temp = copy[idx + 1];
+                            copy[idx + 1] = copy[idx];
+                            copy[idx] = temp;
+                            setNewProductForm({ ...newProductForm, images: copy, modelImage: copy[0] });
+                          }}
+                          className="flex-1 py-1.5 sm:py-0.5 text-[11px] sm:text-[9px] font-mono font-bold border border-[var(--border-subtle)] disabled:opacity-20 hover:bg-[var(--bg-secondary)] active:bg-[var(--bg-secondary)] text-[var(--text-primary)] cursor-pointer touch-manipulation flex items-center justify-center min-h-[30px] sm:min-h-[22px] rounded-xs"
+                          title="Move angle right (later in gallery)"
+                        >
+                          ▶
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                  {(newProductForm.images || []).length === 0 && (
+                    <span className="text-[10px] font-mono text-[var(--text-muted)] self-center p-2">
+                      No images attached — add at least one angle below
+                    </span>
+                  )}
+                </div>
+
+                {/* Add new angle controls */}
+                <div className="space-y-2 pt-1">
                   <div className="flex items-center gap-2">
                     <input
                       type="url"
-                      placeholder="Paste image URL (e.g. /products/name-1.jpg)"
+                      placeholder="Paste image URL (e.g. /products/name-2.jpg) then press Enter or click + Add"
                       value={newProductForm.newImageUrl || ''}
                       onChange={(e) => setNewProductForm({ ...newProductForm, newImageUrl: e.target.value })}
                       onKeyDown={(e) => {
@@ -7528,25 +8232,32 @@ function AdminView() {
                           e.preventDefault();
                           const url = (newProductForm.newImageUrl || '').trim();
                           if (url) {
-                            setNewProductForm({ ...newProductForm, images: [...(newProductForm.images || []), url], newImageUrl: '', modelImage: newProductForm.images?.length === 0 ? url : newProductForm.modelImage });
+                            const cur = newProductForm.images || [];
+                            const updated = [url, ...cur.filter((u) => u !== url)];
+                            setNewProductForm({ ...newProductForm, images: updated, modelImage: updated[0], newImageUrl: '' });
+                            showToast(`✓ Image angle added as primary cover (Angle 01)`);
                           }
                         }
                       }}
-                      className="flex-1 h-8 px-2 bg-[var(--bg-primary)] border border-[var(--border-subtle)] text-[11px] font-mono text-[var(--text-primary)] outline-none"
+                      className="flex-1 h-9 px-2.5 bg-[var(--bg-primary)] border border-[var(--border-strong)] text-[11px] font-mono text-[var(--text-primary)] outline-none"
                     />
                     <button
                       type="button"
                       onClick={() => {
                         const url = (newProductForm.newImageUrl || '').trim();
                         if (url) {
-                          setNewProductForm({ ...newProductForm, images: [...(newProductForm.images || []), url], newImageUrl: '', modelImage: newProductForm.images?.length === 0 ? url : newProductForm.modelImage });
+                          const cur = newProductForm.images || [];
+                          const updated = [url, ...cur.filter((u) => u !== url)];
+                          setNewProductForm({ ...newProductForm, images: updated, modelImage: updated[0], newImageUrl: '' });
+                          showToast(`✓ Image angle added as primary cover (Angle 01)`);
                         }
                       }}
-                      className="px-3 h-8 bg-[#1d4136] dark:bg-[#e6ca97] text-white dark:text-black text-[10px] font-mono font-bold uppercase shrink-0"
+                      className="px-4 h-9 bg-[#1d4136] dark:bg-[#e6ca97] text-white dark:text-black text-[10px] font-mono font-bold uppercase shrink-0 hover:opacity-90 active:scale-95 cursor-pointer touch-manipulation"
                     >
                       + Add
                     </button>
                   </div>
+
                   <div className="flex items-center gap-2">
                     <input
                       type="file"
@@ -8503,21 +9214,30 @@ function AdminView() {
       {/* EDIT PRODUCT MODAL */}
       {/* ========================================== */}
       {editingProduct && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="max-w-xl w-full bg-[var(--bg-card)] border border-[var(--border-strong)] p-6 sm:p-8 space-y-6 shadow-2xl">
-            <div className="flex items-center justify-between border-b border-[var(--border-subtle)] pb-3">
-              <h3 className="font-serif text-2xl text-[var(--text-primary)] font-normal">
-                Edit Creation Specs & Pricing
-              </h3>
+        <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 overflow-hidden">
+          <div className="max-w-2xl w-full max-h-[92vh] bg-[var(--bg-card)] border border-[var(--border-strong)] flex flex-col shadow-2xl overflow-hidden animate-fadeIn">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between border-b border-[var(--border-subtle)] p-5 sm:p-6 pb-4 shrink-0 bg-[var(--bg-card)]">
+              <div>
+                <h3 className="font-serif text-xl sm:text-2xl text-[var(--text-primary)] font-normal">
+                  Edit Creation Specs & Pricing
+                </h3>
+                <p className="text-[10px] font-mono text-[var(--text-muted)] mt-0.5">
+                  ID: {editingProduct.id} • Leftmost angle 01 appears as primary catalogue cover
+                </p>
+              </div>
               <button
+                type="button"
                 onClick={() => setEditingProduct(null)}
-                className="text-[var(--text-muted)] hover:text-[var(--text-primary)] text-xl"
+                className="p-1.5 text-[var(--text-muted)] hover:text-[var(--text-primary)] text-xl rounded hover:bg-[var(--bg-secondary)] transition-colors"
+                title="Close"
               >
                 ✕
               </button>
             </div>
 
-            <form onSubmit={handleSaveEdit} className="space-y-4 text-xs font-sans">
+            {/* Scrollable Form Body */}
+            <form onSubmit={handleSaveEdit} className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-5 text-xs font-sans custom-scrollbar">
               <div>
                 <label className="block font-bold tracking-wider uppercase text-[var(--text-muted)] mb-1">
                   Name
@@ -8581,7 +9301,7 @@ function AdminView() {
                         categorySlug: slugMap[newCat] || newCat,
                       });
                     }}
-                    className="w-full h-10 px-3 bg-[var(--bg-primary)] border border-[var(--border-strong)] text-[var(--text-primary)] outline-none"
+                    className="w-full h-10 px-3 bg-[var(--bg-primary)] border border-[var(--border-strong)] text-[var(--text-primary)] outline-none cursor-pointer"
                   >
                     <option value="minimalist">Minimalist Jewellery</option>
                     <option value="statement">Statement Jewellery</option>
@@ -8598,7 +9318,7 @@ function AdminView() {
                   <select
                     value={editingProduct.silhouette || 'light'}
                     onChange={(e) => setEditingProduct({ ...editingProduct, silhouette: e.target.value })}
-                    className="w-full h-10 px-3 bg-[var(--bg-primary)] border border-[var(--border-strong)] text-[var(--text-primary)] outline-none"
+                    className="w-full h-10 px-3 bg-[var(--bg-primary)] border border-[var(--border-strong)] text-[var(--text-primary)] outline-none cursor-pointer"
                   >
                     <option value="light">Light (Everyday Wear)</option>
                     <option value="heavy">Heavy (Statement Presence)</option>
@@ -8606,30 +9326,94 @@ function AdminView() {
                 </div>
               </div>
 
+              {/* Tag in Collections */}
               <div>
                 <label className="block font-bold tracking-wider uppercase text-[var(--text-muted)] mb-1">
                   Tag in Collections
                 </label>
-                <div className="flex flex-wrap gap-1.5 p-2 bg-[var(--bg-primary)] border border-[var(--border-strong)]">
-                  {['new-arrivals', 'minimalist', 'statement', 'moissanite', 'pearl', 'gifting'].map((colKey) => {
-                    const isTagged = Array.isArray(editingProduct.collections) && editingProduct.collections.includes(colKey);
+                <div className="flex flex-wrap gap-1.5 p-2.5 bg-[var(--bg-primary)] border border-[var(--border-strong)]">
+                  {[
+                    { id: 'new-arrivals', label: 'New Arrivals' },
+                    { id: 'minimalist', label: 'Minimalist' },
+                    { id: 'statement', label: 'Statement' },
+                    { id: 'moissanite', label: 'Moissanite' },
+                    { id: 'pearl', label: 'Pearl' },
+                    { id: 'gifting', label: 'Gifting' },
+                  ].map((col) => {
+                    const isTagged = Array.isArray(editingProduct.collections) && editingProduct.collections.includes(col.id);
                     return (
                       <button
-                        key={colKey}
+                        key={col.id}
                         type="button"
                         onClick={() => {
                           const cur = Array.isArray(editingProduct.collections) ? [...editingProduct.collections] : [];
-                          const next = isTagged ? cur.filter((c) => c !== colKey) : [...cur, colKey];
-                          setEditingProduct({ ...editingProduct, collections: next });
+                          const next = isTagged ? cur.filter((c) => c !== col.id) : [...cur, col.id];
+                          setEditingProduct({
+                            ...editingProduct,
+                            collections: next,
+                            ...(col.id === 'new-arrivals' ? { isNew: !isTagged } : {}),
+                          });
                         }}
-                        className={`px-2 py-1 text-[10px] font-mono uppercase rounded transition-colors ${
+                        className={`px-2.5 py-1 text-[10.5px] font-mono uppercase rounded transition-colors cursor-pointer ${
                           isTagged
-                            ? 'bg-[#1d4136] dark:bg-[#e6ca97] text-white dark:text-black font-bold'
+                            ? 'bg-[#1d4136] dark:bg-[#e6ca97] text-white dark:text-black font-bold shadow-xs'
                             : 'bg-[var(--bg-secondary)] text-[var(--text-muted)] border border-[var(--border-subtle)] hover:border-[var(--border-strong)]'
                         }`}
                       >
                         {isTagged ? '✓ ' : '+ '}
-                        {colKey.replace('-', ' ')}
+                        {col.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Taxonomy & Item Type Tags (Dynamic Filter Pills) */}
+              <div>
+                <label className="block font-bold tracking-wider uppercase text-[var(--text-muted)] mb-1">
+                  Taxonomy & Subcategory Tags (Storefront Filter Pills)
+                </label>
+                <div className="flex flex-wrap gap-1.5 p-2.5 bg-[var(--bg-primary)] border border-[var(--border-strong)]">
+                  {[
+                    { id: 'new', label: 'New Launch' },
+                    { id: 'necklaces', label: 'Necklaces' },
+                    { id: 'earrings', label: 'Earrings' },
+                    { id: 'rings', label: 'Rings' },
+                    { id: 'bracelets', label: 'Bracelets' },
+                    { id: 'sets', label: 'Sets' },
+                    { id: 'anklets', label: 'Anklets' },
+                    { id: 'gra-certified', label: 'GRA Certified Jewellery' },
+                    { id: 'freshwater-pearls', label: 'Freshwater Pearl Jewellery' },
+                    { id: 'rakhi', label: 'Rakhi' },
+                    { id: 'birthday', label: 'Birthday' },
+                    { id: 'anniversary', label: 'Anniversary' },
+                    { id: 'bridesmaid', label: 'Bridesmaid' },
+                  ].map((tag) => {
+                    const isTagged = Array.isArray(editingProduct.tags) && editingProduct.tags.includes(tag.id);
+                    return (
+                      <button
+                        key={tag.id}
+                        type="button"
+                        onClick={() => {
+                          const cur = Array.isArray(editingProduct.tags) ? [...editingProduct.tags] : [];
+                          const next = isTagged ? cur.filter((t) => t !== tag.id) : [...cur, tag.id];
+                          setEditingProduct({
+                            ...editingProduct,
+                            tags: next,
+                            ...(tag.id === 'new' ? { isNew: !isTagged } : {}),
+                            subcategory: ['necklaces', 'earrings', 'rings', 'bracelets', 'sets', 'anklets'].includes(tag.id) && !isTagged
+                              ? tag.id
+                              : editingProduct.subcategory,
+                          });
+                        }}
+                        className={`px-2.5 py-1 text-[10.5px] font-mono uppercase rounded transition-colors cursor-pointer ${
+                          isTagged
+                            ? 'bg-[#b99762] text-white font-bold shadow-xs'
+                            : 'bg-[var(--bg-secondary)] text-[var(--text-muted)] border border-[var(--border-subtle)] hover:border-[var(--border-strong)]'
+                        }`}
+                      >
+                        {isTagged ? '✓ ' : '+ '}
+                        {tag.label}
                       </button>
                     );
                   })}
@@ -8643,7 +9427,7 @@ function AdminView() {
                   </label>
                   <input
                     type="text"
-                    value={editingProduct.goldPurity || editingProduct.material}
+                    value={editingProduct.goldPurity || editingProduct.material || ''}
                     onChange={(e) => setEditingProduct({ ...editingProduct, goldPurity: e.target.value })}
                     className="w-full h-10 px-3 bg-[var(--bg-primary)] border border-[var(--border-strong)] text-[var(--text-primary)] outline-none"
                   />
@@ -8661,105 +9445,188 @@ function AdminView() {
                 </div>
               </div>
 
-              {/* Image Gallery Manager */}
-              <div className="space-y-3">
-                <label className="block font-bold tracking-wider uppercase text-[var(--text-muted)] mb-1">
-                  Studio Image Gallery ({editingProduct.images?.length || 0} angles)
-                </label>
-                {/* Existing images */}
-                <div className="flex flex-wrap gap-2 p-2 bg-[var(--bg-primary)] border border-[var(--border-strong)] min-h-[56px]">
+              {/* Studio Image Gallery Manager with Reordering & Removal */}
+              <div className="space-y-3 p-3.5 bg-[var(--bg-secondary)] border border-[var(--border-strong)]">
+                <div className="flex items-center justify-between">
+                  <label className="block font-bold tracking-wider uppercase text-[var(--text-primary)] text-xs flex items-center gap-1.5">
+                    <UploadCloud className="w-4 h-4 text-[#b99762]" />
+                    Studio Image Gallery ({editingProduct.images?.length || 0} angles)
+                  </label>
+                  <span className="text-[10px] font-mono text-[var(--text-muted)]">
+                    Leftmost is catalogue cover
+                  </span>
+                </div>
+
+                {/* Existing angles card strip with Reorder & Remove buttons */}
+                <div className="flex flex-wrap gap-3 p-2 bg-[var(--bg-primary)] border border-[var(--border-subtle)] min-h-[70px]">
                   {(editingProduct.images || []).map((imgUrl, idx) => (
-                    <div key={idx} className="relative group">
-                      <img
-                        src={imgUrl}
-                        alt={`Angle ${idx + 1}`}
-                        className="w-14 h-16 object-cover border border-[var(--border-subtle)] bg-[var(--bg-stone)]"
-                      />
-                      <span className="absolute bottom-0.5 left-0.5 text-[7px] font-mono bg-black/80 text-white px-1">0{idx + 1}</span>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const updated = (editingProduct.images || []).filter((_, i) => i !== idx);
-                          setEditingProduct({ ...editingProduct, images: updated });
-                        }}
-                        className="absolute top-0.5 right-0.5 w-3.5 h-3.5 rounded-full bg-rose-600 text-white text-[8px] font-bold flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                        title="Remove"
-                      >
-                        ✕
-                      </button>
+                    <div key={idx} className="relative flex flex-col items-center bg-[var(--bg-card)] border border-[var(--border-strong)] p-1.5 shadow-xs rounded-xs">
+                      <div className="relative w-20 h-24 sm:w-24 sm:h-28 overflow-hidden bg-[var(--bg-stone)] border border-[var(--border-subtle)]">
+                        <img
+                          src={imgUrl}
+                          alt={`Angle ${idx + 1}`}
+                          className="w-full h-full object-cover"
+                        />
+                        <span className={`absolute bottom-0.5 left-0.5 text-[7.5px] font-mono px-1 font-bold ${idx === 0 ? 'bg-amber-500 text-black' : 'bg-black/80 text-white'}`}>
+                          {idx === 0 ? 'COVER 01' : `0${idx + 1}`}
+                        </span>
+                        {/* Always-visible Remove Button */}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const updated = (editingProduct.images || []).filter((_, i) => i !== idx);
+                            setEditingProduct({
+                              ...editingProduct,
+                              images: updated,
+                              modelImage: updated[0] || '',
+                            });
+                          }}
+                          className="absolute top-1 right-1 w-6 h-6 rounded-full bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold flex items-center justify-center shadow-md transition-transform active:scale-90 cursor-pointer touch-manipulation z-10"
+                          title="Remove this angle"
+                        >
+                          ✕
+                        </button>
+                      </div>
+
+                      {/* Reorder and Set Cover Controls (Touch-Friendly on Phone & Web) */}
+                      <div className="flex items-center justify-between w-full mt-1.5 gap-1">
+                        <button
+                          type="button"
+                          disabled={idx === 0}
+                          onClick={() => {
+                            if (idx === 0) return;
+                            const copy = [...(editingProduct.images || [])];
+                            const temp = copy[idx - 1];
+                            copy[idx - 1] = copy[idx];
+                            copy[idx] = temp;
+                            setEditingProduct({ ...editingProduct, images: copy, modelImage: copy[0] });
+                          }}
+                          className="flex-1 py-1.5 sm:py-0.5 text-[11px] sm:text-[9px] font-mono font-bold border border-[var(--border-subtle)] disabled:opacity-20 hover:bg-[var(--bg-secondary)] active:bg-[var(--bg-secondary)] text-[var(--text-primary)] cursor-pointer touch-manipulation flex items-center justify-center min-h-[30px] sm:min-h-[22px] rounded-xs"
+                          title="Move angle left (earlier in gallery)"
+                        >
+                          ◀
+                        </button>
+                        {idx !== 0 ? (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const cur = [...(editingProduct.images || [])];
+                              const [chosen] = cur.splice(idx, 1);
+                              cur.unshift(chosen);
+                              setEditingProduct({ ...editingProduct, images: cur, modelImage: cur[0] });
+                              showToast('✓ Image set as front cover!');
+                            }}
+                            className="flex-1 py-1.5 sm:py-0.5 text-[9px] sm:text-[8px] font-mono uppercase bg-amber-500/15 border border-amber-500/40 text-amber-700 dark:text-amber-300 font-bold hover:bg-amber-500/30 active:bg-amber-500/30 cursor-pointer touch-manipulation flex items-center justify-center min-h-[30px] sm:min-h-[22px] rounded-xs"
+                            title="Make this angle the primary catalogue cover"
+                          >
+                            ★ Front
+                          </button>
+                        ) : (
+                          <span className="flex-1 text-[8px] sm:text-[7.5px] font-mono text-amber-600 dark:text-amber-400 font-bold text-center flex items-center justify-center">COVER</span>
+                        )}
+                        <button
+                          type="button"
+                          disabled={idx === (editingProduct.images || []).length - 1}
+                          onClick={() => {
+                            if (idx === (editingProduct.images || []).length - 1) return;
+                            const copy = [...(editingProduct.images || [])];
+                            const temp = copy[idx + 1];
+                            copy[idx + 1] = copy[idx];
+                            copy[idx] = temp;
+                            setEditingProduct({ ...editingProduct, images: copy, modelImage: copy[0] });
+                          }}
+                          className="flex-1 py-1.5 sm:py-0.5 text-[11px] sm:text-[9px] font-mono font-bold border border-[var(--border-subtle)] disabled:opacity-20 hover:bg-[var(--bg-secondary)] active:bg-[var(--bg-secondary)] text-[var(--text-primary)] cursor-pointer touch-manipulation flex items-center justify-center min-h-[30px] sm:min-h-[22px] rounded-xs"
+                          title="Move angle right (later in gallery)"
+                        >
+                          ▶
+                        </button>
+                      </div>
                     </div>
                   ))}
                   {(editingProduct.images || []).length === 0 && (
-                    <span className="text-[10px] font-mono text-[var(--text-muted)] self-center">No images — add at least one below</span>
+                    <span className="text-[10px] font-mono text-[var(--text-muted)] self-center p-2">
+                      No images attached — add at least one angle below
+                    </span>
                   )}
                 </div>
-                {/* Add URL */}
-                <div className="flex items-center gap-2">
-                  <input
-                    type="url"
-                    placeholder="Paste image URL (e.g. /products/name-2.jpg) then press Enter or click +"
-                    value={editingProduct._newImageUrl || ''}
-                    onChange={(e) => setEditingProduct({ ...editingProduct, _newImageUrl: e.target.value })}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        e.preventDefault();
+
+                {/* Add new angle controls */}
+                <div className="space-y-2 pt-1">
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="url"
+                      placeholder="Paste image URL (e.g. /products/name-2.jpg) then press Enter or click + Add"
+                      value={editingProduct._newImageUrl || ''}
+                      onChange={(e) => setEditingProduct({ ...editingProduct, _newImageUrl: e.target.value })}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          const url = (editingProduct._newImageUrl || '').trim();
+                          if (url) {
+                            const cur = editingProduct.images || [];
+                            const updated = [url, ...cur.filter((u) => u !== url)];
+                            setEditingProduct({ ...editingProduct, images: updated, modelImage: updated[0], _newImageUrl: '' });
+                            showToast(`✓ Image angle added as primary cover (Angle 01)`);
+                          }
+                        }
+                      }}
+                      className="flex-1 h-9 px-2.5 bg-[var(--bg-primary)] border border-[var(--border-strong)] text-[11px] font-mono text-[var(--text-primary)] outline-none"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
                         const url = (editingProduct._newImageUrl || '').trim();
                         if (url) {
-                          setEditingProduct({ ...editingProduct, images: [...(editingProduct.images || []), url], _newImageUrl: '' });
+                          const cur = editingProduct.images || [];
+                          const updated = [url, ...cur.filter((u) => u !== url)];
+                          setEditingProduct({ ...editingProduct, images: updated, modelImage: updated[0], _newImageUrl: '' });
+                          showToast(`✓ Image angle added as primary cover (Angle 01)`);
                         }
-                      }
-                    }}
-                    className="flex-1 h-8 px-2 bg-[var(--bg-primary)] border border-[var(--border-strong)] text-[11px] font-mono text-[var(--text-primary)] outline-none"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const url = (editingProduct._newImageUrl || '').trim();
-                      if (url) {
-                        setEditingProduct({ ...editingProduct, images: [...(editingProduct.images || []), url], _newImageUrl: '' });
-                        showToast(`✓ Image added (angle ${(editingProduct.images?.length || 0) + 1})`);
-                      }
-                    }}
-                    className="px-3 h-8 bg-[#1d4136] dark:bg-[#e6ca97] text-white dark:text-black text-[10px] font-mono font-bold uppercase shrink-0"
-                  >
-                    + Add
-                  </button>
-                </div>
-                {/* File upload for editing */}
-                <div className="flex items-center gap-2">
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) => handleFileUpload(e, 'edit')}
-                    className="text-xs text-[var(--text-secondary)] file:mr-2 file:py-1 file:px-2 file:border file:border-[var(--border-strong)] file:text-[10px] file:font-mono file:uppercase file:bg-[var(--bg-secondary)] file:text-[var(--text-primary)] file:cursor-pointer cursor-pointer"
-                  />
-                  <span className="text-[10px] font-mono text-[var(--text-muted)]">Or upload new angle</span>
+                      }}
+                      className="px-4 h-9 bg-[#1d4136] dark:bg-[#e6ca97] text-white dark:text-black text-[10px] font-mono font-bold uppercase shrink-0 hover:opacity-90 active:scale-95 cursor-pointer touch-manipulation"
+                    >
+                      + Add
+                    </button>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => handleFileUpload(e, 'edit')}
+                      className="text-xs text-[var(--text-secondary)] file:mr-2 file:py-1 file:px-2 file:border file:border-[var(--border-strong)] file:text-[10px] file:font-mono file:uppercase file:bg-[var(--bg-secondary)] file:text-[var(--text-primary)] file:cursor-pointer cursor-pointer"
+                    />
+                    <span className="text-[10px] font-mono text-[var(--text-muted)]">Or upload file directly</span>
+                  </div>
                 </div>
               </div>
 
-              <div>
-                <label className="block font-bold tracking-wider uppercase text-[var(--text-muted)] mb-1">
-                  Description
+              {/* Description field */}
+              <div className="space-y-1">
+                <label className="block font-bold tracking-wider uppercase text-[var(--text-muted)]">
+                  Description & Craft Notes
                 </label>
                 <textarea
-                  rows={3}
-                  value={editingProduct.description}
+                  rows={4}
+                  value={editingProduct.description || ''}
                   onChange={(e) => setEditingProduct({ ...editingProduct, description: e.target.value })}
-                  className="w-full p-2.5 bg-[var(--bg-primary)] border border-[var(--border-strong)] text-[var(--text-primary)] outline-none"
+                  placeholder="Enter detailed piece description for PDP..."
+                  className="w-full p-3 bg-[var(--bg-primary)] border border-[var(--border-strong)] text-[var(--text-primary)] outline-none font-sans leading-relaxed"
                 />
               </div>
 
-              <div className="pt-2 flex justify-end gap-3">
+              {/* Sticky Action Buttons Footer */}
+              <div className="sticky bottom-0 bg-[var(--bg-card)]/95 backdrop-blur-md pt-3 pb-1 border-t border-[var(--border-subtle)] flex justify-end gap-3 shrink-0">
                 <button
                   type="button"
                   onClick={() => setEditingProduct(null)}
-                  className="px-5 py-2.5 border border-[var(--border-strong)] text-[var(--text-secondary)] font-bold uppercase tracking-wider"
+                  className="px-5 py-2.5 border border-[var(--border-strong)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] font-bold uppercase tracking-wider hover:bg-[var(--bg-secondary)] transition-colors cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-6 py-2.5 bg-[#1d4136] dark:bg-[#e6ca97] text-white dark:text-black font-bold uppercase tracking-wider hover:bg-[#132f27]"
+                  className="px-6 py-2.5 bg-[#1d4136] dark:bg-[#e6ca97] text-white dark:text-black font-bold uppercase tracking-wider hover:bg-[#132f27] dark:hover:bg-[#d4b980] transition-colors shadow-md cursor-pointer"
                 >
                   Save Changes
                 </button>
@@ -8887,9 +9754,11 @@ function BrandPolicyModal() {
                   <span className="text-[10px] font-mono uppercase tracking-[0.22em] text-[#1d4136] dark:text-[#e6ca97] font-bold block">
                     THE VISION & NOBLE METALLURGY
                   </span>
-                  <p className="font-sans text-xs sm:text-sm text-[var(--text-secondary)] leading-relaxed">
-                    {OUR_STORY.body}
-                  </p>
+                  <div className="border-l-2 border-[#b38f56] dark:border-[#e6ca97]/70 pl-4 py-1">
+                    <p className="font-editorial text-sm sm:text-base text-[var(--text-secondary)] leading-relaxed">
+                      {OUR_STORY.body}
+                    </p>
+                  </div>
                 </div>
 
                 {/* The 5 Manifesto Principles / Pillars */}
@@ -9066,7 +9935,7 @@ function Footer() {
   };
 
   return (
-    <footer className="bg-[#0B1410] text-[#EAE5DB] border-t border-[#b99762]/30 pt-12 sm:pt-20 pb-10 sm:pb-12 transition-colors duration-300">
+    <footer className="bg-[#0d281e] text-[#fbf8f3] dark:bg-[#08120e] dark:text-[#EAE5DB] border-t-2 border-[#b99762]/40 pt-12 sm:pt-20 pb-10 sm:pb-12 transition-colors duration-300 shadow-2xl">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-12">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 lg:gap-14 pb-16 border-b border-[#1d4136]/60">
           

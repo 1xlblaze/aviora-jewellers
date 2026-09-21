@@ -1,21 +1,23 @@
 @import "tailwindcss";
+@custom-variant dark (&:where(.dark, .dark *));
 
 :root {
-  --bg-primary: #fbf8f3;
-  --bg-secondary: #f4eee5;
-  --bg-card: #fffdfa;
-  --bg-stone: #e5ded3;
-  --text-primary: #242321;
-  --text-secondary: #4f4a44;
-  --text-muted: #9a8e80;
-  --brand-forest: #1d4136;
-  --brand-forest-dark: #132f27;
-  --brand-forest-light: #2a5849;
-  --brand-gold: #b99762;
-  --brand-gold-soft: #d8c39f;
-  --border-subtle: rgba(36, 35, 33, 0.12);
-  --border-strong: rgba(36, 35, 33, 0.24);
-  --badge-bg: #fbf8f3;
+  /* Warm Luxury Champagne Alabaster & Silk Ivory Palette */
+  --bg-primary: #f6f2ea;
+  --bg-secondary: #eee7db;
+  --bg-card: #fdfbf7;
+  --bg-stone: #e5ded2;
+  --text-primary: #1c1b18;
+  --text-secondary: #4a453e;
+  --text-muted: #8c8275;
+  --brand-forest: #0d281e;
+  --brand-forest-dark: #081a13;
+  --brand-forest-light: #1b4535;
+  --brand-gold: #b38f56;
+  --brand-gold-soft: #d4bf98;
+  --border-subtle: rgba(70, 56, 36, 0.12);
+  --border-strong: rgba(70, 56, 36, 0.22);
+  --badge-bg: #f6f2ea;
 }
 
 .dark {
@@ -37,16 +39,37 @@
 }
 
 @layer base {
+  html {
+    overflow-x: clip;
+    max-width: 100vw;
+  }
   body {
     background-color: var(--bg-primary);
     color: var(--text-primary);
     font-family: 'Manrope', 'DM Sans', -apple-system, sans-serif;
-    overflow-x: hidden;
+    overflow-x: clip;
+    max-width: 100vw;
     transition: background-color 260ms ease, color 260ms ease;
+  }
+  #root {
+    overflow-x: clip;
+    max-width: 100vw;
   }
 
   h1, h2, h3, .font-serif {
     font-family: 'Italiana', 'Playfair Display', 'Cinzel', Georgia, serif;
+  }
+
+  .font-playfair {
+    font-family: 'Playfair Display', Georgia, serif;
+  }
+
+  .font-italiana {
+    font-family: 'Italiana', Georgia, serif;
+  }
+
+  .font-cinzel {
+    font-family: 'Cinzel', Georgia, serif;
   }
 
   .font-script {
@@ -55,6 +78,19 @@
 
   .font-mono {
     font-family: 'Space Mono', monospace;
+  }
+
+  .font-editorial {
+    font-family: 'Playfair Display', 'Italiana', Georgia, serif;
+    font-style: italic;
+    line-height: 1.85;
+    letter-spacing: 0.01em;
+  }
+
+  .editorial-quote {
+    font-family: 'Playfair Display', Georgia, serif;
+    font-style: italic;
+    line-height: 1.8;
   }
 }
 

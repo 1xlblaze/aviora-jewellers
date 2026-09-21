@@ -75,6 +75,7 @@ export interface Product {
   categoryName: string;
   hallmark: string; // Noble metal specification & purity (NO BIS hallmark)
   warranty: string; // 30-Day Manufacturing Warranty
+  tags?: string[];
   
   // Cart Drawer Upsell
   pairsWithId?: string;
@@ -116,6 +117,7 @@ export const STORE_CONFIG = {
     { id: 'statement', label: 'Statement Jewellery', image: '/products/freshwater-pearl-three-layer-zircon-necklace-1.jpg', alt: 'Bold statement jewellery' },
     { id: 'moissanite', label: 'Moissanite Collection', image: '/products/14k-gold-plated-vvs-moissanite-ring-5300-1.jpg', alt: 'Brilliant moissanite jewellery' },
     { id: 'pearl', label: 'Pearl Collection', image: '/products/clover-freshwater-pearl-blue-apatite-necklace-1.jpg', alt: 'Freshwater pearl jewellery' },
+    { id: 'gifting', label: 'Gifting Occasions', image: '/products/emerald-green-white-cz-tennis-bracelet-1.jpg', alt: 'Gifting jewellery heirlooms' },
   ],
   collections: [
     { id: 'new-arrivals', label: 'New Arrivals' },
@@ -123,6 +125,7 @@ export const STORE_CONFIG = {
     { id: 'statement', label: 'Statement Jewellery' },
     { id: 'moissanite', label: 'Moissanite Collection' },
     { id: 'pearl', label: 'Freshwater Pearls' },
+    { id: 'gifting', label: 'Gifting Occasions' },
   ],
   gifting: {
     title: 'Handcrafted with devotion. Made to be cherished.',
@@ -632,6 +635,7 @@ export const CATEGORIES: Category[] = [
       { id: 'min-earrings', name: 'Earrings', slug: 'earrings' },
       { id: 'min-rings', name: 'Rings', slug: 'rings' },
       { id: 'min-bracelets', name: 'Bracelets', slug: 'bracelets' },
+      { id: 'min-sets', name: 'Sets', slug: 'sets' },
       { id: 'min-anklets', name: 'Anklets', slug: 'anklets' },
     ],
   },
@@ -644,9 +648,10 @@ export const CATEGORIES: Category[] = [
     subcategories: [
       { id: 'stmt-necklaces', name: 'Necklaces', slug: 'necklaces' },
       { id: 'stmt-earrings', name: 'Earrings', slug: 'earrings' },
-      { id: 'stmt-bracelets', name: 'Bracelets', slug: 'bracelets' },
       { id: 'stmt-rings', name: 'Rings', slug: 'rings' },
-      { id: 'stmt-sets', name: 'Sets', slug: 'jewellery-sets' },
+      { id: 'stmt-bracelets', name: 'Bracelets', slug: 'bracelets' },
+      { id: 'stmt-sets', name: 'Sets', slug: 'sets' },
+      { id: 'stmt-anklets', name: 'Anklets', slug: 'anklets' },
     ],
   },
   {
@@ -656,7 +661,11 @@ export const CATEGORIES: Category[] = [
     description: 'D Colorless VVS1 brilliance crafted in Fine 925 Sterling Silver.',
     heroImage: '/products/14k-gold-plated-vvs-moissanite-ring-5300-1.jpg',
     subcategories: [
-      { id: 'brilliant-moissanite', name: 'Brilliant Moissanite Jewellery', slug: 'moissanite' },
+      { id: 'moiss-gra', name: 'GRA Certified Jewellery', slug: 'gra-certified' },
+      { id: 'moiss-rings', name: 'Rings', slug: 'rings' },
+      { id: 'moiss-bracelets', name: 'Bracelets', slug: 'bracelets' },
+      { id: 'moiss-earrings', name: 'Earrings', slug: 'earrings' },
+      { id: 'moiss-necklaces', name: 'Necklaces', slug: 'necklaces' },
     ],
   },
   {
@@ -666,7 +675,10 @@ export const CATEGORIES: Category[] = [
     description: 'Hand-selected organic Grade-AAA freshwater pearls with luminous, timeless luster.',
     heroImage: '/products/clover-freshwater-pearl-blue-apatite-necklace-1.jpg',
     subcategories: [
-      { id: 'freshwater-pearl', name: 'Freshwater Pearl Jewellery', slug: 'freshwater-pearls' },
+      { id: 'pearl-freshwater', name: 'Freshwater Pearl Jewellery', slug: 'freshwater-pearls' },
+      { id: 'pearl-bracelets', name: 'Bracelets', slug: 'bracelets' },
+      { id: 'pearl-necklaces', name: 'Necklaces', slug: 'necklaces' },
+      { id: 'pearl-earrings', name: 'Earrings', slug: 'earrings' },
     ],
   },
   {
@@ -949,6 +961,12 @@ export const PRODUCTS: Product[] = [
       "minimalist",
       "new-arrivals"
     ],
+    "tags": [
+      "rings",
+      "gra-certified",
+      "moissanite",
+      "minimalist"
+    ],
     "finish": "Mirror Polish",
     "colour": "Whitish Gold & Colorless Moissanite",
     "isNew": true,
@@ -1046,6 +1064,12 @@ export const PRODUCTS: Product[] = [
       "statement",
       "new-arrivals"
     ],
+    "tags": [
+      "bracelets",
+      "gra-certified",
+      "moissanite",
+      "statement"
+    ],
     "finish": "Rhodium Mirror Finish",
     "colour": "Silver & D Colorless Moissanite",
     "isNew": true,
@@ -1053,10 +1077,10 @@ export const PRODUCTS: Product[] = [
     "dimensions": "Length: 7.0 Inches | Stone Width: 3.0mm",
     "craftsmanship": "Hand-set 4-prong collets with precision articulated links and double-click safety clasp.",
     "images": [
-      "/products/moissanite-tennis-bracelet-3mm-9450-1.jpg",
-      "/products/moissanite-tennis-bracelet-3mm-9450-2.jpg"
+      "/products/moissanite-tennis-bracelet-3mm-9450-2.jpg",
+      "/products/moissanite-tennis-bracelet-3mm-9450-1.jpg"
     ],
-    "modelImage": "/products/moissanite-tennis-bracelet-3mm-9450-1.jpg",
+    "modelImage": "/products/moissanite-tennis-bracelet-3mm-9450-2.jpg",
     "featured": true,
     "inStock": true,
     "inventory": 2,
@@ -1331,6 +1355,7 @@ export const PRODUCTS: Product[] = [
     "silhouette": "light",
     "materials": [
       "freshwater-pearl",
+      "freshwater-pearls",
       "mother-of-pearl",
       "gold-plated-14k",
       "sterling-silver-925"
@@ -1339,6 +1364,12 @@ export const PRODUCTS: Product[] = [
       "pearl",
       "minimalist",
       "new-arrivals"
+    ],
+    "tags": [
+      "bracelets",
+      "freshwater-pearls",
+      "minimalist",
+      "pearl"
     ],
     "finish": "High Polish Vermeil",
     "colour": "Whitish Gold & Iridescent Pearl",
