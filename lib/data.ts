@@ -850,6 +850,7 @@ export const PRODUCTS: Product[] = [
       "sterling-silver-925"
     ],
     "collections": [
+      "new-arrivals",
       "minimalist",
       "statement"
     ],
@@ -896,6 +897,7 @@ export const PRODUCTS: Product[] = [
       "sterling-silver-925"
     ],
     "collections": [
+      "new-arrivals",
       "minimalist",
       "gifting"
     ],
@@ -992,6 +994,7 @@ export const PRODUCTS: Product[] = [
       "sterling-silver-925"
     ],
     "collections": [
+      "new-arrivals",
       "minimalist",
       "gifting"
     ],
@@ -1186,6 +1189,7 @@ export const PRODUCTS: Product[] = [
       "sterling-silver-925"
     ],
     "collections": [
+      "new-arrivals",
       "statement",
       "gifting"
     ],
@@ -1282,6 +1286,7 @@ export const PRODUCTS: Product[] = [
       "rhodium-plated"
     ],
     "collections": [
+      "new-arrivals",
       "moissanite",
       "statement"
     ],
@@ -1378,6 +1383,7 @@ export const PRODUCTS: Product[] = [
       "sterling-silver-925"
     ],
     "collections": [
+      "new-arrivals",
       "statement",
       "gifting"
     ],
@@ -1424,6 +1430,7 @@ export const PRODUCTS: Product[] = [
       "sterling-silver-925"
     ],
     "collections": [
+      "new-arrivals",
       "statement",
       "gifting"
     ],
@@ -1470,6 +1477,7 @@ export const PRODUCTS: Product[] = [
       "sterling-silver-925"
     ],
     "collections": [
+      "new-arrivals",
       "minimalist",
       "gifting"
     ],
@@ -1561,6 +1569,7 @@ export const PRODUCTS: Product[] = [
       "sterling-silver-925"
     ],
     "collections": [
+      "new-arrivals",
       "minimalist",
       "gifting"
     ],
@@ -1654,6 +1663,7 @@ export const PRODUCTS: Product[] = [
       "sterling-silver-925"
     ],
     "collections": [
+      "new-arrivals",
       "statement",
       "gifting"
     ],
@@ -1798,6 +1808,7 @@ export const PRODUCTS: Product[] = [
       "sterling-silver-925"
     ],
     "collections": [
+      "new-arrivals",
       "moissanite",
       "minimalist",
       "gifting"

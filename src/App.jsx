@@ -387,6 +387,10 @@ function AppProvider({ children }) {
     showToast('Patron session signed out securely.');
   };
 
+  // Patron Auth Modal State for customer login before cart addition
+  const [patronAuthModalOpen, setPatronAuthModalOpen] = useState(false);
+  const [pendingCartAction, setPendingCartAction] = useState(null);
+
   // Ensure store owner / staff is NEVER auto-logged in from stale storage
   useEffect(() => {
     try {
@@ -617,47 +621,9 @@ function AppProvider({ children }) {
   const scrollToSpectrum = (silhouette = null) => {
     if (silhouette) {
       setSilhouetteFilter(silhouette);
-    }
-    const attemptScroll = () => {
-      const el = document.getElementById('light-heavy-spectrum');
-      if (el) {
-        const headerOffset = 75;
-        const currentY = window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop || 0;
-        const elementPosition = el.getBoundingClientRect().top;
-        const offsetPosition = Math.max(0, elementPosition + currentY - headerOffset);
-        try {
-          window.scrollTo({
-            top: offsetPosition,
-            behavior: 'smooth',
-          });
-        } catch {
-          window.scrollTo(0, offsetPosition);
-        }
-        if (typeof el.scrollIntoView === 'function') {
-          el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }
-        setTimeout(() => {
-          const actualY = window.pageYOffset || document.documentElement.scrollTop || 0;
-          if (Math.abs(actualY - offsetPosition) > 150) {
-            window.scrollTo({ top: offsetPosition, behavior: 'auto' });
-          }
-        }, 350);
-        return true;
-      }
-      return false;
-    };
-
-    if (currentView === 'home') {
-      attemptScroll();
+      navigate('atelier', { silhouetteFilter: silhouette });
     } else {
-      navigate('home', null, false);
-      let attempts = 0;
-      const timer = setInterval(() => {
-        attempts++;
-        if (attemptScroll() || attempts > 30) {
-          clearInterval(timer);
-        }
-      }, 50);
+      navigate('atelier');
     }
   };
 
@@ -682,6 +648,13 @@ function AppProvider({ children }) {
   }, [rawCart, products]);
 
   const addToCart = (product, quantity = 1, engraving = '') => {
+    // Enforce patron customer authentication before adding to cart
+    if (!patronUser) {
+      setPendingCartAction({ product, quantity, engraving });
+      setPatronAuthModalOpen(true);
+      showToast('✦ Patron Sign-in Required: Please sign in to add pieces to your bag');
+      return;
+    }
     setRawCart((prev) => {
       const existingIdx = prev.findIndex(
         (item) => item.productId === product.id && (item.engraving || '') === engraving
@@ -901,6 +874,7 @@ function AppProvider({ children }) {
         navigate,
         scrollToSpectrum,
         cart,
+        setRawCart,
         addToCart,
         removeFromCart,
         updateQuantity,
@@ -942,6 +916,10 @@ function AppProvider({ children }) {
         loginPatron,
         logoutPatron,
         syncOrdersFromDb,
+        patronAuthModalOpen,
+        setPatronAuthModalOpen,
+        pendingCartAction,
+        setPendingCartAction,
         // Policy Modal Features
         policyModalOpen,
         setPolicyModalOpen,
@@ -1029,6 +1007,8 @@ function Navbar() {
     openPolicyModal,
     patronUser,
     logoutPatron,
+    setPatronAuthModalOpen,
+    categoryFilter,
   } = useContext(AppContext);
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -1061,12 +1041,12 @@ function Navbar() {
   return (
     <>
       {/* 1. AVIORA REFINED UTILITY & ANNOUNCEMENT BAR */}
-      <div className="bg-[#132A22] text-[#fbf8f3] dark:bg-[#0c1c16] py-2 px-4 sm:px-8 select-none font-sans text-[10.5px] tracking-[0.16em] uppercase flex justify-between items-center border-b border-black/15 transition-colors duration-300">
-        <div className="flex-1 text-center truncate pr-2 font-medium flex items-center justify-center gap-2">
-          <span>✦ TIMELESS JEWELLERY, MADE FOR YOU • FINE 925 SILVER & 14K GOLD • MADE TO ORDER ✦</span>
+      <div className="bg-[#132A22] text-[#fbf8f3] dark:bg-[#0c1c16] py-2 px-3 sm:px-8 select-none font-sans text-[10px] sm:text-[10.5px] tracking-[0.12em] sm:tracking-[0.16em] uppercase flex justify-between items-center border-b border-black/15 transition-colors duration-300">
+        <div className="min-w-0 flex-1 text-center truncate pr-2 font-medium flex items-center justify-center gap-2">
+          <span className="truncate">✦ TIMELESS JEWELLERY, MADE FOR YOU • FINE 925 SILVER & 14K GOLD • MADE TO ORDER ✦</span>
           <button
             onClick={() => openPolicyModal('shipping-policy')}
-            className="hidden sm:inline-block text-[#EDE7DC] hover:text-[#D4AF37] underline underline-offset-2 ml-2 transition-colors lowercase font-mono text-[10px]"
+            className="hidden sm:inline-block text-[#EDE7DC] hover:text-[#D4AF37] underline underline-offset-2 ml-2 transition-colors lowercase font-mono text-[10px] shrink-0"
           >
             (15–20 days crafting)
           </button>
@@ -1128,11 +1108,11 @@ function Navbar() {
       <header
         className={`sticky top-0 z-50 transition-all duration-300 ${
           isScrolled
-            ? 'bg-[var(--bg-primary)]/95 backdrop-blur-md border-b border-[var(--border-subtle)] py-2.5 shadow-md'
-            : 'bg-[var(--bg-primary)] border-b border-[var(--border-subtle)] py-3.5'
+            ? 'bg-[var(--bg-primary)]/95 backdrop-blur-md border-b border-[var(--border-subtle)] py-2 sm:py-2.5 shadow-md'
+            : 'bg-[var(--bg-primary)] border-b border-[var(--border-subtle)] py-2.5 sm:py-3.5'
         }`}
       >
-        <div className="max-w-7xl mx-auto px-4 sm:px-8 md:px-12 flex items-center justify-between gap-4">
+        <div className="max-w-7xl mx-auto px-3 sm:px-8 md:px-12 flex items-center justify-between gap-2 sm:gap-4">
           
           {/* Mobile Left: Menu Hamburger Trigger */}
           <div className="flex items-center lg:hidden">
@@ -1148,14 +1128,14 @@ function Navbar() {
           {/* Brand Identity: Monogram Crest + AVIORA Wordmark */}
           <button
             onClick={() => navigate('home')}
-            className="group flex items-center gap-2.5 focus:outline-none shrink-0 text-left"
+            className="group flex items-center gap-2 sm:gap-2.5 focus:outline-none shrink-0 text-left"
           >
-            <AvioraBrandCrest className="w-8 h-8 sm:w-9 sm:h-9 shrink-0 text-[#b99762] transition-transform duration-300 group-hover:scale-105" />
+            <AvioraBrandCrest className="w-7 h-7 sm:w-9 sm:h-9 shrink-0 text-[#b99762] transition-transform duration-300 group-hover:scale-105" />
             <div className="flex flex-col">
-              <span className="font-serif text-2xl sm:text-3xl tracking-[0.22em] uppercase font-normal text-[var(--text-primary)] transition-colors duration-300 group-hover:text-[#b99762]">
+              <span className="font-serif text-xl sm:text-3xl tracking-[0.2em] sm:tracking-[0.22em] uppercase font-normal text-[var(--text-primary)] transition-colors duration-300 group-hover:text-[#b99762] leading-tight">
                 AVIORA
               </span>
-              <span className="hidden sm:block text-[7px] font-sans font-semibold tracking-[0.26em] uppercase text-[#b99762] -mt-0.5">
+              <span className="block text-[6.5px] sm:text-[7.5px] font-sans font-bold tracking-[0.16em] sm:tracking-[0.26em] uppercase text-[#1b4d3e] dark:text-emerald-400 -mt-0.5">
                 TIMELESS ELEGANCE, MADE FOR YOU
               </span>
             </div>
@@ -1166,42 +1146,42 @@ function Navbar() {
             <button
               onClick={() => navigate('atelier', { category: 'new-arrivals' })}
               className={`transition-colors hover:text-[#b99762] py-1 relative ${
-                currentView === 'atelier' ? 'text-[#b99762] font-semibold' : 'text-[var(--text-primary)]'
+                currentView === 'atelier' && (categoryFilter === 'new-arrivals' || !categoryFilter) ? 'text-[#b99762] font-semibold' : 'text-[var(--text-primary)]'
               }`}
             >
               New Arrivals
             </button>
             <button
               onClick={() => navigate('atelier', { category: 'minimalist' })}
-              className="text-[var(--text-secondary)] hover:text-[#b99762] transition-colors py-1"
+              className={`transition-colors hover:text-[#b99762] py-1 ${
+                currentView === 'atelier' && categoryFilter === 'minimalist' ? 'text-[#b99762] font-semibold' : 'text-[var(--text-secondary)]'
+              }`}
             >
               Minimalist
             </button>
             <button
               onClick={() => navigate('atelier', { category: 'statement' })}
-              className="text-[var(--text-secondary)] hover:text-[#b99762] transition-colors py-1"
+              className={`transition-colors hover:text-[#b99762] py-1 ${
+                currentView === 'atelier' && categoryFilter === 'statement' ? 'text-[#b99762] font-semibold' : 'text-[var(--text-secondary)]'
+              }`}
             >
               Statement
             </button>
             <button
               onClick={() => navigate('atelier', { category: 'moissanite' })}
-              className="text-[var(--text-secondary)] hover:text-[#b99762] transition-colors py-1"
+              className={`transition-colors hover:text-[#b99762] py-1 ${
+                currentView === 'atelier' && categoryFilter === 'moissanite' ? 'text-[#b99762] font-semibold' : 'text-[var(--text-secondary)]'
+              }`}
             >
               Moissanite
             </button>
             <button
               onClick={() => navigate('atelier', { category: 'pearl' })}
-              className="text-[var(--text-secondary)] hover:text-[#b99762] transition-colors py-1"
+              className={`transition-colors hover:text-[#b99762] py-1 ${
+                currentView === 'atelier' && categoryFilter === 'pearl' ? 'text-[#b99762] font-semibold' : 'text-[var(--text-secondary)]'
+              }`}
             >
               Pearl Collection
-            </button>
-            {/* Direct shortcut to Light & Heavy Curation */}
-            <button
-              onClick={() => scrollToSpectrum()}
-              className="text-[#132A22] dark:text-[#EDE7DC] font-bold hover:text-[#b99762] transition-colors py-1 flex items-center gap-1.5"
-            >
-              <Sparkles className="w-3.5 h-3.5 text-[#b99762]" />
-              <span>Light & Heavy</span>
             </button>
           </nav>
 
@@ -1246,7 +1226,10 @@ function Navbar() {
 
             {/* Dedicated Patron Account / Sign In Trigger (Desktop) */}
             <button
-              onClick={() => navigate('orders')}
+              onClick={() => {
+                if (patronUser) navigate('orders');
+                else setPatronAuthModalOpen(true);
+              }}
               className={`p-1.5 sm:px-2.5 sm:py-1 rounded-full border transition-all hidden md:flex items-center gap-1.5 ${
                 patronUser
                   ? 'border-[#b99762]/60 bg-[#b99762]/10 text-[#132A22] dark:text-[#e6ca97] font-bold'
@@ -1364,8 +1347,8 @@ function Navbar() {
                       <span className="font-serif text-2xl tracking-[0.2em] uppercase text-[var(--text-primary)] font-normal">
                         AVIORA
                       </span>
-                      <span className="text-[7px] font-sans font-semibold tracking-[0.24em] text-[#b99762] uppercase -mt-0.5">
-                        TIMELESS ELEGANCE
+                      <span className="text-[7px] font-sans font-bold tracking-[0.2em] text-[#1b4d3e] dark:text-emerald-400 uppercase -mt-0.5">
+                        TIMELESS ELEGANCE, MADE FOR YOU
                       </span>
                     </div>
                   </div>
@@ -1443,53 +1426,6 @@ function Navbar() {
                     <ArrowRight className="w-3 h-3 text-[var(--text-muted)]" />
                   </button>
 
-                  {/* Silhouette Shortcuts (No gram weights) */}
-                  <div className="pt-2 pb-1 border-t border-[var(--border-subtle)] my-2">
-                    <p className="px-2 text-[9px] font-mono tracking-[0.25em] text-[#b99762] dark:text-[#e6ca97] uppercase mb-1">
-                      Silhouette Curation
-                    </p>
-                    <button
-                      onClick={() => {
-                        scrollToSpectrum('light');
-                        setMobileMenuOpen(false);
-                      }}
-                      className="w-full py-2 px-2 flex items-center justify-between text-[#132A22] dark:text-[#e6ca97] font-semibold hover:bg-[var(--bg-secondary)] rounded transition-colors"
-                    >
-                      <span className="flex items-center gap-1.5">
-                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                        The Delicate & Light Edit
-                      </span>
-                      <span className="text-[10px] font-mono text-[var(--text-muted)]">Everyday</span>
-                    </button>
-                    <button
-                      onClick={() => {
-                        scrollToSpectrum('heavy');
-                        setMobileMenuOpen(false);
-                      }}
-                      className="w-full py-2 px-2 flex items-center justify-between text-[#132A22] dark:text-[#e6ca97] font-semibold hover:bg-[var(--bg-secondary)] rounded transition-colors"
-                    >
-                      <span className="flex items-center gap-1.5">
-                        <span className="w-1.5 h-1.5 rounded-full bg-[#b99762]" />
-                        The Sculptural & Heavy Edit
-                      </span>
-                      <span className="text-[10px] font-mono text-[var(--text-muted)]">Statement</span>
-                    </button>
-                    <button
-                      onClick={() => {
-                        scrollToSpectrum();
-                        setMobileMenuOpen(false);
-                      }}
-                      className="w-full py-2 px-2 flex items-center justify-between text-[#132A22] dark:text-[#e6ca97] font-semibold hover:bg-[var(--bg-secondary)] rounded transition-colors"
-                    >
-                      <span className="flex items-center gap-1.5">
-                        <Sparkles className="w-3.5 h-3.5 text-[#b99762]" />
-                        Light vs Heavy Spectrum (Overview)
-                      </span>
-                      <span className="text-[10px] font-mono text-[var(--text-muted)]">Compare</span>
-                    </button>
-                  </div>
-
-
                   <button
                     onClick={() => {
                       openPolicyModal('our-story');
@@ -1530,10 +1466,10 @@ function Navbar() {
                 ) : (
                   <button
                     onClick={() => {
-                      navigate('orders');
                       setMobileMenuOpen(false);
+                      setPatronAuthModalOpen(true);
                     }}
-                    className="w-full py-2.5 px-3 rounded bg-[#1d4136] dark:bg-[#e6ca97] text-white dark:text-[#242321] font-mono text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 shadow-xs"
+                    className="w-full py-2.5 px-3 rounded bg-[#1d4136] dark:bg-[#e6ca97] text-white dark:text-[#242321] font-mono text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 shadow-xs cursor-pointer"
                   >
                     <User className="w-3.5 h-3.5" />
                     <span>Patron Sign In / Track Order</span>
@@ -1644,26 +1580,26 @@ function CartDrawer() {
             transition={{ type: 'spring', damping: 30, stiffness: 300 }}
             className="fixed top-0 right-0 bottom-0 w-full max-w-md bg-[var(--bg-card)] text-[var(--text-primary)] border-l border-[var(--border-subtle)] shadow-2xl z-[90] flex flex-col justify-between overflow-hidden transition-colors duration-300"
           >
-            <div className="px-8 py-5 border-b border-[var(--border-subtle)] flex items-center justify-between">
+            <div className="px-4 sm:px-8 py-4 sm:py-5 border-b border-[var(--border-subtle)] flex items-center justify-between">
               <div>
                 <span className="text-[10px] tracking-[0.25em] font-sans uppercase text-[#1d4136] dark:text-[#e6ca97] font-bold flex items-center gap-1.5">
                   <Sparkles className="w-3 h-3" />
                   CURATED SHOPPING BAG
                 </span>
-                <h2 className="font-serif text-2xl tracking-wide text-[var(--text-primary)] mt-0.5">
+                <h2 className="font-serif text-xl sm:text-2xl tracking-wide text-[var(--text-primary)] mt-0.5">
                   Your Collection ({itemCount})
                 </h2>
               </div>
               <button
                 onClick={() => setIsCartOpen(false)}
-                className="w-9 h-9 rounded-full border border-[var(--border-strong)] flex items-center justify-center hover:bg-[var(--bg-stone)] transition-colors text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+                className="w-8 h-8 sm:w-9 sm:h-9 rounded-full border border-[var(--border-strong)] flex items-center justify-center hover:bg-[var(--bg-stone)] transition-colors text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
             {/* Free Delivery Gamification Progress Bar */}
-            <div className="bg-[var(--bg-secondary)] px-8 py-3 border-b border-[var(--border-subtle)] space-y-1.5">
+            <div className="bg-[var(--bg-secondary)] px-4 sm:px-8 py-2.5 sm:py-3 border-b border-[var(--border-subtle)] space-y-1.5">
               <div className="flex justify-between text-[11px] font-sans text-[var(--text-secondary)]">
                 {cartTotal >= FREE_SHIPPING_THRESHOLD ? (
                   <span className="text-emerald-600 dark:text-emerald-400 flex items-center gap-1 font-semibold">
@@ -1685,7 +1621,7 @@ function CartDrawer() {
               </div>
             </div>
 
-            <div className="flex-1 overflow-y-auto px-8 py-5 space-y-5 divide-y divide-[var(--border-subtle)]">
+            <div className="flex-1 overflow-y-auto px-4 sm:px-8 py-4 sm:py-5 space-y-5 divide-y divide-[var(--border-subtle)]">
               {cart.length === 0 ? (
                 <div className="h-full flex flex-col items-center justify-center text-center space-y-4 py-16">
                   <div className="w-16 h-16 rounded-full border border-dashed border-[var(--border-strong)] flex items-center justify-center text-[var(--text-muted)]">
@@ -1835,7 +1771,7 @@ function CartDrawer() {
             </div>
 
             {cart.length > 0 && (
-              <div className="p-6 border-t border-[var(--border-subtle)] bg-[var(--bg-secondary)] space-y-3.5">
+              <div className="p-4 sm:p-6 border-t border-[var(--border-subtle)] bg-[var(--bg-secondary)] space-y-3.5">
                 <div className="flex items-center justify-between text-[10px] font-sans font-bold tracking-wider text-[var(--text-muted)] border-b border-[var(--border-subtle)] pb-2.5">
                   <span className="flex items-center gap-1.5">
                     <Truck className="w-3.5 h-3.5 text-[#1d4136] dark:text-[#e6ca97]" /> Blue Dart Express
@@ -1967,17 +1903,17 @@ function ProductArtworkCard({ product, index = 0, compact = false }) {
           </span>
         )}
 
-        {/* Quick Add Button sliding up on hover */}
+        {/* Quick Add Button - Touch friendly on mobile, sliding up on hover on desktop */}
         <button
           type="button"
           onClick={(e) => {
             e.stopPropagation();
             addToCart(product, 1);
           }}
-          className="absolute bottom-2.5 inset-x-2.5 z-20 py-2.5 px-3 bg-[var(--bg-primary)]/95 dark:bg-[#202622]/95 hover:bg-[#132A22] dark:hover:bg-[#2a5849] hover:text-white dark:hover:text-white text-[var(--text-primary)] border border-[var(--border-strong)] text-[10px] font-sans font-bold tracking-[0.14em] uppercase opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0 transition-all duration-300 shadow-md flex items-center justify-center gap-1.5"
+          className="absolute bottom-2 sm:bottom-3 inset-x-2 sm:inset-x-3 z-20 py-1.5 sm:py-2.5 px-2 sm:px-3 bg-white/95 dark:bg-[#132A22]/95 hover:bg-[#132A22] dark:hover:bg-[#e6ca97] text-[#132A22] dark:text-[#fbf8f3] hover:text-white dark:hover:text-[#132A22] border border-[#132A22]/25 dark:border-[#e6ca97]/40 text-[9.5px] sm:text-[11px] font-sans font-bold tracking-[0.14em] sm:tracking-[0.16em] uppercase opacity-90 sm:opacity-0 sm:group-hover:opacity-100 translate-y-0 sm:translate-y-2 sm:group-hover:translate-y-0 transition-all duration-200 shadow-lg backdrop-blur-md flex items-center justify-center gap-1 sm:gap-1.5 cursor-pointer active:scale-95"
         >
-          <Plus className="w-3 h-3" />
-          <span>Quick add</span>
+          <Plus className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-[#b99762] dark:text-[#e6ca97] transition-colors" />
+          <span className="font-bold">QUICK ADD</span>
         </button>
       </div>
 
@@ -2292,123 +2228,6 @@ function HomeView() {
         </div>
       </section>
 
-      {/* 2.5 CREATION SECTION: LIGHT & HEAVY JEWELLERY (AESTHETIC SILHOUETTE CURATION - NO WEIGHT BIFURCATION) */}
-      <section id="light-heavy-spectrum" className="scroll-mt-20 bg-[var(--bg-secondary)] border-y border-[var(--border-subtle)] py-20 px-6 md:px-12 transition-colors duration-300">
-        <div className="max-w-7xl mx-auto space-y-10">
-          
-          {/* Section Header */}
-          <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
-            <div className="max-w-2xl space-y-2">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#132A22]/10 dark:bg-[#e6ca97]/15 text-[#132A22] dark:text-[#e6ca97] text-[10px] font-mono tracking-widest uppercase font-semibold">
-                <Sparkles className="w-3.5 h-3.5 text-[#b99762]" />
-                <span>The Silhouette Spectrum • Light & Heavy Curation</span>
-              </div>
-              <h2 className="font-serif text-3xl sm:text-4xl md:text-5xl text-[var(--text-primary)] font-normal tracking-tight">
-                Light vs Heavy Jewellery: Choose Your Presence
-              </h2>
-              <p className="font-sans text-xs sm:text-sm text-[var(--text-secondary)] leading-relaxed">
-                Every Aviora creation is cast in Fine 925 Sterling Silver with a rich 14K Whitish Gold Vermeil jacket. Select between delicate minimalist pieces designed for subtle everyday elegance, or bold sculptural statement heirlooms forged for commanding presence.
-              </p>
-            </div>
-
-            {/* Interactive Silhouette Segment Tabs (No Weight) */}
-            <div className="inline-flex p-1 bg-[var(--bg-card)] border border-[var(--border-strong)] rounded-full self-start md:self-end shadow-sm">
-              <button
-                onClick={() => setWeightTab('light')}
-                className={`flex items-center gap-2 px-4 sm:px-6 py-2 rounded-full text-xs font-sans font-bold tracking-[0.14em] uppercase transition-all ${
-                  weightTab === 'light'
-                    ? 'bg-[#132A22] text-white dark:bg-[#e6ca97] dark:text-black shadow-sm'
-                    : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
-                }`}
-              >
-                <Sparkles className="w-3.5 h-3.5" />
-                <span>Delicate & Light (Everyday)</span>
-              </button>
-              <button
-                onClick={() => setWeightTab('heavy')}
-                className={`flex items-center gap-2 px-4 sm:px-6 py-2 rounded-full text-xs font-sans font-bold tracking-[0.14em] uppercase transition-all ${
-                  weightTab === 'heavy'
-                    ? 'bg-[#132A22] text-white dark:bg-[#e6ca97] dark:text-black shadow-sm'
-                    : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
-                }`}
-              >
-                <ShieldCheck className="w-3.5 h-3.5" />
-                <span>Bold & Heavy (Statement)</span>
-              </button>
-            </div>
-          </div>
-
-          {/* Educational Silhouette Descriptor Banner */}
-          <div className="p-5 sm:p-6 rounded-xs bg-[var(--bg-card)] border border-[var(--border-subtle)] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-xs">
-            <div className="space-y-1">
-              <p className="text-xs font-bold uppercase tracking-wider text-[#132A22] dark:text-[#e6ca97] flex items-center gap-2">
-                <span>{weightTab === 'light' ? '✦ The Delicate & Light Silhouette Edit' : '✦ The Bold & Heavy Sculptural Edit'}</span>
-              </p>
-              <p className="text-xs font-sans text-[var(--text-secondary)] max-w-2xl">
-                {weightTab === 'light'
-                  ? 'Feathertouch silhouettes crafted for seamless daily wear. Designed to stack effortlessly across ears, neck, and fingers with whisper-soft skin contact.'
-                  : 'Commanding high-impact jewellery featuring architectural proportions and intricate craftsmanship, destined for special celebrations and evening galas.'}
-              </p>
-            </div>
-            <button
-              onClick={() => navigate('atelier', { silhouetteFilter: weightTab })}
-              className="shrink-0 text-xs font-sans font-bold tracking-[0.12em] uppercase text-[var(--text-primary)] hover:text-[#132A22] dark:hover:text-[#e6ca97] border-b border-current pb-0.5 inline-flex items-center gap-1.5 transition-colors"
-            >
-              <span>{weightTab === 'light' ? 'Shop Delicate & Light' : 'Shop Bold & Heavy'}</span>
-              <ArrowRight className="w-3.5 h-3.5" />
-            </button>
-          </div>
-
-          {/* 4 Curated Products Grid for Selected Silhouette */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6">
-            {(weightTab === 'light' ? lightJewellery : heavyJewellery).map((product) => (
-              <div key={product.id} className="group flex flex-col justify-between bg-[var(--bg-card)] border border-[var(--border-subtle)] hover:border-[#b99762] transition-all duration-300 p-3 sm:p-4 rounded-xs shadow-xs hover:shadow-md">
-                <div className="relative aspect-square w-full overflow-hidden bg-[var(--bg-stone)] dark:bg-[#191e1b] mb-3">
-                  <img
-                    src={product.images?.[0] || product.image}
-                    alt={product.name}
-                    loading="lazy"
-                    className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
-                  />
-                  {/* Silhouette Styling Badge (NO gram weight) */}
-                  <div className="absolute top-2 left-2 px-2 py-1 bg-black/80 backdrop-blur-xs text-white text-[9px] font-sans tracking-wider rounded-xs flex items-center gap-1 border border-white/20 uppercase font-semibold">
-                    <Sparkles className="w-3 h-3 text-[#e6ca97]" />
-                    <span>{weightTab === 'light' ? 'Light Silhouette' : 'Heavy Silhouette'}</span>
-                  </div>
-                  {/* Purity Tag */}
-                  <div className="absolute bottom-2 right-2 px-1.5 py-0.5 bg-[#132A22]/90 text-[#e6ca97] text-[8.5px] font-mono tracking-wider uppercase rounded-xs">
-                    Fine 925 Silver
-                  </div>
-                </div>
-
-                <div className="space-y-1.5 flex-1 flex flex-col justify-between">
-                  <div>
-                    <p className="text-[9px] font-mono tracking-wider text-[var(--text-muted)] uppercase truncate">
-                      {product.subtitle || 'Aviora Atelier Series'}
-                    </p>
-                    <h3 className="font-serif text-base sm:text-lg text-[var(--text-primary)] group-hover:text-[#132A22] dark:group-hover:text-[#e6ca97] transition-colors line-clamp-1 font-normal">
-                      {product.name}
-                    </h3>
-                  </div>
-
-                  <div className="pt-2 border-t border-[var(--border-subtle)] flex items-center justify-between">
-                    <span className="font-sans text-xs sm:text-sm font-bold text-[var(--text-primary)]">
-                      {formatPrice(product.price)}
-                    </span>
-                    <button
-                      onClick={() => navigate('pdp', product)}
-                      className="text-[10px] font-sans font-bold uppercase tracking-wider text-[#b99762] hover:underline"
-                    >
-                      View Piece
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
       {/* 3. JUST IN (NEW ARRIVALS TINTED SECTION) */}
       <section className="bg-[var(--bg-secondary)] border-y border-[var(--border-subtle)] py-20 px-6 md:px-12 transition-colors duration-300">
         <div className="max-w-7xl mx-auto space-y-10">
@@ -2422,55 +2241,12 @@ function HomeView() {
               </h2>
             </div>
             <button
-              onClick={() => navigate('atelier', { collection: 'new-arrivals' })}
+              onClick={() => navigate('atelier', { category: 'new-arrivals' })}
               className="text-xs font-sans font-bold tracking-[0.12em] uppercase text-[var(--text-primary)] hover:text-[#1d4136] dark:hover:text-[#e6ca97] border-b border-current pb-0.5 inline-flex items-center gap-1.5 transition-colors"
             >
               <span>View all</span>
               <ArrowRight className="w-3.5 h-3.5" />
             </button>
-          </div>
-
-          {/* Quick Silhouette Presence Switcher / Direct Navigation */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 sm:p-5 bg-[var(--bg-card)] border border-[var(--border-subtle)] rounded-xs shadow-xs">
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-full bg-[#132A22]/10 dark:bg-[#e6ca97]/20 flex items-center justify-center shrink-0">
-                <Sparkles className="w-4 h-4 text-[#b99762]" />
-              </div>
-              <div>
-                <p className="text-xs font-serif italic text-[var(--text-primary)]">
-                  Explore New Arrivals by Silhouette Presence
-                </p>
-                <p className="text-[11px] font-sans text-[var(--text-secondary)]">
-                  Feathertouch everyday pieces vs bold sculptural statement heirlooms.
-                </p>
-              </div>
-            </div>
-            <div className="flex items-center gap-2 shrink-0">
-              <button
-                type="button"
-                onClick={() => scrollToSpectrum('light')}
-                className="px-3 py-1.5 text-xs font-mono uppercase tracking-wider border border-[var(--border-strong)] hover:border-[#b99762] text-[var(--text-primary)] hover:text-[#b99762] transition-colors flex items-center gap-1.5"
-              >
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                <span>Delicate & Light</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => scrollToSpectrum('heavy')}
-                className="px-3 py-1.5 text-xs font-mono uppercase tracking-wider border border-[var(--border-strong)] hover:border-[#b99762] text-[var(--text-primary)] hover:text-[#b99762] transition-colors flex items-center gap-1.5"
-              >
-                <span className="w-1.5 h-1.5 rounded-full bg-[#b99762]" />
-                <span>Bold & Heavy</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => scrollToSpectrum()}
-                className="px-3.5 py-1.5 text-xs font-sans font-bold uppercase tracking-wider bg-[#132A22] dark:bg-[#e6ca97] text-white dark:text-black hover:opacity-90 transition-opacity flex items-center gap-1"
-              >
-                <span>Full Spectrum</span>
-                <ArrowRight className="w-3 h-3" />
-              </button>
-            </div>
           </div>
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6">
@@ -3105,15 +2881,56 @@ function ShopView() {
 
     // Category
     if (selectedCategory !== 'all') {
-      list = list.filter(
-        (p) =>
-          p.category === selectedCategory ||
-          p.categorySlug === selectedCategory ||
-          (selectedCategory === 'earrings' && p.categorySlug?.includes('ear')) ||
-          (selectedCategory === 'necklaces' && (p.categorySlug?.includes('choker') || p.categorySlug?.includes('hasli'))) ||
-          (selectedCategory === 'bracelets' && (p.categorySlug?.includes('kada') || p.categorySlug?.includes('bangle'))) ||
-          (selectedCategory === 'rings' && p.categorySlug?.includes('ring'))
-      );
+      if (selectedCategory === 'new-arrivals') {
+        // All products in new arrival for now
+        list = list.filter((p) => p.isNew !== false || p.collections?.includes('new-arrivals') || true);
+      } else if (selectedCategory === 'minimalist') {
+        // Minimalist is light silhouette
+        list = list.filter(
+          (p) =>
+            p.category === 'minimalist' ||
+            p.categorySlug === 'minimalist' ||
+            p.collections?.includes('minimalist') ||
+            p.silhouette === 'light'
+        );
+      } else if (selectedCategory === 'statement') {
+        // Statement is heavy silhouette
+        list = list.filter(
+          (p) =>
+            p.category === 'statement' ||
+            p.categorySlug === 'statement' ||
+            p.collections?.includes('statement') ||
+            p.silhouette === 'heavy'
+        );
+      } else if (selectedCategory === 'moissanite') {
+        list = list.filter(
+          (p) =>
+            p.category === 'moissanite' ||
+            p.categorySlug === 'moissanite' ||
+            p.materials?.includes('moissanite') ||
+            p.collections?.includes('moissanite') ||
+            p.name.toLowerCase().includes('moissanite')
+        );
+      } else if (selectedCategory === 'pearl') {
+        list = list.filter(
+          (p) =>
+            p.category === 'pearl' ||
+            p.categorySlug === 'pearl' ||
+            p.materials?.includes('freshwater-pearls') ||
+            p.collections?.includes('pearl') ||
+            p.name.toLowerCase().includes('pearl')
+        );
+      } else {
+        list = list.filter(
+          (p) =>
+            p.category === selectedCategory ||
+            p.categorySlug === selectedCategory ||
+            (selectedCategory === 'earrings' && (p.category === 'earrings' || p.categorySlug?.includes('ear') || p.name.toLowerCase().includes('earring') || p.name.toLowerCase().includes('stud'))) ||
+            (selectedCategory === 'necklaces' && (p.category === 'necklaces' || p.categorySlug?.includes('choker') || p.categorySlug?.includes('hasli') || p.name.toLowerCase().includes('necklace') || p.name.toLowerCase().includes('chain') || p.name.toLowerCase().includes('pendant'))) ||
+            (selectedCategory === 'bracelets' && (p.category === 'bracelets' || p.categorySlug?.includes('kada') || p.categorySlug?.includes('bangle') || p.name.toLowerCase().includes('bracelet'))) ||
+            (selectedCategory === 'rings' && (p.category === 'rings' || p.categorySlug?.includes('ring') || p.name.toLowerCase().includes('ring')))
+        );
+      }
     }
 
     // Material
@@ -3127,11 +2944,19 @@ function ShopView() {
 
     // Collection
     if (selectedCollection !== 'all') {
-      list = list.filter(
-        (p) =>
-          p.collections?.includes(selectedCollection) ||
-          (selectedCollection === 'new-arrivals' && p.isNew)
-      );
+      if (selectedCollection === 'new-arrivals') {
+        list = list.filter((p) => p.isNew !== false || p.collections?.includes('new-arrivals') || true);
+      } else if (selectedCollection === 'minimalist') {
+        list = list.filter((p) => p.collections?.includes('minimalist') || p.silhouette === 'light' || p.category === 'minimalist');
+      } else if (selectedCollection === 'statement') {
+        list = list.filter((p) => p.collections?.includes('statement') || p.silhouette === 'heavy' || p.category === 'statement');
+      } else if (selectedCollection === 'moissanite') {
+        list = list.filter((p) => p.collections?.includes('moissanite') || p.category === 'moissanite' || p.materials?.includes('moissanite') || p.name.toLowerCase().includes('moissanite'));
+      } else if (selectedCollection === 'pearl') {
+        list = list.filter((p) => p.collections?.includes('pearl') || p.category === 'pearl' || p.materials?.includes('freshwater-pearls') || p.name.toLowerCase().includes('pearl'));
+      } else {
+        list = list.filter((p) => p.collections?.includes(selectedCollection));
+      }
     }
 
     // Colour
@@ -3264,13 +3089,13 @@ function ShopView() {
 
   return (
     <div className="min-h-screen bg-[var(--bg-primary)] text-[var(--text-primary)] transition-colors duration-300">
-      <div className="max-w-7xl mx-auto px-6 md:px-12 py-12 md:py-16 space-y-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-12 py-8 sm:py-12 md:py-16 space-y-6 sm:space-y-8">
         {/* Intro Section */}
-        <div className="border-b border-[var(--border-subtle)] pb-10 text-center max-w-2xl mx-auto space-y-3">
+        <div className="border-b border-[var(--border-subtle)] pb-8 sm:pb-10 text-center max-w-2xl mx-auto space-y-3">
           <p className="text-[10px] font-sans font-bold tracking-[0.2em] uppercase text-[#1d4136] dark:text-[#e6ca97]">
             {selectedCollection !== 'all' ? 'THE COLLECTION' : searchQuery ? 'SEARCH' : 'THE AVIORA EDIT'}
           </p>
-          <h1 className="font-serif text-4xl sm:text-5xl md:text-6xl text-[var(--text-primary)] font-normal tracking-tight">
+          <h1 className="font-serif text-3xl sm:text-5xl md:text-6xl text-[var(--text-primary)] font-normal tracking-tight">
             {pageTitle}
           </h1>
           <p className="font-sans text-xs sm:text-sm text-[var(--text-secondary)] leading-relaxed">
@@ -3278,45 +3103,8 @@ function ShopView() {
           </p>
         </div>
 
-        {/* Curated Light & Heavy Quick Banner in Shop / New Arrivals */}
-        <div className="p-4 sm:p-5 bg-[var(--bg-secondary)] border border-[var(--border-subtle)] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="space-y-1">
-            <div className="flex items-center gap-2">
-              <Sparkles className="w-3.5 h-3.5 text-[#b99762]" />
-              <span className="text-[10px] font-mono uppercase tracking-[0.2em] font-bold text-[#1d4136] dark:text-[#e6ca97]">
-                THE SILHOUETTE SPECTRUM
-              </span>
-            </div>
-            <p className="text-xs font-sans text-[var(--text-secondary)]">
-              Curating by presence? Explore our feathertouch everyday vs bold sculptural statement heirlooms.
-            </p>
-          </div>
-          <div className="flex items-center gap-2 shrink-0">
-            <button
-              onClick={() => scrollToSpectrum('light')}
-              className="px-3.5 py-1.5 text-xs font-mono uppercase tracking-wider bg-[var(--bg-card)] border border-[var(--border-strong)] hover:border-[#b99762] text-[var(--text-primary)] transition-colors flex items-center gap-1.5"
-            >
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-              <span>Delicate & Light</span>
-            </button>
-            <button
-              onClick={() => scrollToSpectrum('heavy')}
-              className="px-3.5 py-1.5 text-xs font-mono uppercase tracking-wider bg-[var(--bg-card)] border border-[var(--border-strong)] hover:border-[#b99762] text-[var(--text-primary)] transition-colors flex items-center gap-1.5"
-            >
-              <span className="w-1.5 h-1.5 rounded-full bg-[#b99762]" />
-              <span>Bold & Heavy</span>
-            </button>
-            <button
-              onClick={() => scrollToSpectrum()}
-              className="px-3.5 py-1.5 text-xs font-sans font-bold uppercase tracking-wider bg-[#1d4136] dark:bg-[#e6ca97] text-white dark:text-black hover:opacity-90 transition-opacity"
-            >
-              View Full Spectrum →
-            </button>
-          </div>
-        </div>
-
         {/* Sticky Controls Bar */}
-        <div className="sticky top-[68px] z-30 bg-[var(--bg-primary)]/95 backdrop-blur-md border-b border-[var(--border-subtle)] py-3 -mx-6 px-6 md:-mx-12 md:px-12 transition-colors">
+        <div className="sticky top-[58px] sm:top-[68px] z-30 bg-[var(--bg-primary)]/95 backdrop-blur-md border-b border-[var(--border-subtle)] py-2.5 sm:py-3 -mx-4 px-4 sm:-mx-6 sm:px-6 md:-mx-12 md:px-12 transition-colors">
           <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
             {/* Filter Toggle Button */}
             <button
@@ -3697,7 +3485,7 @@ function ProductView() {
 
   return (
     <div className="min-h-screen bg-[var(--bg-primary)] text-[var(--text-primary)] transition-colors duration-300">
-      <div className="border-b border-[var(--border-subtle)] px-6 md:px-14 py-3.5 flex items-center justify-between text-xs font-mono tracking-widest uppercase text-[var(--text-secondary)]">
+      <div className="border-b border-[var(--border-subtle)] px-4 sm:px-6 md:px-14 py-3 sm:py-3.5 flex items-center justify-between text-xs font-mono tracking-widest uppercase text-[var(--text-secondary)]">
         <button
           onClick={() => navigate('atelier')}
           className="flex items-center gap-2 hover:text-[#b99762] dark:hover:text-[#e6ca97] transition-colors"
@@ -3877,7 +3665,7 @@ function ProductView() {
         </div>
 
         {/* Right Column: Sticky Product Info */}
-        <div className="lg:col-span-5 p-6 md:p-12 lg:p-16 flex flex-col justify-start">
+        <div className="lg:col-span-5 p-4 sm:p-6 md:p-12 lg:p-16 flex flex-col justify-start">
           <div className="lg:sticky lg:top-28 space-y-7">
             <div className="space-y-2.5">
               <div className="flex items-center justify-between text-[10px] font-mono tracking-[0.3em] uppercase text-[#b99762] dark:text-[#e6ca97]">
@@ -4044,12 +3832,12 @@ function ProductView() {
                   </span>
                   <span className="text-[var(--text-muted)]">Extra 5% off on UPI</span>
                 </div>
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5">
                   <span className="flex items-center gap-1.5">
-                    <RotateCcw className="w-3.5 h-3.5 text-[#b99762] dark:text-[#e6ca97]" /> Made to Order · Final Sale · 48h Defect Resolution
+                    <RotateCcw className="w-3.5 h-3.5 text-[#b99762] dark:text-[#e6ca97] shrink-0" /> Made to Order · Final Sale · 48h Defect Resolution
                   </span>
                   <span className="flex items-center gap-1.5">
-                    <Truck className="w-3.5 h-3.5 text-[#b99762] dark:text-[#e6ca97]" /> Free Pan-India Delivery
+                    <Truck className="w-3.5 h-3.5 text-[#b99762] dark:text-[#e6ca97] shrink-0" /> Free Pan-India Delivery
                   </span>
                 </div>
               </div>
@@ -4673,7 +4461,7 @@ function CheckoutView() {
   }
 
   return (
-    <div className="min-h-screen bg-[var(--bg-primary)] text-[var(--text-primary)] py-12 px-6 md:px-14 transition-colors duration-300">
+    <div className="min-h-screen bg-[var(--bg-primary)] text-[var(--text-primary)] py-8 sm:py-12 px-4 sm:px-6 md:px-14 transition-colors duration-300">
       <div className="max-w-6xl mx-auto space-y-10">
         <button
           onClick={() => navigate('atelier')}
@@ -9217,8 +9005,8 @@ function Footer() {
   };
 
   return (
-    <footer className="bg-[#0B1410] text-[#EAE5DB] border-t border-[#b99762]/30 pt-20 pb-12 transition-colors duration-300">
-      <div className="max-w-7xl mx-auto px-6 md:px-12">
+    <footer className="bg-[#0B1410] text-[#EAE5DB] border-t border-[#b99762]/30 pt-12 sm:pt-20 pb-10 sm:pb-12 transition-colors duration-300">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-12">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 lg:gap-14 pb-16 border-b border-[#1d4136]/60">
           
           {/* Col 1: Maison Aviora & Concierge */}
@@ -9269,11 +9057,11 @@ function Footer() {
             </div>
           </div>
 
-          {/* Col 2: Artworks & Silhouette Spectrum */}
+          {/* Col 2: Curated Collections */}
           <div className="space-y-4">
             <h4 className="text-xs font-serif tracking-[0.2em] uppercase text-[#E6CA97] font-bold flex items-center gap-2">
               <Sparkles className="w-3.5 h-3.5" />
-              <span>Collections & Spectrum</span>
+              <span>Curated Collections</span>
             </h4>
             <ul className="space-y-2.5 text-xs font-sans text-[#DCD6CB]">
               <li>
@@ -9287,35 +9075,20 @@ function Footer() {
               </li>
               <li>
                 <button
-                  onClick={() => scrollToSpectrum('light')}
+                  onClick={() => navigate('atelier', { category: 'minimalist' })}
                   className="hover:text-[#E6CA97] transition-colors text-left flex items-center justify-between w-full font-medium"
                 >
-                  <span className="flex items-center gap-2">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                    <span>Delicate & Light Jewellery</span>
-                  </span>
+                  <span>Minimalist Jewellery (Delicate)</span>
                   <span className="text-[10px] font-mono text-[#A7A196]">Everyday</span>
                 </button>
               </li>
               <li>
                 <button
-                  onClick={() => scrollToSpectrum('heavy')}
+                  onClick={() => navigate('atelier', { category: 'statement' })}
                   className="hover:text-[#E6CA97] transition-colors text-left flex items-center justify-between w-full font-medium"
                 >
-                  <span className="flex items-center gap-2">
-                    <span className="w-1.5 h-1.5 rounded-full bg-[#E6CA97]" />
-                    <span>Bold & Heavy Jewellery</span>
-                  </span>
-                  <span className="text-[10px] font-mono text-[#A7A196]">Statement</span>
-                </button>
-              </li>
-              <li>
-                <button
-                  onClick={() => scrollToSpectrum()}
-                  className="hover:text-[#E6CA97] transition-colors text-left flex items-center justify-between w-full text-[#E6CA97] font-semibold"
-                >
-                  <span>Light vs Heavy Spectrum</span>
-                  <span className="text-[10px] font-mono text-[#E6CA97]">Compare</span>
+                  <span>Statement Jewellery (Sculptural)</span>
+                  <span className="text-[10px] font-mono text-[#A7A196]">Heirloom</span>
                 </button>
               </li>
               <li>
@@ -9515,6 +9288,267 @@ function Toast() {
   );
 }
 
+// ==========================================
+// 11. PATRON CUSTOMER AUTHENTICATION MODAL
+// ==========================================
+function PatronAuthModal() {
+  const {
+    patronAuthModalOpen,
+    setPatronAuthModalOpen,
+    pendingCartAction,
+    setPendingCartAction,
+    loginPatron,
+    orders,
+    syncOrdersFromDb,
+    setRawCart,
+    setIsCartOpen,
+    showToast,
+    formatPrice,
+  } = useContext(AppContext);
+
+  const [phone, setPhone] = useState('');
+  const [otp, setOtp] = useState('');
+  const [otpSent, setOtpSent] = useState(false);
+  const [generatedOtp, setGeneratedOtp] = useState('123456');
+  const [isVerifying, setIsVerifying] = useState(false);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        setPatronAuthModalOpen(false);
+        setPendingCartAction(null);
+      }
+    };
+    if (patronAuthModalOpen) {
+      window.addEventListener('keydown', handleKeyDown);
+      document.body.style.overflow = 'hidden';
+    }
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      document.body.style.overflow = '';
+    };
+  }, [patronAuthModalOpen, setPatronAuthModalOpen, setPendingCartAction]);
+
+  if (!patronAuthModalOpen) return null;
+
+  const handleSendOtp = () => {
+    const clean = phone.replace(/[^\d]/g, '').slice(-10);
+    if (clean.length < 10) {
+      setError('Please enter a valid 10-digit Indian mobile number.');
+      return;
+    }
+    const res = generateOtp(clean);
+    setGeneratedOtp(res.otp);
+    setOtpSent(true);
+    setError('');
+    showToast(`✦ Verification code dispatched to +91 ${clean}`);
+  };
+
+  const handleVerifyOtp = async () => {
+    if (!otp || otp.length < 6) {
+      setError('Please enter the 6-digit verification code.');
+      return;
+    }
+    setIsVerifying(true);
+    const clean = phone.replace(/[^\d]/g, '').slice(-10);
+    const check = verifyOtp(clean, otp);
+    if (check.success) {
+      const matched = orders.find(
+        (o) => (o.customerPhone || '').replace(/[^\d]/g, '').slice(-10) === clean
+      );
+      const customerName = matched?.customerName || `Patron +91 ${clean}`;
+      loginPatron(clean, customerName);
+      await syncOrdersFromDb();
+
+      // If a product was queued when trying to add to cart
+      if (pendingCartAction?.product) {
+        const { product, quantity, engraving } = pendingCartAction;
+        setRawCart((prev) => {
+          const existingIdx = prev.findIndex(
+            (item) => item.productId === product.id && (item.engraving || '') === engraving
+          );
+          if (existingIdx > -1) {
+            const updated = [...prev];
+            updated[existingIdx] = {
+              ...updated[existingIdx],
+              quantity: updated[existingIdx].quantity + quantity,
+            };
+            return updated;
+          }
+          return [...prev, { productId: product.id, quantity, engraving }];
+        });
+        setIsCartOpen(true);
+        showToast(`✓ Welcome ${customerName}! Added ${product.name} to your bag.`);
+        setPendingCartAction(null);
+      } else {
+        showToast(`✓ Welcome ${customerName}! Signed in successfully.`);
+      }
+
+      setPatronAuthModalOpen(false);
+      setPhone('');
+      setOtp('');
+      setOtpSent(false);
+    } else {
+      setError(check.message || 'Invalid verification code.');
+    }
+    setIsVerifying(false);
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-black/75 backdrop-blur-sm">
+      <div
+        className="relative w-full max-w-md bg-[var(--bg-card)] border border-[#b99762]/70 shadow-2xl p-6 sm:p-8 space-y-6 max-h-[92vh] overflow-y-auto"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Close Button */}
+        <button
+          type="button"
+          onClick={() => {
+            setPatronAuthModalOpen(false);
+            setPendingCartAction(null);
+          }}
+          className="absolute top-4 right-4 w-8 h-8 rounded-full border border-[var(--border-subtle)] flex items-center justify-center text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:border-[var(--border-strong)] transition-all cursor-pointer"
+          aria-label="Close"
+        >
+          <X className="w-4 h-4" />
+        </button>
+
+        {/* Header */}
+        <div className="text-center space-y-2 pt-2 border-b border-[var(--border-subtle)] pb-5">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-[#132A22]/10 dark:bg-[#e6ca97]/15 text-[#132A22] dark:text-[#e6ca97] rounded-full text-[10px] font-mono tracking-[0.2em] uppercase font-bold">
+            <User className="w-3.5 h-3.5" />
+            <span>Patron Authentication</span>
+          </div>
+          <h3 className="font-serif text-2xl sm:text-3xl text-[var(--text-primary)] font-normal">
+            Customer Sign In
+          </h3>
+          <p className="font-mono text-xs text-[var(--text-secondary)] leading-relaxed">
+            {pendingCartAction?.product
+              ? 'Please sign in with your mobile phone number to add this piece to your bag.'
+              : 'Sign in to access your personal bespoke jewellery bag and order dossier.'}
+          </p>
+        </div>
+
+        {/* Pending Product Preview Card */}
+        {pendingCartAction?.product && (
+          <div className="flex items-center gap-3 p-3 bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-xs">
+            <img
+              src={pendingCartAction.product.images?.[0] || pendingCartAction.product.image}
+              alt={pendingCartAction.product.name}
+              className="w-14 h-14 object-cover border border-[var(--border-subtle)] shrink-0"
+            />
+            <div className="flex-1 min-w-0">
+              <span className="text-[9px] font-mono uppercase tracking-wider text-[#b99762] font-bold block">
+                Queued for Your Bag
+              </span>
+              <p className="font-serif text-sm text-[var(--text-primary)] truncate">
+                {pendingCartAction.product.name}
+              </p>
+              <p className="font-mono text-xs font-semibold text-[var(--text-primary)]">
+                {formatPrice(pendingCartAction.product.price * (pendingCartAction.quantity || 1))}
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* Auth Inputs */}
+        <div className="space-y-4 text-xs font-mono">
+          <div className="space-y-1.5">
+            <label className="block uppercase tracking-wider text-[10px] text-[var(--text-muted)] font-bold">
+              Registered Mobile Phone
+            </label>
+            <div className="flex">
+              <span className="h-11 px-3 bg-[var(--bg-secondary)] border border-r-0 border-[var(--border-strong)] text-[var(--text-secondary)] text-xs flex items-center font-bold">
+                +91
+              </span>
+              <input
+                type="tel"
+                maxLength={10}
+                value={phone}
+                onChange={(e) => {
+                  setPhone(e.target.value.replace(/[^\d]/g, ''));
+                  setError('');
+                }}
+                placeholder="e.g. 9876543210"
+                className="flex-1 h-11 px-3.5 bg-[var(--bg-primary)] border border-[var(--border-strong)] text-sm font-mono tracking-widest text-[var(--text-primary)] font-bold outline-none focus:border-[#b99762]"
+              />
+            </div>
+          </div>
+
+          {otpSent && (
+            <div className="space-y-2 p-3.5 bg-[var(--bg-secondary)] border border-[var(--border-subtle)]">
+              <div className="flex items-center justify-between">
+                <label className="block uppercase tracking-wider text-[10px] text-[var(--text-muted)] font-bold">
+                  6-Digit OTP Code
+                </label>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setOtp('123456');
+                    setError('');
+                    showToast('✓ Auto-filled test code: 123456');
+                  }}
+                  className="text-[9px] font-mono text-[#b99762] dark:text-[#e6ca97] hover:underline uppercase font-bold cursor-pointer"
+                >
+                  Auto-Fill Test (123456)
+                </button>
+              </div>
+              <input
+                type="text"
+                maxLength={6}
+                value={otp}
+                onChange={(e) => {
+                  setOtp(e.target.value.replace(/[^\d]/g, ''));
+                  setError('');
+                }}
+                placeholder="123456"
+                className="w-full h-11 px-3 bg-[var(--bg-primary)] border border-[var(--border-strong)] text-center text-lg font-mono tracking-[0.4em] text-[var(--text-primary)] font-bold outline-none focus:border-[#b99762]"
+              />
+              <p className="text-[10px] text-emerald-700 dark:text-emerald-300">
+                ✦ Verification code sent to +91 {phone}. (Sandbox: 123456 or {generatedOtp})
+              </p>
+            </div>
+          )}
+
+          {error && (
+            <p className="text-[11px] font-mono text-red-500 flex items-center gap-1.5">
+              <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+              <span>{error}</span>
+            </p>
+          )}
+
+          <div className="pt-2">
+            {!otpSent ? (
+              <button
+                type="button"
+                onClick={handleSendOtp}
+                className="w-full py-3.5 bg-[#132A22] hover:bg-[#1d4136] dark:bg-[#e6ca97] dark:hover:bg-[#d8c39f] text-white dark:text-black font-sans text-xs tracking-[0.16em] uppercase font-bold transition-all shadow-md cursor-pointer"
+              >
+                Send Verification Code
+              </button>
+            ) : (
+              <button
+                type="button"
+                disabled={isVerifying}
+                onClick={handleVerifyOtp}
+                className="w-full py-3.5 bg-[#132A22] hover:bg-[#1d4136] dark:bg-[#e6ca97] dark:hover:bg-[#d8c39f] text-white dark:text-black font-sans text-xs tracking-[0.16em] uppercase font-bold transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer"
+              >
+                {isVerifying ? (
+                  <RefreshCw className="w-4 h-4 animate-spin" />
+                ) : (
+                  <CheckCircle2 className="w-4 h-4" />
+                )}
+                <span>Verify & Sign In</span>
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function AppContent() {
   const { currentView } = useContext(AppContext);
 
@@ -9523,6 +9557,7 @@ function AppContent() {
       <Navbar />
       <CartDrawer />
       <BrandPolicyModal />
+      <PatronAuthModal />
       <Toast />
 
       <main className="flex-1">
