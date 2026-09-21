@@ -209,7 +209,7 @@ export default function CheckoutPage() {
   // INDIAN CHECKOUT VIEW
   // =========================================================================
   return (
-    <div className="min-h-screen bg-[#09090B] text-zinc-100 py-12 px-6 md:px-14">
+    <div className="min-h-screen bg-[#09090B] text-zinc-100 py-8 sm:py-12 px-4 sm:px-6 md:px-14 safe-area-bottom">
       <div className="max-w-6xl mx-auto space-y-10">
         <Link
           href="/atelier"
@@ -241,7 +241,7 @@ export default function CheckoutPage() {
             </Link>
           </div>
         ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-start">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-start">
             {/* Left Column: Indian Shipping & Payment Details */}
             <form onSubmit={handleSubmit} className="lg:col-span-7 space-y-8">
               {errorMessage && (
@@ -266,6 +266,7 @@ export default function CheckoutPage() {
                       required
                       type="text"
                       name="customerName"
+                      autoComplete="name"
                       value={formData.customerName}
                       onChange={handleInputChange}
                       placeholder="e.g. Ananya Sharma"
@@ -281,6 +282,8 @@ export default function CheckoutPage() {
                       required
                       type="email"
                       name="customerEmail"
+                      inputMode="email"
+                      autoComplete="email"
                       value={formData.customerEmail}
                       onChange={handleInputChange}
                       placeholder="ananya@gmail.com"
@@ -300,6 +303,8 @@ export default function CheckoutPage() {
                     <input
                       required
                       type="tel"
+                      inputMode="tel"
+                      autoComplete="tel"
                       maxLength={10}
                       name="customerPhone"
                       value={formData.customerPhone}
@@ -327,6 +332,7 @@ export default function CheckoutPage() {
                       required
                       type="text"
                       name="shippingAddress"
+                      autoComplete="street-address"
                       value={formData.shippingAddress}
                       onChange={handleInputChange}
                       placeholder="Apartment 402, Sea Green Apts, Worli"
@@ -342,6 +348,9 @@ export default function CheckoutPage() {
                       <input
                         required
                         type="text"
+                        inputMode="numeric"
+                        pattern="[0-9]*"
+                        autoComplete="postal-code"
                         maxLength={6}
                         name="postalCode"
                         value={formData.postalCode}
@@ -359,6 +368,7 @@ export default function CheckoutPage() {
                         required
                         type="text"
                         name="city"
+                        autoComplete="address-level2"
                         value={formData.city}
                         onChange={handleInputChange}
                         placeholder="Mumbai"

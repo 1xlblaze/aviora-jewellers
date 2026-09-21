@@ -4554,6 +4554,7 @@ function CheckoutView() {
                   <input
                     required
                     type="text"
+                    autoComplete="name"
                     value={formData.customerName}
                     onChange={(e) => setFormData({ ...formData, customerName: e.target.value })}
                     placeholder="Full Legal Name"
@@ -4562,6 +4563,8 @@ function CheckoutView() {
                   <input
                     required
                     type="email"
+                    inputMode="email"
+                    autoComplete="email"
                     value={formData.customerEmail}
                     onChange={(e) => setFormData({ ...formData, customerEmail: e.target.value })}
                     placeholder="Email for Invoice"
@@ -4572,6 +4575,8 @@ function CheckoutView() {
                   <input
                     required
                     type="tel"
+                    inputMode="tel"
+                    autoComplete="tel"
                     maxLength={10}
                     value={formData.customerPhone}
                     onChange={(e) => {
@@ -4602,6 +4607,7 @@ function CheckoutView() {
                 <input
                   required
                   type="text"
+                  autoComplete="street-address"
                   value={formData.shippingAddress}
                   onChange={(e) => setFormData({ ...formData, shippingAddress: e.target.value })}
                   placeholder="Street Address, Suite / Apartment"
@@ -4611,6 +4617,9 @@ function CheckoutView() {
                   <input
                     required
                     type="text"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    autoComplete="postal-code"
                     maxLength={6}
                     value={formData.postalCode}
                     onChange={(e) => setFormData({ ...formData, postalCode: e.target.value })}
@@ -4620,6 +4629,7 @@ function CheckoutView() {
                   <input
                     required
                     type="text"
+                    autoComplete="address-level2"
                     value={formData.city}
                     onChange={(e) => setFormData({ ...formData, city: e.target.value })}
                     placeholder="City"
@@ -4971,6 +4981,9 @@ function CheckoutView() {
                   </label>
                   <input
                     type="text"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    autoComplete="one-time-code"
                     maxLength={6}
                     value={otpInput}
                     onChange={(e) => setOtpInput(e.target.value.replace(/[^\d]/g, ''))}
@@ -5551,6 +5564,8 @@ function OrdersView() {
                 </span>
                 <input
                   type="tel"
+                  inputMode="tel"
+                  autoComplete="tel"
                   maxLength={10}
                   value={loginPhone}
                   onChange={(e) => {
@@ -5584,6 +5599,9 @@ function OrdersView() {
                 </div>
                 <input
                   type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  autoComplete="one-time-code"
                   maxLength={6}
                   value={loginOtp}
                   onChange={(e) => {
