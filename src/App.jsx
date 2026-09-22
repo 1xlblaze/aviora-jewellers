@@ -259,9 +259,14 @@ function AppProvider({ children }) {
             const canonical = authenticMap.get(p.id);
             if (canonical) {
               const hasCustomImages = Array.isArray(p.images) && p.images.length > 0;
+              const isStaleDesc = p.id === 'prod-007' && (!p.description || p.description.includes('sparkling double-chain') || !p.description.includes('Celestia'));
+              const description = isStaleDesc ? canonical.description : (p.description || canonical.description);
+              const name = p.id === 'prod-007' && !p.name?.includes('Celestia') ? canonical.name : (p.name || canonical.name);
               return {
                 ...canonical,
                 ...p,
+                name,
+                description,
                 images: hasCustomImages ? p.images : (canonical.images || []),
                 modelImage: p.modelImage || (hasCustomImages ? p.images[0] : canonical.modelImage),
                 collections: Array.isArray(p.collections) ? p.collections : (canonical.collections || []),
@@ -528,9 +533,14 @@ function AppProvider({ children }) {
             const canonical = authenticMap.get(p.id);
             if (canonical) {
               const hasRemoteImages = Array.isArray(p.images) && p.images.length > 0;
+              const isStaleDesc = p.id === 'prod-007' && (!p.description || p.description.includes('sparkling double-chain') || !p.description.includes('Celestia'));
+              const description = isStaleDesc ? canonical.description : (p.description || canonical.description);
+              const name = p.id === 'prod-007' && !p.name?.includes('Celestia') ? canonical.name : (p.name || canonical.name);
               return {
                 ...canonical,
                 ...p,
+                name,
+                description,
                 images: hasRemoteImages ? p.images : (canonical.images || []),
                 modelImage: p.modelImage || (hasRemoteImages ? p.images[0] : canonical.modelImage),
                 collections: Array.isArray(p.collections) && p.collections.length > 0 ? p.collections : (canonical.collections || []),
@@ -543,6 +553,11 @@ function AppProvider({ children }) {
           const missing = PRODUCTS.filter((p) => !remoteIds.has(p.id));
           const merged = missing.length > 0 ? [...valid, ...missing] : valid;
           setProducts(merged);
+          setSelectedProduct((prev) => {
+            if (!prev) return prev;
+            const updated = merged.find((p) => p.id === prev.id);
+            return updated ? { ...prev, ...updated } : prev;
+          });
           try {
             localStorage.setItem('aviora_products_catalog', JSON.stringify(merged));
           } catch (storageErr) {
@@ -1016,7 +1031,7 @@ function AppProvider({ children }) {
 // ==========================================
 // 2. RESILIENT ARTISTIC IMAGE (14K SPECIMEN FALLBACK)
 // ==========================================
-function ArtisticImage({ src, alt, className = '', exhibitNumber, materialTag }) {
+function ArtisticImage({ src, alt, className = '', imgClassName = '', exhibitNumber, materialTag }) {
   const [hasError, setHasError] = useState(false);
   const imgRef = useRef(null);
 
@@ -1060,7 +1075,9 @@ function ArtisticImage({ src, alt, className = '', exhibitNumber, materialTag })
         ref={imgRef}
         src={src}
         alt={alt}
-        className="w-full h-full object-cover object-center filter contrast-[1.05] saturate-[0.92] brightness-[0.99] transition-opacity duration-300"
+        className={`w-full h-full filter contrast-[1.05] saturate-[0.92] brightness-[0.99] transition-opacity duration-300 ${
+          imgClassName || 'object-cover object-center'
+        }`}
         onError={() => setHasError(true)}
       />
       <div className="absolute inset-0 pointer-events-none bg-gradient-to-t from-black/25 via-transparent to-black/10 mix-blend-multiply" />
@@ -3982,13 +3999,13 @@ function ProductView() {
     const prodId = params.get('product') || params.get('id');
     const catalog = products && products.length > 0 ? products : PRODUCTS;
     if (slug) {
-      const found = catalog.find((p) => p.slug === slug);
-      if (found && found.id !== selectedProduct?.id) {
+      const found = catalog.find((p) => p.slug === slug || (slug.includes('celestia') && p.id === 'prod-007'));
+      if (found && (found.id !== selectedProduct?.id || found.description !== selectedProduct?.description)) {
         setSelectedProduct(found);
       }
     } else if (prodId) {
       const found = catalog.find((p) => p.id === prodId);
-      if (found && found.id !== selectedProduct?.id) {
+      if (found && (found.id !== selectedProduct?.id || found.description !== selectedProduct?.description)) {
         setSelectedProduct(found);
       }
     }
@@ -4065,9 +4082,9 @@ function ProductView() {
 
       <div className="grid grid-cols-1 lg:grid-cols-12 min-h-screen">
         {/* Left Column: Interactive Multi-Angle Studio Gallery */}
-        <div className="lg:col-span-7 space-y-4 lg:space-y-6 p-4 md:p-10 border-b lg:border-b-0 lg:border-r border-[var(--border-subtle)]">
+        <div className="lg:col-span-7 space-y-3 lg:space-y-4 p-4 sm:p-6 lg:p-8 lg:sticky lg:top-20 lg:self-start border-b lg:border-b-0 lg:border-r border-[var(--border-subtle)]">
           {/* Top Bar: Angle indicator & Quick Switchers (Non-sticky to avoid lingering white strip) */}
-          <div className="flex items-center justify-between bg-[var(--bg-secondary)]/80 p-2.5 border border-[var(--border-subtle)] text-xs font-mono">
+          <div className="flex items-center justify-between bg-[var(--bg-secondary)]/80 p-2.5 border border-[var(--border-subtle)] text-xs font-mono max-w-[560px] mx-auto">
             <div className="flex items-center gap-2">
               <span className="px-2.5 py-1 bg-[#0d281e] dark:bg-[#e6ca97] text-white dark:text-[#242321] text-[10px] font-bold tracking-wider uppercase font-mono">
                 ANGLE 0{activeImageIndex + 1} OF 0{product.images?.length || 1}
@@ -4108,8 +4125,8 @@ function ProductView() {
           </div>
 
           {/* Main Stage View with Floating Arrows */}
-          <div className="relative w-full aspect-[4/5] sm:aspect-[4/5] lg:aspect-auto lg:min-h-[85vh] bg-[var(--bg-stone)] dark:bg-[#181d1a] overflow-hidden border border-[var(--border-subtle)] group">
-            <div className="absolute top-6 left-6 z-20 pointer-events-none">
+          <div className="relative w-full aspect-[4/5] sm:aspect-[4/5] lg:aspect-[4/5] lg:max-h-[58vh] xl:max-h-[62vh] max-w-[560px] mx-auto bg-[var(--bg-stone)] dark:bg-[#181d1a] overflow-hidden border border-[var(--border-subtle)] group shadow-xs">
+            <div className="absolute top-4 left-4 z-20 pointer-events-none">
               <span className="text-[10px] font-mono tracking-[0.3em] uppercase text-[var(--text-primary)] bg-[var(--bg-card)]/85 backdrop-blur-md px-3 py-1 border border-[var(--border-subtle)]">
                 PLATE // 0{activeImageIndex + 1} (STUDIO CAPTURE)
               </span>
@@ -4123,10 +4140,10 @@ function ProductView() {
                     e.stopPropagation();
                     setActiveImageIndex((prev) => (prev > 0 ? prev - 1 : product.images.length - 1));
                   }}
-                  className="absolute left-3 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-[var(--bg-card)]/85 hover:bg-[var(--bg-card)] text-[var(--text-primary)] border border-[var(--border-subtle)] flex items-center justify-center transition-all opacity-80 hover:opacity-100 shadow-md cursor-pointer"
+                  className="absolute left-2.5 top-1/2 -translate-y-1/2 z-20 w-9 h-9 rounded-full bg-[var(--bg-card)]/90 hover:bg-[var(--bg-card)] text-[var(--text-primary)] border border-[var(--border-subtle)] flex items-center justify-center transition-all opacity-85 hover:opacity-100 shadow-md cursor-pointer hover:scale-105 active:scale-95"
                   aria-label="Previous image"
                 >
-                  <ChevronLeft className="w-5 h-5" />
+                  <ChevronLeft className="w-4 h-4" />
                 </button>
                 <button
                   type="button"
@@ -4134,10 +4151,10 @@ function ProductView() {
                     e.stopPropagation();
                     setActiveImageIndex((prev) => (prev < product.images.length - 1 ? prev + 1 : 0));
                   }}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-[var(--bg-card)]/85 hover:bg-[var(--bg-card)] text-[var(--text-primary)] border border-[var(--border-subtle)] flex items-center justify-center transition-all opacity-80 hover:opacity-100 shadow-md cursor-pointer"
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 z-20 w-9 h-9 rounded-full bg-[var(--bg-card)]/90 hover:bg-[var(--bg-card)] text-[var(--text-primary)] border border-[var(--border-subtle)] flex items-center justify-center transition-all opacity-85 hover:opacity-100 shadow-md cursor-pointer hover:scale-105 active:scale-95"
                   aria-label="Next image"
                 >
-                  <ChevronRight className="w-5 h-5" />
+                  <ChevronRight className="w-4 h-4" />
                 </button>
               </>
             )}
@@ -4145,7 +4162,8 @@ function ProductView() {
             <ArtisticImage
               src={product.images?.[activeImageIndex] || product.images?.[0]}
               alt={`${product.name} Angle ${activeImageIndex + 1}`}
-              className="w-full h-full object-cover transition-all duration-300"
+              className="w-full h-full transition-all duration-300"
+              imgClassName="object-cover object-top sm:object-center"
               exhibitNumber={`PLATE // 0${activeImageIndex + 1}`}
               materialTag={product.material}
             />
@@ -4153,29 +4171,29 @@ function ProductView() {
 
           {/* Clickable Perspective Thumbnail Strip */}
           {product.images && product.images.length > 1 && (
-            <div className="space-y-2 pt-1">
+            <div className="space-y-1.5 pt-0.5 max-w-[560px] mx-auto">
               <div className="flex items-center justify-between text-[10px] font-mono uppercase text-[var(--text-muted)]">
-                <span>Select Perspective ({product.images.length} studio angles)</span>
-                <span>Click thumbnail to inspect</span>
+                <span className="font-semibold text-[#8c6527] dark:text-[#e6ca97]">Select Perspective ({product.images.length} studio angles)</span>
+                <span className="hidden sm:inline">Click thumbnail to inspect</span>
               </div>
-              <div className="flex items-center gap-3 overflow-x-auto pb-2">
+              <div className="flex items-center gap-2.5 overflow-x-auto pb-1">
                 {product.images.map((imgUrl, i) => (
                   <button
                     key={i}
                     type="button"
                     onClick={() => setActiveImageIndex(i)}
-                    className={`relative w-20 h-24 sm:w-24 sm:h-28 shrink-0 overflow-hidden transition-all border-2 cursor-pointer ${
+                    className={`relative w-16 h-20 sm:w-20 sm:h-24 shrink-0 overflow-hidden transition-all border-2 cursor-pointer rounded-xs ${
                       activeImageIndex === i
-                        ? 'border-[#0d281e] dark:border-[#e6ca97] ring-2 ring-[#0d281e]/30 scale-102 shadow-md'
-                        : 'border-[var(--border-subtle)] hover:border-[var(--border-strong)] opacity-70 hover:opacity-100'
+                        ? 'border-[#0d281e] dark:border-[#e6ca97] ring-2 ring-[#0d281e]/30 dark:ring-[#e6ca97]/40 scale-[1.02] shadow-md'
+                        : 'border-[var(--border-subtle)] hover:border-[#b99762] opacity-75 hover:opacity-100'
                     }`}
                   >
                     <img
                       src={imgUrl}
                       alt={`${product.name} Angle 0${i + 1}`}
-                      className="w-full h-full object-cover"
+                      className="w-full h-full object-cover object-top sm:object-center"
                     />
-                    <span className="absolute bottom-1 right-1 text-[8.5px] font-mono px-1.5 py-0.5 bg-black/85 text-white font-bold rounded-xs">
+                    <span className="absolute bottom-1 right-1 text-[8px] font-mono px-1.5 py-0.5 bg-black/85 text-white font-bold rounded-xs">
                       0{i + 1}
                     </span>
                   </button>
@@ -4186,8 +4204,8 @@ function ProductView() {
         </div>
 
         {/* Right Column: Sticky Product Info with Smooth Overflow */}
-        <div className="lg:col-span-5 p-4 sm:p-6 md:p-12 lg:p-16 flex flex-col justify-start">
-          <div className="lg:sticky lg:top-20 lg:self-start lg:max-h-[calc(100vh-5.5rem)] lg:overflow-y-auto overscroll-contain pr-2 space-y-7 custom-scrollbar">
+        <div className="lg:col-span-5 p-4 sm:p-6 md:p-8 lg:p-10 flex flex-col justify-start">
+          <div className="lg:sticky lg:top-20 lg:self-start lg:max-h-[calc(100vh-5.5rem)] lg:overflow-y-auto overscroll-contain pr-2 space-y-7 custom-scrollbar pt-1">
             <div className="space-y-2.5">
               <div className="flex items-center justify-between text-[10px] font-mono tracking-[0.3em] uppercase text-[#b99762] dark:text-[#e6ca97]">
                 <span className="flex items-center gap-1.5 font-bold">
@@ -4226,8 +4244,8 @@ function ProductView() {
                   </span>
                 </div>
                 <div className="relative pl-3.5 border-l-2 border-[#b38f56] dark:border-[#e6ca97]">
-                  <p className="font-playfair italic text-[15px] sm:text-[16px] leading-[1.85] text-[#1c1b18] dark:text-[#fbf8f3] font-normal tracking-wide">
-                    “{product.description}”
+                  <p className="font-playfair italic text-[15px] sm:text-[16px] leading-[1.85] text-[#1c1b18] dark:text-[#fbf8f3] font-normal tracking-wide whitespace-pre-line">
+                    {product.description}
                   </p>
                 </div>
                 {product.editorialNote && (
@@ -4497,7 +4515,7 @@ function ProductView() {
                   </button>
                   {activeAccordion === 'description' && (
                     <div className="text-[var(--text-secondary)] pt-3 space-y-3 leading-relaxed">
-                      <p className="font-playfair italic text-[13.5px] sm:text-[14.5px] leading-relaxed text-[var(--text-primary)] border-l-2 border-[#b38f56] pl-3 py-0.5">
+                      <p className="font-playfair italic text-[13.5px] sm:text-[14.5px] leading-relaxed text-[var(--text-primary)] border-l-2 border-[#b38f56] pl-3 py-0.5 whitespace-pre-line">
                         {product.description}
                       </p>
                       {product.craftsmanship && (

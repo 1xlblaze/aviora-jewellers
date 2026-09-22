@@ -85,7 +85,7 @@ assert(appJsx.includes('COVER 01'), 'Studio gallery highlights Angle 01 as prima
 assert(appJsx.includes('_addToFront'), 'Studio gallery provides _addToFront front-cover toggle');
 
 // PDP aspect ratio & description
-assert(appJsx.includes('aspect-[4/5] sm:aspect-[4/5] lg:aspect-auto lg:min-h-[85vh]'), 'PDP uses aspect-[4/5] on mobile to prevent empty bottom whitespace');
+assert(appJsx.includes('aspect-[4/5] sm:aspect-[4/5]'), 'PDP uses aspect-[4/5] on mobile to prevent empty bottom whitespace');
 assert(appJsx.includes('product.description'), 'PDP renders product description in main view');
 
 // PDP right side sticky scroll fix

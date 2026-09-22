@@ -478,6 +478,42 @@ export default function ProductDetailPage() {
                 </AnimatePresence>
               </div>
 
+              {/* Product Overview & Details */}
+              {product.description && (
+                <div className="py-4">
+                  <button
+                    onClick={() => toggleAccordion('description')}
+                    className="w-full flex justify-between items-center text-left text-zinc-200 hover:text-[#D4AF37] transition-colors"
+                  >
+                    <span className="tracking-[0.2em] uppercase">Product Overview & Details</span>
+                    <ChevronDown
+                      className={`w-4 h-4 transition-transform duration-300 ${
+                        activeAccordion === 'description' ? 'rotate-180 text-[#D4AF37]' : ''
+                      }`}
+                    />
+                  </button>
+                  <AnimatePresence>
+                    {activeAccordion === 'description' && (
+                      <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: 'auto', opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        className="overflow-hidden text-zinc-400 pt-3 space-y-3 leading-relaxed"
+                      >
+                        <p className="font-playfair italic text-[13.5px] sm:text-[14.5px] leading-relaxed text-zinc-200 border-l-2 border-[#D4AF37] pl-3 py-0.5 whitespace-pre-line">
+                          {product.description}
+                        </p>
+                        {product.craftsmanship && (
+                          <p className="text-xs font-mono text-zinc-500 pt-1 pl-3">
+                            <strong className="text-[#D4AF37] uppercase tracking-wider font-semibold">Bench Craft:</strong> {product.craftsmanship}
+                          </p>
+                        )}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              )}
+
               {/* Materiality */}
               <div className="py-4">
                 <button
