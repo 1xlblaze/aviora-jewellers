@@ -12,8 +12,9 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 /**
  * Helper to compress and downscale images client-side before upload or fallback
+ * Uses 1000px max width and 0.72 quality to keep files under 80KB and protect DB from bloat
  */
-async function compressImage(file: File, maxWidth = 1600, quality = 0.85): Promise<{ blob: Blob; dataUrl: string }> {
+async function compressImage(file: File, maxWidth = 1000, quality = 0.72): Promise<{ blob: Blob; dataUrl: string }> {
   return new Promise((resolve) => {
     if (typeof window === 'undefined' || typeof document === 'undefined') {
       file.arrayBuffer().then((buf) => {
@@ -72,14 +73,32 @@ async function compressImage(file: File, maxWidth = 1600, quality = 0.85): Promi
 }
 
 /**
- * Upload image to Supabase Storage with robust Base64 fallback
+ * Strips out oversized raw base64 data to prevent database statement timeouts
+ */
+export function sanitizeImagesForDb(images: any[]): string[] {
+  if (!Array.isArray(images)) return [];
+  return images.filter(Boolean).map((img) => {
+    if (typeof img === 'string') {
+      // Discard multi-megabyte base64 strings that choke PostgreSQL
+      if (img.startsWith('data:image') && img.length > 250000) {
+        console.warn('Oversized base64 image prevented from bloating database table.');
+        return img.slice(0, 100);
+      }
+      return img;
+    }
+    return String(img);
+  });
+}
+
+/**
+ * Upload image to Supabase Storage with lightweight fallback
  */
 export async function uploadProductImageToStorage(file: File): Promise<string> {
   let compressedBlob: Blob = file;
   let compressedDataUrl = '';
 
   try {
-    const comp = await compressImage(file, 1600, 0.85);
+    const comp = await compressImage(file, 1000, 0.72);
     compressedBlob = comp.blob;
     compressedDataUrl = comp.dataUrl;
   } catch (compErr) {
@@ -110,7 +129,7 @@ export async function uploadProductImageToStorage(file: File): Promise<string> {
     console.warn('Supabase storage upload failed, falling back to base64 data URL:', err);
   }
 
-  // Resilient Base64 Fallback Pipeline: Ensures images upload and render immediately
+  // Resilient Base64 Fallback Pipeline: Ensures images render immediately without bloating DB
   if (compressedDataUrl) {
     return compressedDataUrl;
   }
@@ -149,52 +168,64 @@ export async function fetchCategoriesFromDb() {
  * Fetch all Aviora products from Supabase
  */
 export async function fetchProductsFromDb() {
-  const { data, error } = await supabase
-    .from('aviora_products')
-    .select('*')
-    .order('created_at');
-  if (error) {
-    console.warn('Supabase fetchProducts error:', error);
+  try {
+    const { data, error } = await supabase
+      .from('aviora_products')
+      .select('*')
+      .order('created_at');
+    if (error) {
+      console.warn('Supabase fetchProducts error:', error);
+      return null;
+    }
+    return (data || []).map((p: any) => {
+      const cleanImages = Array.isArray(p.images)
+        ? p.images.filter((img: any) => typeof img === 'string' && (!img.startsWith('data:image') || img.length < 250000))
+        : [];
+      return {
+        id: p.id,
+        name: p.name,
+        slug: p.slug,
+        subtitle: p.subtitle || '',
+        price: Number(p.price),
+        originalPrice: p.original_price ? Number(p.original_price) : undefined,
+        currency: p.currency || 'INR',
+        description: p.description || '',
+        editorialNote: p.editorial_note || '',
+        edition: p.edition || '',
+        material: p.material || '14K Whitish Gold Vermeil over 925 Silver',
+        goldPurity: p.gold_purity || '14K Gold Vermeil',
+        colorTone: p.color_tone || 'Whitish Gold',
+        metalColorHex: p.metal_color_hex || '#EDE7DC',
+        occasionVibe: p.occasion_vibe || 'Everyday Wear',
+        category: p.category || p.category_slug || 'minimalist',
+        subcategory: p.subcategory || '',
+        silhouette: p.silhouette || 'light',
+        dimensions: p.dimensions || '',
+        craftsmanship: p.craftsmanship || '',
+        images: cleanImages,
+        modelImage: typeof p.model_image === 'string' && (!p.model_image.startsWith('data:image') || p.model_image.length < 250000)
+          ? p.model_image
+          : (cleanImages[0] || ''),
+        videoUrl: p.video_url || '',
+        featured: Boolean(p.featured),
+        inStock: Boolean(p.in_stock ?? true),
+        inventory: Number(p.inventory ?? 5),
+        isEngravable: Boolean(p.is_engravable),
+        categorySlug: p.category_slug || 'minimalist',
+        categoryName: p.category_name || 'Minimalist Jewellery',
+        hallmark: p.hallmark || 'Fine 925 Sterling Silver',
+        warranty: p.warranty || '30-Day Manufacturing Warranty',
+        pairsWithId: p.pairs_with_id || undefined,
+        upsellReason: p.upsell_reason || '',
+        collections: Array.isArray(p.collections) ? p.collections : [],
+        tags: Array.isArray(p.tags) ? p.tags : [],
+        isNew: Boolean(p.is_new),
+      };
+    });
+  } catch (err) {
+    console.warn('Supabase fetchProducts exception:', err);
     return null;
   }
-  return (data || []).map((p: any) => ({
-    id: p.id,
-    name: p.name,
-    slug: p.slug,
-    subtitle: p.subtitle || '',
-    price: Number(p.price),
-    originalPrice: p.original_price ? Number(p.original_price) : undefined,
-    currency: p.currency || 'INR',
-    description: p.description || '',
-    editorialNote: p.editorial_note || '',
-    edition: p.edition || '',
-    material: p.material || '14K Whitish Gold Vermeil over 925 Silver',
-    goldPurity: p.gold_purity || '14K Gold Vermeil',
-    colorTone: p.color_tone || 'Whitish Gold',
-    metalColorHex: p.metal_color_hex || '#EDE7DC',
-    occasionVibe: p.occasion_vibe || 'Everyday Wear',
-    category: p.category || p.category_slug || 'minimalist',
-    subcategory: p.subcategory || '',
-    silhouette: p.silhouette || 'light',
-    dimensions: p.dimensions || '',
-    craftsmanship: p.craftsmanship || '',
-    images: Array.isArray(p.images) ? p.images : [],
-    modelImage: p.model_image || (Array.isArray(p.images) && p.images[0]) || '',
-    videoUrl: p.video_url || '',
-    featured: Boolean(p.featured),
-    inStock: Boolean(p.in_stock ?? true),
-    inventory: Number(p.inventory ?? 5),
-    isEngravable: Boolean(p.is_engravable),
-    categorySlug: p.category_slug || 'minimalist',
-    categoryName: p.category_name || 'Minimalist Jewellery',
-    hallmark: p.hallmark || 'Fine 925 Sterling Silver',
-    warranty: p.warranty || '30-Day Manufacturing Warranty',
-    pairsWithId: p.pairs_with_id || undefined,
-    upsellReason: p.upsell_reason || '',
-    collections: Array.isArray(p.collections) ? p.collections : [],
-    tags: Array.isArray(p.tags) ? p.tags : [],
-    isNew: Boolean(p.is_new),
-  }));
 }
 
 /**
@@ -298,8 +329,10 @@ export async function addProductToDb(product: any) {
         occasion_vibe: product.occasionVibe || 'Everyday Wear',
         dimensions: product.dimensions || '',
         craftsmanship: product.craftsmanship || '',
-        images: product.images || [],
-        model_image: product.modelImage || (Array.isArray(product.images) && product.images[0]) || '',
+        images: sanitizeImagesForDb(product.images || []),
+        model_image: typeof product.modelImage === 'string' && product.modelImage.length > 250000
+          ? product.modelImage.slice(0, 100)
+          : (product.modelImage || (Array.isArray(product.images) && product.images[0]) || ''),
         featured: Boolean(product.featured),
         in_stock: Boolean(product.inStock ?? true),
         inventory: product.inventory ?? 5,
@@ -348,12 +381,17 @@ export async function updateProductInDb(productId: string, updates: any) {
     if (updates.weight !== undefined) dbPayload.weight = updates.weight;
     if (updates.craftsmanship !== undefined) dbPayload.craftsmanship = updates.craftsmanship;
     if (updates.images !== undefined) {
-      dbPayload.images = updates.images;
-      if (Array.isArray(updates.images) && updates.images.length > 0 && !updates.modelImage) {
-        dbPayload.model_image = updates.images[0];
+      const cleanImages = sanitizeImagesForDb(updates.images);
+      dbPayload.images = cleanImages;
+      if (cleanImages.length > 0 && !updates.modelImage) {
+        dbPayload.model_image = cleanImages[0];
       }
     }
-    if (updates.modelImage !== undefined) dbPayload.model_image = updates.modelImage;
+    if (updates.modelImage !== undefined) {
+      dbPayload.model_image = typeof updates.modelImage === 'string' && updates.modelImage.length > 250000
+        ? updates.modelImage.slice(0, 100)
+        : updates.modelImage;
+    }
     if (updates.featured !== undefined) dbPayload.featured = updates.featured;
     if (updates.inStock !== undefined) dbPayload.in_stock = updates.inStock;
     if (updates.inventory !== undefined) dbPayload.inventory = updates.inventory;
