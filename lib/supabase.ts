@@ -11,27 +11,110 @@ const supabaseAnonKey =
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 /**
+ * Helper to compress and downscale images client-side before upload or fallback
+ */
+async function compressImage(file: File, maxWidth = 1600, quality = 0.85): Promise<{ blob: Blob; dataUrl: string }> {
+  return new Promise((resolve) => {
+    if (typeof window === 'undefined' || typeof document === 'undefined') {
+      file.arrayBuffer().then((buf) => {
+        const b64 = Buffer.from(buf).toString('base64');
+        const dataUrl = `data:${file.type || 'image/jpeg'};base64,${b64}`;
+        resolve({ blob: file, dataUrl });
+      }).catch(() => {
+        resolve({ blob: file, dataUrl: '' });
+      });
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        let width = img.width;
+        let height = img.height;
+        if (width > maxWidth || height > maxWidth) {
+          if (width > height) {
+            height = Math.round((height * maxWidth) / width);
+            width = maxWidth;
+          } else {
+            width = Math.round((width * maxWidth) / height);
+            height = maxWidth;
+          }
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.drawImage(img, 0, 0, width, height);
+          const dataUrl = canvas.toDataURL('image/jpeg', quality);
+          canvas.toBlob(
+            (blob) => {
+              resolve({ blob: blob || file, dataUrl });
+            },
+            'image/jpeg',
+            quality
+          );
+        } else {
+          resolve({ blob: file, dataUrl: (e.target?.result as string) || '' });
+        }
+      };
+      img.onerror = () => {
+        resolve({ blob: file, dataUrl: (e.target?.result as string) || '' });
+      };
+      img.src = e.target?.result as string;
+    };
+    reader.onerror = () => {
+      resolve({ blob: file, dataUrl: '' });
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+/**
  * Upload image to Supabase Storage with robust Base64 fallback
  */
 export async function uploadProductImageToStorage(file: File): Promise<string> {
+  let compressedBlob: Blob = file;
+  let compressedDataUrl = '';
+
   try {
-    const fileExt = file.name.split('.').pop();
-    const fileName = `${Date.now()}_${Math.random().toString(36).substring(2, 9)}.${fileExt}`;
+    const comp = await compressImage(file, 1600, 0.85);
+    compressedBlob = comp.blob;
+    compressedDataUrl = comp.dataUrl;
+  } catch (compErr) {
+    console.warn('Image compression notice:', compErr);
+  }
+
+  try {
+    const fileExt = file.name ? file.name.split('.').pop()?.toLowerCase() || 'jpg' : 'jpg';
+    const cleanExt = ['jpg', 'jpeg', 'png', 'webp'].includes(fileExt) ? fileExt : 'jpg';
+    const fileName = `${Date.now()}_${Math.random().toString(36).substring(2, 9)}.${cleanExt}`;
     const filePath = `products/${fileName}`;
 
     const { error: uploadError } = await supabase.storage
       .from('product-images')
-      .upload(filePath, file, { cacheControl: '3600', upsert: true });
+      .upload(filePath, compressedBlob, {
+        cacheControl: '31536000',
+        upsert: true,
+        contentType: compressedBlob.type || 'image/jpeg',
+      });
 
     if (!uploadError) {
       const { data } = supabase.storage.from('product-images').getPublicUrl(filePath);
       if (data?.publicUrl) return data.publicUrl;
+    } else {
+      console.warn('Supabase storage upload failed, falling back:', uploadError.message);
     }
   } catch (err) {
     console.warn('Supabase storage upload failed, falling back to base64 data URL:', err);
   }
 
   // Resilient Base64 Fallback Pipeline: Ensures images upload and render immediately
+  if (compressedDataUrl) {
+    return compressedDataUrl;
+  }
+
   if (typeof FileReader !== 'undefined') {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
@@ -80,6 +163,7 @@ export async function fetchProductsFromDb() {
     slug: p.slug,
     subtitle: p.subtitle || '',
     price: Number(p.price),
+    originalPrice: p.original_price ? Number(p.original_price) : undefined,
     currency: p.currency || 'INR',
     description: p.description || '',
     editorialNote: p.editorial_note || '',
@@ -89,13 +173,13 @@ export async function fetchProductsFromDb() {
     colorTone: p.color_tone || 'Whitish Gold',
     metalColorHex: p.metal_color_hex || '#EDE7DC',
     occasionVibe: p.occasion_vibe || 'Everyday Wear',
-    category: p.category || 'minimalist',
+    category: p.category || p.category_slug || 'minimalist',
     subcategory: p.subcategory || '',
     silhouette: p.silhouette || 'light',
     dimensions: p.dimensions || '',
     craftsmanship: p.craftsmanship || '',
     images: Array.isArray(p.images) ? p.images : [],
-    modelImage: p.model_image || (Array.isArray(p.images) && p.images[1]) || '',
+    modelImage: p.model_image || (Array.isArray(p.images) && p.images[0]) || '',
     videoUrl: p.video_url || '',
     featured: Boolean(p.featured),
     inStock: Boolean(p.in_stock ?? true),
@@ -107,6 +191,9 @@ export async function fetchProductsFromDb() {
     warranty: p.warranty || '30-Day Manufacturing Warranty',
     pairsWithId: p.pairs_with_id || undefined,
     upsellReason: p.upsell_reason || '',
+    collections: Array.isArray(p.collections) ? p.collections : [],
+    tags: Array.isArray(p.tags) ? p.tags : [],
+    isNew: Boolean(p.is_new),
   }));
 }
 
@@ -212,12 +299,18 @@ export async function addProductToDb(product: any) {
         dimensions: product.dimensions || '',
         craftsmanship: product.craftsmanship || '',
         images: product.images || [],
-        model_image: product.modelImage || '',
+        model_image: product.modelImage || (Array.isArray(product.images) && product.images[0]) || '',
         featured: Boolean(product.featured),
         in_stock: Boolean(product.inStock ?? true),
         inventory: product.inventory ?? 5,
         is_engravable: Boolean(product.isEngravable),
+        category: product.category || product.categorySlug || 'minimalist',
         category_slug: product.categorySlug || 'minimalist',
+        subcategory: product.subcategory || '',
+        silhouette: product.silhouette || 'light',
+        collections: Array.isArray(product.collections) ? product.collections : [],
+        tags: Array.isArray(product.tags) ? product.tags : [],
+        is_new: Boolean(product.isNew),
         hallmark: product.hallmark || 'Fine 925 Sterling Silver',
         warranty: product.warranty || '30-Day Manufacturing Warranty',
         pairs_with_id: product.pairsWithId || null,
@@ -254,13 +347,24 @@ export async function updateProductInDb(productId: string, updates: any) {
     if (updates.dimensions !== undefined) dbPayload.dimensions = updates.dimensions;
     if (updates.weight !== undefined) dbPayload.weight = updates.weight;
     if (updates.craftsmanship !== undefined) dbPayload.craftsmanship = updates.craftsmanship;
-    if (updates.images !== undefined) dbPayload.images = updates.images;
+    if (updates.images !== undefined) {
+      dbPayload.images = updates.images;
+      if (Array.isArray(updates.images) && updates.images.length > 0 && !updates.modelImage) {
+        dbPayload.model_image = updates.images[0];
+      }
+    }
     if (updates.modelImage !== undefined) dbPayload.model_image = updates.modelImage;
     if (updates.featured !== undefined) dbPayload.featured = updates.featured;
     if (updates.inStock !== undefined) dbPayload.in_stock = updates.inStock;
     if (updates.inventory !== undefined) dbPayload.inventory = updates.inventory;
     if (updates.isEngravable !== undefined) dbPayload.is_engravable = updates.isEngravable;
     if (updates.categorySlug !== undefined) dbPayload.category_slug = updates.categorySlug;
+    if (updates.category !== undefined) dbPayload.category = updates.category;
+    if (updates.subcategory !== undefined) dbPayload.subcategory = updates.subcategory;
+    if (updates.silhouette !== undefined) dbPayload.silhouette = updates.silhouette;
+    if (updates.collections !== undefined) dbPayload.collections = updates.collections;
+    if (updates.tags !== undefined) dbPayload.tags = updates.tags;
+    if (updates.isNew !== undefined) dbPayload.is_new = updates.isNew;
     if (updates.hallmark !== undefined) dbPayload.hallmark = updates.hallmark;
     if (updates.warranty !== undefined) dbPayload.warranty = updates.warranty;
     if (updates.pairsWithId !== undefined) dbPayload.pairs_with_id = updates.pairsWithId;

@@ -255,23 +255,25 @@ function AppProvider({ children }) {
           parsed.length > 0 &&
           !parsed.some((p) => p.name && p.name.includes('Molten'))
         ) {
-          const valid = parsed
-            .filter((p) => authenticMap.has(p.id))
-            .map((p) => {
-              const canonical = authenticMap.get(p.id);
+          const valid = parsed.map((p) => {
+            const canonical = authenticMap.get(p.id);
+            if (canonical) {
+              const hasCustomImages = Array.isArray(p.images) && p.images.length > 0;
               return {
                 ...canonical,
                 ...p,
-                images: p.id === 'prod-008' ? canonical.images : (canonical?.images || p.images),
-                modelImage: p.id === 'prod-008' ? canonical.modelImage : (canonical?.modelImage || p.modelImage),
+                images: hasCustomImages ? p.images : (canonical.images || []),
+                modelImage: p.modelImage || (hasCustomImages ? p.images[0] : canonical.modelImage),
+                collections: Array.isArray(p.collections) ? p.collections : (canonical.collections || []),
+                tags: Array.isArray(p.tags) ? p.tags : (canonical.tags || []),
               };
-            });
+            }
+            // Retain newly added custom products
+            return p;
+          });
           const existingIds = new Set(valid.map((p) => p.id));
           const missing = PRODUCTS.filter((p) => !existingIds.has(p.id));
-          const merged = missing.length > 0 ? [...valid, ...missing] : valid;
-          if (merged.length === PRODUCTS.length) {
-            return merged;
-          }
+          return missing.length > 0 ? [...valid, ...missing] : valid;
         }
       }
     } catch {
@@ -281,29 +283,41 @@ function AppProvider({ children }) {
   });
 
   const [selectedProduct, setSelectedProduct] = useState(() => {
+    // Resolve from initialized products catalogue first so edits show immediately
+    const catalogSource = (() => {
+      try {
+        const stored = localStorage.getItem('aviora_products_catalog');
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        }
+      } catch {}
+      return PRODUCTS;
+    })();
+
     if (typeof window !== 'undefined') {
       try {
         const params = new URLSearchParams(window.location.search);
         const prodId = params.get('product') || params.get('id');
         const slug = params.get('slug');
         if (prodId) {
-          const found = PRODUCTS.find((p) => p.id === prodId);
+          const found = catalogSource.find((p) => p.id === prodId) || PRODUCTS.find((p) => p.id === prodId);
           if (found) return found;
         }
         if (slug) {
-          const found = PRODUCTS.find((p) => p.slug === slug);
+          const found = catalogSource.find((p) => p.slug === slug) || PRODUCTS.find((p) => p.slug === slug);
           if (found) return found;
         }
         const savedId = localStorage.getItem('aviora_selected_product_id');
         if (savedId) {
-          const found = PRODUCTS.find((p) => p.id === savedId);
+          const found = catalogSource.find((p) => p.id === savedId) || PRODUCTS.find((p) => p.id === savedId);
           if (found) return found;
         }
       } catch {
         // fallback
       }
     }
-    return PRODUCTS.find((p) => p.id === 'prod-009') || PRODUCTS[0];
+    return catalogSource.find((p) => p.id === 'prod-009') || catalogSource[0] || PRODUCTS[0];
   });
 
   // Persist selectedProduct ID for seamless reloads on /pdp
@@ -510,22 +524,30 @@ function AppProvider({ children }) {
         const remoteProducts = await fetchProductsFromDb();
         if (isMounted && remoteProducts && remoteProducts.length > 0) {
           const authenticMap = new Map(PRODUCTS.map((p) => [p.id, p]));
-          const valid = remoteProducts
-            .filter((p) => authenticMap.has(p.id))
-            .map((p) => {
-              const canonical = authenticMap.get(p.id);
+          const valid = remoteProducts.map((p) => {
+            const canonical = authenticMap.get(p.id);
+            if (canonical) {
+              const hasRemoteImages = Array.isArray(p.images) && p.images.length > 0;
               return {
                 ...canonical,
                 ...p,
-                images: p.id === 'prod-008' ? canonical.images : (canonical?.images || p.images),
-                modelImage: p.id === 'prod-008' ? canonical.modelImage : (canonical?.modelImage || p.modelImage),
+                images: hasRemoteImages ? p.images : (canonical.images || []),
+                modelImage: p.modelImage || (hasRemoteImages ? p.images[0] : canonical.modelImage),
+                collections: Array.isArray(p.collections) && p.collections.length > 0 ? p.collections : (canonical.collections || []),
+                tags: Array.isArray(p.tags) && p.tags.length > 0 ? p.tags : (canonical.tags || []),
               };
-            });
+            }
+            return p;
+          });
           const remoteIds = new Set(valid.map((p) => p.id));
           const missing = PRODUCTS.filter((p) => !remoteIds.has(p.id));
           const merged = missing.length > 0 ? [...valid, ...missing] : valid;
           setProducts(merged);
-          localStorage.setItem('aviora_products_catalog', JSON.stringify(merged));
+          try {
+            localStorage.setItem('aviora_products_catalog', JSON.stringify(merged));
+          } catch (storageErr) {
+            console.warn('Failed to cache hydrated products to localStorage:', storageErr);
+          }
         }
       } catch (err) {
         console.warn('Supabase products hydration notice:', err);
@@ -562,7 +584,22 @@ function AppProvider({ children }) {
     try {
       localStorage.setItem('aviora_products_catalog', JSON.stringify(products));
     } catch (e) {
-      console.warn('Failed to save products cache:', e);
+      console.warn('Failed to save products cache, attempting sanitized save:', e);
+      try {
+        const sanitized = products.map((p) => {
+          const cleanImages = (p.images || []).map((img) =>
+            typeof img === 'string' && img.length > 500000 ? img.slice(0, 100) : img
+          );
+          return {
+            ...p,
+            images: cleanImages,
+            modelImage: typeof p.modelImage === 'string' && p.modelImage.length > 500000 ? cleanImages[0] : p.modelImage,
+          };
+        });
+        localStorage.setItem('aviora_products_catalog', JSON.stringify(sanitized));
+      } catch (quotaErr) {
+        console.warn('Secondary save products cache error:', quotaErr);
+      }
     }
   }, [products]);
 
@@ -795,7 +832,12 @@ function AppProvider({ children }) {
       inStock: Boolean(productData.inStock ?? true),
       inventory: Number(productData.inventory ?? 5),
       isEngravable: Boolean(productData.isEngravable),
+      category: productData.category || productData.categorySlug || 'anatomical-kadas-cuffs',
       categorySlug: productData.categorySlug || 'anatomical-kadas-cuffs',
+      subcategory: productData.subcategory || '',
+      collections: Array.isArray(productData.collections) ? productData.collections : [],
+      tags: Array.isArray(productData.tags) ? productData.tags : [],
+      isNew: Boolean(productData.isNew),
       categoryName:
         productData.categorySlug === 'architectural-signets'
           ? 'Architectural Signets'
@@ -830,6 +872,8 @@ function AppProvider({ children }) {
     setProducts((prev) =>
       prev.map((p) => (p.id === productId ? { ...p, ...updates } : p))
     );
+    // Also synchronize selectedProduct if currently viewing
+    setSelectedProduct((prev) => (prev?.id === productId ? { ...prev, ...updates } : prev));
     showToast('Specifications & Pricing Synchronized');
 
     // Supabase Update
