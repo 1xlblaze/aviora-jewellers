@@ -157,18 +157,18 @@ export function InstagramIcon({ className = 'w-4 h-4' }) {
 export function AvioraBrandCrest({ className = 'w-6 h-6' }) {
   return (
     <svg className={className} viewBox="0 0 100 100" fill="none">
-      <line x1="50" y1="6" x2="50" y2="14" stroke="#D4AF37" strokeWidth="2.2" strokeLinecap="round"/>
-      <line x1="40" y1="10" x2="43" y2="16" stroke="#D4AF37" strokeWidth="2" strokeLinecap="round"/>
-      <line x1="60" y1="10" x2="57" y2="16" stroke="#D4AF37" strokeWidth="2" strokeLinecap="round"/>
-      <line x1="32" y1="16" x2="38" y2="21" stroke="#D4AF37" strokeWidth="1.8" strokeLinecap="round"/>
-      <line x1="68" y1="16" x2="62" y2="21" stroke="#D4AF37" strokeWidth="1.8" strokeLinecap="round"/>
-      <polygon points="50,18 42,24 45,30 55,30 58,24" fill="#F4EBD9" stroke="#B89758" strokeWidth="1.2" strokeLinejoin="round"/>
-      <line x1="42" y1="24" x2="58" y2="24" stroke="#B89758" strokeWidth="1"/>
-      <circle cx="50" cy="54" r="26" stroke="#D4AF37" strokeWidth="3" fill="none" opacity="0.95"/>
-      <circle cx="50" cy="54" r="23" stroke="#B89758" strokeWidth="1" fill="none" opacity="0.5"/>
-      <path d="M50 36 L34 76 L40 76 L48 55 L58 76 L64 76 Z" fill="#EDE7DC" stroke="#C5B28D" strokeWidth="1" strokeLinejoin="round"/>
-      <path d="M43 65 L60 65 L60 70 L41 70 Z" fill="#D4AF37" stroke="#9A7B38" strokeWidth="0.8"/>
-      <path d="M50 45 L45 58 L55 58 Z" fill="#132A22"/>
+      <line x1="50" y1="6" x2="50" y2="14" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"/>
+      <line x1="40" y1="10" x2="43" y2="16" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+      <line x1="60" y1="10" x2="57" y2="16" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+      <line x1="32" y1="16" x2="38" y2="21" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
+      <line x1="68" y1="16" x2="62" y2="21" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
+      <polygon points="50,18 42,24 45,30 55,30 58,24" fill="#E8F0EC" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round"/>
+      <line x1="42" y1="24" x2="58" y2="24" stroke="currentColor" strokeWidth="1"/>
+      <circle cx="50" cy="54" r="26" stroke="currentColor" strokeWidth="3" fill="none" opacity="0.95"/>
+      <circle cx="50" cy="54" r="23" stroke="currentColor" strokeWidth="1" fill="none" opacity="0.6"/>
+      <path d="M50 36 L34 76 L40 76 L48 55 L58 76 L64 76 Z" fill="#E8F0EC" stroke="currentColor" strokeWidth="1" strokeLinejoin="round"/>
+      <path d="M43 65 L60 65 L60 70 L41 70 Z" fill="currentColor" stroke="currentColor" strokeWidth="0.8"/>
+      <path d="M50 45 L45 58 L55 58 Z" fill="#0d281e"/>
     </svg>
   );
 }
@@ -267,10 +267,15 @@ function AppProvider({ children }) {
                 ...p,
                 name,
                 description,
+                category: canonical.category || p.category,
+                subcategory: canonical.subcategory || p.subcategory,
+                silhouette: canonical.silhouette || p.silhouette,
+                colorTone: canonical.colorTone || p.colorTone,
+                colour: canonical.colour || p.colour,
                 images: hasCustomImages ? p.images : (canonical.images || []),
                 modelImage: p.modelImage || (hasCustomImages ? p.images[0] : canonical.modelImage),
-                collections: Array.isArray(p.collections) ? p.collections : (canonical.collections || []),
-                tags: Array.isArray(p.tags) ? p.tags : (canonical.tags || []),
+                collections: canonical.collections || p.collections || [],
+                tags: canonical.tags || p.tags || [],
               };
             }
             // Retain newly added custom products
@@ -826,7 +831,7 @@ function AppProvider({ children }) {
       edition: productData.edition || 'Archival Series 2026',
       material: productData.material || '14K Gold Vermeil over Fine 925 Silver',
       goldPurity: productData.goldPurity || '14K Gold Vermeil',
-      colorTone: productData.colorTone || 'Whitish Gold',
+      colorTone: productData.colorTone || '14K Gold',
       metalColorHex: productData.metalColorHex || '#EDE7DC',
       silhouette: productData.silhouette || 'light',
       occasionVibe: productData.occasionVibe || 'Everyday Wear',
@@ -1052,13 +1057,13 @@ function ArtisticImage({ src, alt, className = '', imgClassName = '', exhibitNum
         </div>
         <div className="relative z-10 flex justify-between items-start text-[10px] tracking-[0.25em] uppercase font-mono text-[var(--text-muted)]">
           <span>{exhibitNumber || 'FINE SPECIMEN ARCHIVE'}</span>
-          <span className="text-[#b99762] dark:text-[#e6ca97] font-semibold">14K WHITISH GOLD</span>
+          <span className="text-[#b99762] dark:text-[#e6ca97] font-semibold">14K GOLD VERMEIL</span>
         </div>
         <div className="relative z-10 my-auto text-center space-y-2">
           <p className="font-serif italic text-2xl text-[var(--text-primary)] tracking-wide">{alt}</p>
           <div className="w-8 h-[1px] bg-[#b99762]/50 mx-auto" />
           <p className="text-[10px] tracking-[0.3em] uppercase text-[#b99762] dark:text-[#e6ca97] font-mono">
-            14K SPECIMEN // {materialTag || 'WHITISH GOLD & 925 SILVER'}
+            14K SPECIMEN // {materialTag || '14K GOLD & 925 SILVER'}
           </p>
         </div>
         <div className="relative z-10 flex justify-between items-end text-[9px] tracking-[0.2em] font-mono text-[var(--text-muted)]">
@@ -1262,17 +1267,17 @@ function Navbar() {
             </button>
           </div>
 
-          {/* Brand Identity: Monogram Crest + AVIORA Wordmark */}
+          {/* Brand Identity: Monogram Crest + AVIORA Wordmark in Signature Dark Green */}
           <button
             onClick={() => navigate('home')}
             className="group flex items-center gap-1.5 sm:gap-2.5 focus:outline-none shrink-0 text-left min-w-0"
           >
-            <AvioraBrandCrest className="w-6 h-6 sm:w-9 sm:h-9 shrink-0 text-[#b99762] transition-transform duration-300 group-hover:scale-105" />
+            <AvioraBrandCrest className="w-6 h-6 sm:w-9 sm:h-9 shrink-0 text-[#0d281e] dark:text-[#52b788] transition-transform duration-300 group-hover:scale-105" />
             <div className="flex flex-col min-w-0">
-              <span className="font-serif text-lg sm:text-3xl tracking-[0.16em] sm:tracking-[0.22em] uppercase font-normal text-[var(--text-primary)] transition-colors duration-300 group-hover:text-[#b99762] leading-tight truncate">
+              <span className="font-serif text-lg sm:text-3xl tracking-[0.16em] sm:tracking-[0.22em] uppercase font-bold text-[#0d281e] dark:text-[#fbf8f3] transition-colors duration-300 group-hover:text-[#1d4136] leading-tight truncate">
                 AVIORA
               </span>
-              <span className="block text-[6px] sm:text-[7.5px] font-sans font-bold tracking-[0.12em] sm:tracking-[0.26em] uppercase text-[#0d281e] dark:text-[#3d7965] -mt-0.5 truncate">
+              <span className="block text-[6px] sm:text-[7.5px] font-sans font-bold tracking-[0.12em] sm:tracking-[0.26em] uppercase text-[#0d281e]/85 dark:text-[#a3b899] -mt-0.5 truncate">
                 TIMELESS ELEGANCE, MADE FOR YOU
               </span>
             </div>
@@ -1480,7 +1485,7 @@ function Navbar() {
                 {/* Drawer Header */}
                 <div className="flex items-center justify-between pb-6 border-b border-[var(--border-subtle)]">
                   <div className="flex items-center gap-2.5">
-                    <AvioraBrandCrest className="w-7 h-7 text-[#b99762]" />
+                    <AvioraBrandCrest className="w-7 h-7 text-[#0d281e] dark:text-[#52b788]" />
                     <div className="flex flex-col">
                       <span className="font-serif text-2xl tracking-[0.2em] uppercase text-[var(--text-primary)] font-normal">
                         AVIORA
@@ -1971,24 +1976,23 @@ function ProductArtworkCard({ product, index = 0, compact = false }) {
   const hasSecondaryImage =
     Boolean(Array.isArray(product.images) && product.images.length > 1 && product.images[1] !== primaryImage);
 
-  // Format material display
+  // Format material display - focused on noble materials (Fine 925 Silver, Pearls, Moissanite)
   const materialDisplay =
     product.materials && product.materials.length > 0
       ? product.materials
           .map((m) =>
-            m === 'gold-plated-14k'
-              ? '14K Gold-Plated'
-              : m === 'sterling-silver-925'
-              ? '925 Silver'
+            m === 'sterling-silver-925'
+              ? 'Fine 925 Silver'
               : m === 'freshwater-pearls'
               ? 'Freshwater Pearls'
               : m === 'moissanite'
-              ? 'Moissanite'
-              : m
+              ? 'Brilliant Moissanite'
+              : ''
           )
+          .filter(Boolean)
           .slice(0, 2)
-          .join(' · ')
-      : product.goldPurity || product.material || '14K Whitish Gold · Fine 925 Silver';
+          .join(' · ') || 'Fine 925 Silver'
+      : 'Fine 925 Silver';
 
   return (
     <article
@@ -2054,13 +2058,7 @@ function ProductArtworkCard({ product, index = 0, compact = false }) {
           />
         )}
 
-        {/* Multi-Angle Studio Badge */}
-        {product.images?.length > 1 && (
-          <span className="absolute bottom-11 sm:bottom-2.5 left-2 sm:left-2.5 z-10 inline-flex items-center gap-1 px-2 py-0.5 bg-[#0d281e]/90 dark:bg-[#181d1a]/95 backdrop-blur-xs text-[#fbf8f3] dark:text-[#e6ca97] text-[9px] sm:text-[9.5px] font-sans font-medium tracking-normal rounded-full border border-white/20 dark:border-[#b99762]/30 shadow-md sm:group-hover:opacity-0 transition-opacity pointer-events-none">
-            <Camera className="w-2.5 h-2.5 text-[#b99762] dark:text-[#e6ca97]" />
-            <span>{product.images.length} Angles</span>
-          </span>
-        )}
+
 
         {/* Quick Add Button - Touch friendly on mobile, sliding up on hover on desktop */}
         <button
@@ -2106,10 +2104,10 @@ const ATELIER_CHAPTERS = [
     title: 'Our Story & Founding Vision',
     subtitle: 'Everyday Luxury • Pure Noble Metals & Artisan Craft',
     icon: Sparkles,
-    summary: 'AVIORA was created with one vision — to bring timeless, elegant jewellery that feels luxurious yet wearable every day. Our collections feature carefully selected pieces crafted from 925 Sterling Silver, 14K Whitish Gold-Plated Sterling Silver, Moissanite, Freshwater Pearls, and other premium materials mentioned on individual product pages. Every design is chosen for elegance, craftsmanship, and comfort.',
+    summary: 'AVIORA was created with one vision — to bring timeless, elegant jewellery that feels luxurious yet wearable every day. Our collections feature carefully selected pieces crafted from 925 Sterling Silver, 14K 14K Gold-Plated Sterling Silver, Moissanite, Freshwater Pearls, and other premium materials mentioned on individual product pages. Every design is chosen for elegance, craftsmanship, and comfort.',
     highlights: [
       'Authentic Fine 925 Sterling Silver carrying verified purity standard',
-      '14K & 18K Whitish Gold Vermeil in champagne-free tone (#EDE7DC)',
+      '14K & 18K 14K Gold Vermeil in champagne-free tone (#EDE7DC)',
       'D-Colorless Brilliant Moissanite with exceptional optical fire',
       'Hand-selected Grade-AAA organic freshwater pearls with natural luster',
     ],
@@ -2211,7 +2209,7 @@ const ATELIER_CHAPTERS = [
     title: 'Heirloom Jewellery Care Guide',
     subtitle: 'Preserving Noble Luster & Gemstone Brilliance',
     icon: Gem,
-    summary: 'Fine jewellery requires mindful affection. Learn how to maintain the radiant mirror finish of Fine 925 Silver, Whitish Gold vermeil, organic freshwater pearls, and moissanite gemstones through simple, proven care rituals.',
+    summary: 'Fine jewellery requires mindful affection. Learn how to maintain the radiant mirror finish of Fine 925 Silver, 14K Gold vermeil, organic freshwater pearls, and moissanite gemstones through simple, proven care rituals.',
     highlights: [
       'Clean silver gently with soft microfiber cloths to maintain mirror shine',
       'Store in airtight velvet pouches away from moisture and direct sunlight',
@@ -2323,8 +2321,8 @@ function HomeView() {
 
             {/* Authentic Brand Trust Micro-Badges */}
             <div className="pt-2 pb-2 border-y border-[#181614]/10 dark:border-white/15 flex flex-wrap items-center gap-x-2 sm:gap-x-4 gap-y-1 text-[8.5px] sm:text-[10px] font-mono tracking-wider text-[#685f52] dark:text-[#d4bf98]">
-              <span className="flex items-center gap-1">✦ Fine 925 Sterling Silver</span>
-              <span className="flex items-center gap-1">✦ 14K Whitish Gold Vermeil</span>
+              <span className="flex items-center gap-1">✦ Fine 925 Sterling Silver (Core Material)</span>
+              <span className="flex items-center gap-1">✦ 14K Gold Vermeil Plating</span>
               <span className="flex items-center gap-1">✦ 30-Day Manufacturing Warranty</span>
             </div>
 
@@ -2478,7 +2476,7 @@ function HomeView() {
             <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent md:hidden" />
             <div className="absolute bottom-4 left-4 z-10">
               <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-[var(--bg-card)]/95 dark:bg-[#0d281e]/90 backdrop-blur-md text-[10px] font-mono font-bold tracking-[0.18em] uppercase text-[#1d4136] dark:text-[#e6ca97] border border-[#b38f56]/40 shadow-xs rounded-xs">
-                <span>✦</span> Atelier Exhibit // 14K Whitish Gold
+                <span>✦</span> Atelier Exhibit // 14K Gold Vermeil
               </span>
             </div>
           </div>
@@ -2492,7 +2490,7 @@ function HomeView() {
             </h2>
             <div className="border-l-2 border-[#b38f56] dark:border-[#e6ca97]/70 pl-4 py-1.5">
               <p className="font-editorial text-base sm:text-lg text-[var(--text-secondary)] leading-relaxed max-w-md">
-                {STORE_CONFIG.editorial.body} We exclusively craft in 14K Whitish Gold Vermeil over Fine 925 Sterling Silver for enduring elegance and everyday luxury.
+                {STORE_CONFIG.editorial.body} We craft with thick 14K Gold Vermeil over solid Fine 925 Sterling Silver for enduring warmth, hypoallergenic safety, and everyday luxury.
               </p>
             </div>
             <div className="pt-2">
@@ -2552,7 +2550,7 @@ function HomeView() {
             Handcrafted with devotion. Made to be cherished.
           </h2>
           <p className="font-sans text-xs sm:text-sm text-zinc-300 max-w-md leading-relaxed">
-            Every piece is made-to-order by master artisans in Fine 925 Sterling Silver and 14K Whitish Gold. Complete with 30-Day Manufacturing Warranty.
+            Every piece is made-to-order by master artisans in Fine 925 Sterling Silver with 14K Gold Vermeil. Complete with 30-Day Manufacturing Warranty.
           </p>
           <div className="pt-2">
             <button
@@ -2639,7 +2637,7 @@ function HomeView() {
 
               <div className="space-y-4 font-serif text-[14.5px] sm:text-[15.5px] text-[var(--text-secondary)] leading-[1.85]">
                 <p>
-                  Our collections feature carefully selected pieces crafted from <strong className="text-[var(--text-primary)] font-semibold">Fine 925 Sterling Silver</strong>, <strong className="text-[var(--text-primary)] font-semibold">14K Whitish Gold-Plated Sterling Silver</strong>, <strong className="text-[var(--text-primary)] font-semibold">Brilliant Moissanite</strong>, <strong className="text-[var(--text-primary)] font-semibold">Freshwater Pearls</strong>, and other premium materials mentioned on individual product pages. Every design is chosen for elegance, craftsmanship, and comfort.
+                  Our collections feature carefully selected pieces crafted from <strong className="text-[var(--text-primary)] font-semibold">Fine 925 Sterling Silver</strong>, <strong className="text-[var(--text-primary)] font-semibold">14K Gold-Plated Sterling Silver</strong>, <strong className="text-[var(--text-primary)] font-semibold">Brilliant Moissanite</strong>, <strong className="text-[var(--text-primary)] font-semibold">Freshwater Pearls</strong>, and other premium materials mentioned on individual product pages. Every design is chosen for elegance, craftsmanship, and comfort.
                 </p>
                 <p>
                   Drawing inspiration from the bespoke salons of Place Vendôme and modern design houses like Mejuri, Catbird, and Monica Vinader, we questioned why authentic fine jewellery was locked away in bank vaults or inflated with 10x traditional retail markups. Aviora pieces are created for living — made to be layered, personalized, and cherished from sunrise meetings to midnight celebrations.
@@ -2654,7 +2652,7 @@ function HomeView() {
                 </div>
                 <div className="p-3 bg-[var(--bg-secondary)] border border-[var(--border-subtle)] space-y-1">
                   <span className="text-base sm:text-lg font-serif font-bold text-[#b99762] dark:text-[#e6ca97] block">14K Gold</span>
-                  <span className="text-[9.5px] font-mono uppercase text-[var(--text-muted)] block">Whitish Vermeil</span>
+                  <span className="text-[9.5px] font-mono uppercase text-[var(--text-muted)] block">Gold Vermeil</span>
                 </div>
                 <div className="p-3 bg-[var(--bg-secondary)] border border-[var(--border-subtle)] space-y-1">
                   <span className="text-base sm:text-lg font-serif font-bold text-[#b99762] dark:text-[#e6ca97] block">15–20 Days</span>
@@ -2815,7 +2813,7 @@ function HomeView() {
                     <td className="p-4 font-bold text-[var(--text-primary)]">Gold Vermeil Finish</td>
                     <td className="p-4 text-[var(--text-secondary)]">Thin 0.2µ flash plating prone to fast peeling and chipping</td>
                     <td className="p-4 font-semibold text-[var(--text-primary)] bg-[#b99762]/5 border-x border-[#b99762]/20">
-                      Thick 14K & 18K Whitish Gold Vermeil (#EDE7DC) for enduring luster
+                      Thick 14K & 18K Gold Vermeil (#EDE7DC) for enduring luster
                     </td>
                   </tr>
                   <tr>
@@ -3178,7 +3176,14 @@ function ShopView() {
             (selectedCategory === 'earrings' && (p.category === 'earrings' || p.categorySlug?.includes('ear') || p.name.toLowerCase().includes('earring') || p.name.toLowerCase().includes('stud'))) ||
             (selectedCategory === 'necklaces' && (p.category === 'necklaces' || p.categorySlug?.includes('choker') || p.categorySlug?.includes('hasli') || p.name.toLowerCase().includes('necklace') || p.name.toLowerCase().includes('chain') || p.name.toLowerCase().includes('pendant'))) ||
             (selectedCategory === 'bracelets' && (p.category === 'bracelets' || p.categorySlug?.includes('kada') || p.categorySlug?.includes('bangle') || p.name.toLowerCase().includes('bracelet'))) ||
-            (selectedCategory === 'rings' && (p.category === 'rings' || p.categorySlug?.includes('ring') || p.name.toLowerCase().includes('ring')))
+            (selectedCategory === 'rings' && (
+              p.subcategory === 'rings' ||
+              p.category === 'rings' ||
+              p.categorySlug === 'rings' ||
+              (Array.isArray(p.collections) && p.collections.includes('rings')) ||
+              (Array.isArray(p.tags) && p.tags.includes('rings')) ||
+              (/\brings?\b/i.test(p.name || '') && !p.name.toLowerCase().includes('ear'))
+            ))
         );
       }
     }
@@ -3327,10 +3332,15 @@ function ShopView() {
         }
 
         if (selectedTag === 'rings') {
+          if (p.subcategory === 'earrings' || p.category === 'earrings' || p.categorySlug === 'earrings') return false;
+          if (nameLower.includes('earring') || nameLower.includes('earing')) return false;
           return (
             p.subcategory === 'rings' ||
-            nameLower.includes('ring') ||
-            catSlug.includes('ring')
+            p.category === 'rings' ||
+            p.categorySlug === 'rings' ||
+            (Array.isArray(p.tags) && p.tags.includes('rings')) ||
+            (Array.isArray(p.collections) && p.collections.includes('rings')) ||
+            /\brings?\b/i.test(p.name || '')
           );
         }
 
@@ -3479,7 +3489,7 @@ function ShopView() {
             {pageTitle}
           </h1>
           <p className="font-editorial text-sm sm:text-base text-[var(--text-secondary)] leading-relaxed max-w-xl mx-auto">
-            Explore the current Aviora edit across delicate everyday and statement pieces crafted from 14K Whitish Gold Plated vermeil and Fine 925 Sterling Silver.
+            Explore the current Aviora edit across delicate everyday and statement pieces crafted from Fine 925 Sterling Silver with 14K Gold Vermeil.
           </p>
         </div>
 
@@ -4083,16 +4093,14 @@ function ProductView() {
       <div className="grid grid-cols-1 lg:grid-cols-12 min-h-screen">
         {/* Left Column: Interactive Multi-Angle Studio Gallery */}
         <div className="lg:col-span-7 space-y-3 lg:space-y-4 p-4 sm:p-6 lg:p-8 lg:sticky lg:top-20 lg:self-start border-b lg:border-b-0 lg:border-r border-[var(--border-subtle)]">
-          {/* Top Bar: Angle indicator & Quick Switchers (Non-sticky to avoid lingering white strip) */}
+          {/* Top Bar: Clean Studio View Indicator & Controls */}
           <div className="flex items-center justify-between bg-[var(--bg-secondary)]/80 p-2.5 border border-[var(--border-subtle)] text-xs font-mono max-w-[560px] mx-auto">
             <div className="flex items-center gap-2">
               <span className="px-2.5 py-1 bg-[#0d281e] dark:bg-[#e6ca97] text-white dark:text-[#242321] text-[10px] font-bold tracking-wider uppercase font-mono">
-                ANGLE 0{activeImageIndex + 1} OF 0{product.images?.length || 1}
+                {activeImageIndex + 1} / {product.images?.length || 1}
               </span>
               <span className="text-[10px] text-[var(--text-muted)] font-mono uppercase tracking-widest hidden sm:inline">
-                {product.images && product.images.length > 1
-                  ? `${product.images.length} STUDIO ANGLES AVAILABLE`
-                  : '14K STUDIO CAPTURE'}
+                STUDIO GALLERY
               </span>
             </div>
 
@@ -4104,7 +4112,7 @@ function ProductView() {
                     setActiveImageIndex((prev) => (prev > 0 ? prev - 1 : product.images.length - 1))
                   }
                   className="px-2.5 py-1 bg-[var(--bg-card)] hover:bg-[#b99762]/15 border border-[var(--border-subtle)] hover:border-[#b99762] text-[10px] font-mono text-[var(--text-primary)] transition-colors flex items-center gap-1 cursor-pointer"
-                  title="Previous Angle"
+                  title="Previous Image"
                 >
                   <ChevronLeft className="w-3.5 h-3.5" />
                   <span className="hidden sm:inline">Prev</span>
@@ -4115,7 +4123,7 @@ function ProductView() {
                     setActiveImageIndex((prev) => (prev < product.images.length - 1 ? prev + 1 : 0))
                   }
                   className="px-2.5 py-1 bg-[var(--bg-card)] hover:bg-[#b99762]/15 border border-[var(--border-subtle)] hover:border-[#b99762] text-[10px] font-mono text-[var(--text-primary)] transition-colors flex items-center gap-1 cursor-pointer"
-                  title="Next Angle"
+                  title="Next Image"
                 >
                   <span className="hidden sm:inline">Next</span>
                   <ChevronRight className="w-3.5 h-3.5" />
@@ -4126,11 +4134,7 @@ function ProductView() {
 
           {/* Main Stage View with Floating Arrows */}
           <div className="relative w-full aspect-[4/5] sm:aspect-[4/5] lg:aspect-[4/5] lg:max-h-[58vh] xl:max-h-[62vh] max-w-[560px] mx-auto bg-[var(--bg-stone)] dark:bg-[#181d1a] overflow-hidden border border-[var(--border-subtle)] group shadow-xs">
-            <div className="absolute top-4 left-4 z-20 pointer-events-none">
-              <span className="text-[10px] font-mono tracking-[0.3em] uppercase text-[var(--text-primary)] bg-[var(--bg-card)]/85 backdrop-blur-md px-3 py-1 border border-[var(--border-subtle)]">
-                PLATE // 0{activeImageIndex + 1} (STUDIO CAPTURE)
-              </span>
-            </div>
+
 
             {product.images && product.images.length > 1 && (
               <>
@@ -4161,10 +4165,9 @@ function ProductView() {
 
             <ArtisticImage
               src={product.images?.[activeImageIndex] || product.images?.[0]}
-              alt={`${product.name} Angle ${activeImageIndex + 1}`}
+              alt={`${product.name} View ${activeImageIndex + 1}`}
               className="w-full h-full transition-all duration-300"
               imgClassName="object-cover object-top sm:object-center"
-              exhibitNumber={`PLATE // 0${activeImageIndex + 1}`}
               materialTag={product.material}
             />
           </div>
@@ -4173,7 +4176,7 @@ function ProductView() {
           {product.images && product.images.length > 1 && (
             <div className="space-y-1.5 pt-0.5 max-w-[560px] mx-auto">
               <div className="flex items-center justify-between text-[10px] font-mono uppercase text-[var(--text-muted)]">
-                <span className="font-semibold text-[#8c6527] dark:text-[#e6ca97]">Select Perspective ({product.images.length} studio angles)</span>
+                <span className="font-semibold text-[#132A22] dark:text-[#e6ca97]">Studio Gallery ({product.images.length} views)</span>
                 <span className="hidden sm:inline">Click thumbnail to inspect</span>
               </div>
               <div className="flex items-center gap-2.5 overflow-x-auto pb-1">
@@ -4190,7 +4193,7 @@ function ProductView() {
                   >
                     <img
                       src={imgUrl}
-                      alt={`${product.name} Angle 0${i + 1}`}
+                      alt={`${product.name} View 0${i + 1}`}
                       className="w-full h-full object-cover object-top sm:object-center"
                     />
                     <span className="absolute bottom-1 right-1 text-[8px] font-mono px-1.5 py-0.5 bg-black/85 text-white font-bold rounded-xs">
@@ -4229,31 +4232,41 @@ function ProductView() {
               </p>
             </div>
 
-            {/* Atelier Curatorial Description & Archival Notes */}
+            {/* Clean Product Description with Dimensions */}
             {product.description && (
-              <div className="p-4 sm:p-5 rounded-xs bg-[#fdfbf7] dark:bg-[#1a221e] border border-[#b38f56]/35 dark:border-[#e6ca97]/30 shadow-xs space-y-3.5 relative overflow-hidden">
-                <div className="flex items-center justify-between border-b border-[#b38f56]/20 pb-2.5">
+              <div className="p-4 sm:p-5 rounded-xs bg-[#fdfbf7] dark:bg-[#1a221e] border border-[var(--border-subtle)] shadow-xs space-y-3 relative overflow-hidden">
+                <div className="flex items-center justify-between border-b border-[var(--border-subtle)] pb-2">
                   <div className="flex items-center gap-2">
-                    <Sparkles className="w-3.5 h-3.5 text-[#8c6527] dark:text-[#e6ca97]" />
-                    <span className="text-[10.5px] font-mono tracking-[0.25em] uppercase text-[#8c6527] dark:text-[#e6ca97] font-bold">
-                      Atelier Curatorial Description
+                    <Sparkles className="w-3.5 h-3.5 text-[#132A22] dark:text-[#e6ca97]" />
+                    <span className="text-[11px] font-mono tracking-[0.2em] uppercase text-[#132A22] dark:text-[#e6ca97] font-bold">
+                      Product Description
                     </span>
                   </div>
                   <span className="text-[9px] font-mono tracking-wider uppercase px-2.5 py-0.5 rounded-full bg-[#0d281e]/8 dark:bg-[#e6ca97]/15 text-[#0d281e] dark:text-[#e6ca97] border border-[#0d281e]/15 dark:border-[#e6ca97]/25 font-semibold">
-                    Atelier Edition
+                    Fine 925 Silver
                   </span>
                 </div>
-                <div className="relative pl-3.5 border-l-2 border-[#b38f56] dark:border-[#e6ca97]">
-                  <p className="font-playfair italic text-[15px] sm:text-[16px] leading-[1.85] text-[#1c1b18] dark:text-[#fbf8f3] font-normal tracking-wide whitespace-pre-line">
+                <div className="relative pl-3.5 border-l-2 border-[#132A22] dark:border-[#e6ca97]">
+                  <p className="font-sans text-[13.5px] sm:text-[14px] leading-relaxed text-[var(--text-primary)] font-normal whitespace-pre-line">
                     {product.description}
                   </p>
                 </div>
-                {product.editorialNote && (
-                  <div className="pt-2.5 flex items-start gap-2.5 border-t border-[#b38f56]/20 text-xs">
-                    <span className="font-mono text-[9px] uppercase tracking-wider font-bold text-[#8c6527] dark:text-[#e6ca97] shrink-0 mt-0.5 px-2 py-0.5 bg-[#b38f56]/15 dark:bg-[#e6ca97]/15 rounded-xs border border-[#b38f56]/25 dark:border-[#e6ca97]/30">
-                      Artisan Note
+                {product.dimensions && (
+                  <div className="pt-2 border-t border-[var(--border-subtle)] flex items-baseline gap-2 text-xs">
+                    <span className="font-mono text-[9.5px] uppercase tracking-wider font-bold text-[#132A22] dark:text-[#e6ca97] shrink-0">
+                      Dimensions:
                     </span>
-                    <span className="font-sans text-xs sm:text-[12.5px] leading-relaxed italic text-[#4a453e] dark:text-[#d4cebf]">
+                    <span className="font-sans text-xs text-[var(--text-secondary)]">
+                      {product.dimensions}
+                    </span>
+                  </div>
+                )}
+                {product.editorialNote && (
+                  <div className="pt-2 flex items-start gap-2 border-t border-[var(--border-subtle)] text-xs">
+                    <span className="font-mono text-[9px] uppercase tracking-wider font-bold text-[#132A22] dark:text-[#e6ca97] shrink-0 mt-0.5 px-2 py-0.5 bg-[#132A22]/5 dark:bg-[#e6ca97]/15 rounded-xs border border-[#132A22]/15 dark:border-[#e6ca97]/30">
+                      Note
+                    </span>
+                    <span className="font-sans text-xs leading-relaxed italic text-[var(--text-secondary)]">
                       {product.editorialNote}
                     </span>
                   </div>
@@ -4286,7 +4299,7 @@ function ProductView() {
               <div className="space-y-1 p-2 border-x border-[var(--border-subtle)]">
                 <ShieldCheck className="w-4 h-4 text-[#b99762] dark:text-[#e6ca97] mx-auto" />
                 <span className="text-[10px] font-mono text-[var(--text-primary)] block font-semibold leading-tight">
-                  14K Whitish Gold
+                  14K Gold Vermeil
                 </span>
                 <span className="text-[8px] font-mono text-[var(--text-muted)] block">Vermeil Plated</span>
               </div>
@@ -4476,53 +4489,28 @@ function ProductView() {
                 )}
               </div>
 
-              {/* Dimensions */}
-              <div className="py-4">
-                <button
-                  onClick={() => toggleAccordion('dimensions')}
-                  className="w-full flex justify-between items-center text-left text-[var(--text-primary)] hover:text-[#b99762] dark:hover:text-[#e6ca97] transition-colors"
-                >
-                  <span className="tracking-[0.2em] uppercase">Dimensions & Anatomical Fit</span>
-                  <ChevronDown
-                    className={`w-4 h-4 transition-transform duration-300 ${
-                      activeAccordion === 'dimensions' ? 'rotate-180 text-[#b99762] dark:text-[#e6ca97]' : ''
-                    }`}
-                  />
-                </button>
-                {activeAccordion === 'dimensions' && (
-                  <div className="text-[var(--text-secondary)] pt-3 space-y-2 leading-relaxed">
-                    <p>{product.dimensions}</p>
-                  </div>
-                )}
-              </div>
-
-              {/* Product Story & Description Accordion */}
-              {product.description && (
+              {/* Craftsmanship & Benchmark Accordion */}
+              {product.craftsmanship && (
                 <div className="py-4">
                   <button
-                    onClick={() => toggleAccordion('description')}
-                    className="w-full flex justify-between items-center text-left text-[var(--text-primary)] hover:text-[#b99762] dark:hover:text-[#e6ca97] transition-colors"
+                    onClick={() => toggleAccordion('craftsmanship')}
+                    className="w-full flex justify-between items-center text-left text-[var(--text-primary)] hover:text-[#132A22] dark:hover:text-[#e6ca97] transition-colors"
                   >
                     <span className="tracking-[0.2em] uppercase flex items-center gap-2">
-                      <FileText className="w-3.5 h-3.5" />
-                      Product Overview & Details
+                      <FileText className="w-3.5 h-3.5 text-[#132A22] dark:text-[#e6ca97]" />
+                      Atelier Craftsmanship Benchmark
                     </span>
                     <ChevronDown
                       className={`w-4 h-4 transition-transform duration-300 ${
-                        activeAccordion === 'description' ? 'rotate-180 text-[#b99762] dark:text-[#e6ca97]' : ''
+                        activeAccordion === 'craftsmanship' ? 'rotate-180 text-[#132A22] dark:text-[#e6ca97]' : ''
                       }`}
                     />
                   </button>
-                  {activeAccordion === 'description' && (
-                    <div className="text-[var(--text-secondary)] pt-3 space-y-3 leading-relaxed">
-                      <p className="font-playfair italic text-[13.5px] sm:text-[14.5px] leading-relaxed text-[var(--text-primary)] border-l-2 border-[#b38f56] pl-3 py-0.5 whitespace-pre-line">
-                        {product.description}
+                  {activeAccordion === 'craftsmanship' && (
+                    <div className="text-[var(--text-secondary)] pt-3 space-y-2 leading-relaxed">
+                      <p className="text-xs font-mono text-[var(--text-secondary)]">
+                        <strong className="text-[var(--text-primary)] uppercase tracking-wider font-semibold">Bench Craft:</strong> {product.craftsmanship}
                       </p>
-                      {product.craftsmanship && (
-                        <p className="text-xs font-mono text-[var(--text-muted)] pt-1 pl-3">
-                          <strong className="text-[#8c6527] dark:text-[#d4bf98] uppercase tracking-wider font-semibold">Bench Craft:</strong> {product.craftsmanship}
-                        </p>
-                      )}
                     </div>
                   )}
                 </div>
@@ -6955,7 +6943,7 @@ function AdminView() {
     originalPrice: 3299,
     inventory: 8,
     goldPurity: '14K Gold Plated Vermeil',
-    colorTone: 'Whitish Gold',
+    colorTone: '14K Gold',
     metalColorHex: '#EDE7DC',
     occasionVibe: 'Everyday Wear',
     finish: 'Polished',
@@ -6965,7 +6953,7 @@ function AdminView() {
     weight: 'Fine 925 Silver Core',
     images: ['/products/clover-freshwater-pearl-blue-apatite-necklace-1.jpg'],
     modelImage: '/products/clover-freshwater-pearl-blue-apatite-necklace-1.jpg',
-    description: 'Precision crafted in Fine 925 sterling silver with a heavy 2.5-micron jacket of 14K Whitish Gold Vermeil.',
+    description: 'Precision crafted in Fine 925 sterling silver with a heavy 2.5-micron jacket of 14K 14K Gold Vermeil.',
     editorialNote: 'Hand-finished in our Delhi atelier.',
     pairsWithId: '',
     upsellReason: '',
@@ -7152,7 +7140,7 @@ function AdminView() {
         if (filterCategory === 'earrings' && (p.subcategory === 'earrings' || p.categorySlug?.includes('ear') || p.name?.toLowerCase().includes('earring'))) return true;
         if (filterCategory === 'necklaces' && (p.subcategory === 'necklaces' || p.categorySlug?.includes('choker') || p.categorySlug?.includes('hasli') || p.name?.toLowerCase().includes('necklace') || p.name?.toLowerCase().includes('chain') || p.name?.toLowerCase().includes('pendant'))) return true;
         if (filterCategory === 'bracelets' && (p.subcategory === 'bracelets' || p.categorySlug?.includes('kada') || p.categorySlug?.includes('bangle') || p.name?.toLowerCase().includes('bracelet') || p.name?.toLowerCase().includes('kada'))) return true;
-        if (filterCategory === 'rings' && (p.subcategory === 'rings' || p.categorySlug?.includes('ring') || p.name?.toLowerCase().includes('ring'))) return true;
+        if (filterCategory === 'rings' && (p.subcategory === 'rings' || p.category === 'rings' || p.categorySlug?.includes('ring') || (/\brings?\b/i.test(p.name || '') && !p.name?.toLowerCase().includes('ear')))) return true;
         if (filterCategory === 'jewellery-sets' && (p.subcategory === 'jewellery-sets' || p.name?.toLowerCase().includes('suite') || p.name?.toLowerCase().includes('set'))) return true;
         return false;
       });
@@ -7642,7 +7630,7 @@ function AdminView() {
                             Stock: {product.inventory ?? 2}
                           </span>
                           <span className="px-1.5 py-0.5 bg-[var(--bg-secondary)] text-[8.5px] font-mono uppercase text-[#b99762] border border-[var(--border-subtle)]">
-                            {product.colorTone || 'Whitish Gold'}
+                            {product.colorTone || '14K Gold'}
                           </span>
                           {product.images?.length > 1 && (
                             <span className="px-1.5 py-0.5 bg-[#1d4136]/10 dark:bg-[#e6ca97]/10 text-[8.5px] font-mono uppercase text-[#1d4136] dark:text-[#e6ca97] border border-[#1d4136]/20 dark:border-[#e6ca97]/20 font-bold">
@@ -8051,7 +8039,7 @@ function AdminView() {
                     onChange={(e) => setNewProductForm({ ...newProductForm, colorTone: e.target.value })}
                     className="w-full h-10 px-3 bg-[var(--bg-primary)] border border-[var(--border-strong)] text-[var(--text-primary)] outline-none"
                   >
-                    <option value="Whitish Gold">Whitish Gold</option>
+                    <option value="14K Gold">14K Gold</option>
                     <option value="Pure 925 Silver">Pure 925 Silver</option>
                     <option value="14K Rose Gold">14K Rose Gold</option>
                     <option value="Obsidian Black">Obsidian Black</option>
@@ -9877,7 +9865,7 @@ function BrandPolicyModal() {
                   </div>
                   <div className="p-4 bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-xs space-y-1">
                     <span className="text-base font-serif font-bold text-[#b99762] dark:text-[#e6ca97] block">14K Gold</span>
-                    <span className="text-[10px] font-mono uppercase text-[var(--text-muted)] block">Whitish Vermeil</span>
+                    <span className="text-[10px] font-mono uppercase text-[var(--text-muted)] block">Gold Vermeil</span>
                   </div>
                   <div className="p-4 bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-xs space-y-1">
                     <span className="text-base font-serif font-bold text-[#b99762] dark:text-[#e6ca97] block">15–20 Days</span>
@@ -10023,7 +10011,7 @@ function Footer() {
               </span>
             </button>
             <p className="text-xs font-sans text-[#CBC4B7] leading-relaxed max-w-sm">
-              Crafted with one vision — to bring timeless, elegant jewellery that feels luxurious yet wearable every day. Mastercrafted in Fine 925 Sterling Silver, 14K Whitish Gold Vermeil, Brilliant Moissanite, and organic Freshwater Pearls.
+              Crafted with one vision — to bring timeless, elegant jewellery that feels luxurious yet wearable every day. Mastercrafted in Fine 925 Sterling Silver, 14K Gold Vermeil, Brilliant Moissanite, and organic Freshwater Pearls.
             </p>
             
             <div className="p-3.5 bg-black/40 border border-[#b99762]/25 rounded-xs space-y-2 text-[11px] font-mono text-[#DCD6CB]">
@@ -10148,7 +10136,7 @@ function Footer() {
               </li>
               <li>
                 <button onClick={() => openPolicyModal('jewellery-care-guide')} className="hover:text-[#E6CA97] transition-colors text-left">
-                  Jewellery Care Guide (Whitish Gold)
+                  Jewellery Care Guide (14K Gold & 925 Silver)
                 </button>
               </li>
               <li>

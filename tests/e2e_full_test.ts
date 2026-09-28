@@ -107,15 +107,16 @@ async function runFullE2ETest() {
   assert(STORE_CONFIG.brand.instagram === '@aviora_jewells', 'Instagram handle configured as @aviora_jewells');
   assert(OUR_STORY.title === 'Our Story', 'Our Story title verified');
   assert(OUR_STORY.body.includes('AVIORA was created with one vision'), 'Our Story vision text is verified');
-  assert(OUR_STORY.body.includes('Whitish Gold'), 'Our Story specifies Whitish Gold');
+  assert(OUR_STORY.body.includes('14K Gold'), 'Our Story specifies 14K Gold');
   assert(PRODUCTS.length >= 16, `Catalog contains ${PRODUCTS.length} curated fine jewellery artworks`);
 
-  // Verify strict removal of BIS hallmark, waterproof claims, and check for 30-day warranty
+  // Verify strict removal of BIS hallmark, waterproof claims, whitish word, and check for 30-day warranty
   let prohibitedHallmarkCount = 0;
   let prohibitedWaterproofCount = 0;
   let validWarrantyCount = 0;
   let validSilhouetteCount = 0;
-  let whitishGoldCount = 0;
+  let gold14kCount = 0;
+  let prohibitedWhitishCount = 0;
   let champagneGoldCount = 0;
 
   for (const product of PRODUCTS) {
@@ -126,6 +127,9 @@ async function runFullE2ETest() {
     if (serialized.includes('100% waterproof') || serialized.includes('waterproof')) {
       prohibitedWaterproofCount++;
     }
+    if (serialized.includes('whitish')) {
+      prohibitedWhitishCount++;
+    }
     if (serialized.includes('champagne gold')) {
       champagneGoldCount++;
     }
@@ -135,19 +139,20 @@ async function runFullE2ETest() {
     if (product.silhouette === 'light' || product.silhouette === 'heavy') {
       validSilhouetteCount++;
     }
-    if (product.colorTone === 'Whitish Gold') {
+    if (product.colorTone === '14K Gold') {
       if (product.metalColorHex === '#EDE7DC') {
-        whitishGoldCount++;
+        gold14kCount++;
       }
     }
   }
 
   assert(prohibitedHallmarkCount === 0, 'Zero occurrences of BIS hallmark in entire product catalog', '0 found');
   assert(prohibitedWaterproofCount === 0, 'Zero occurrences of waterproof claims across all pieces', '0 found');
-  assert(champagneGoldCount === 0, 'Zero occurrences of deprecated Champagne Gold (all migrated to Whitish Gold)', '0 found');
+  assert(prohibitedWhitishCount === 0, 'Zero occurrences of deprecated word "whitish" across all products (migrated to 14K Gold)', '0 found');
+  assert(champagneGoldCount === 0, 'Zero occurrences of deprecated Champagne Gold (all migrated to 14K Gold)', '0 found');
   assert(validWarrantyCount === PRODUCTS.length, 'All pieces carry authentic 30-Day Manufacturing Warranty');
   assert(validSilhouetteCount === PRODUCTS.length, 'All pieces categorized into Light/Heavy aesthetic silhouettes without gram weights');
-  assert(whitishGoldCount >= 8, `All ${whitishGoldCount} gold creations feature Whitish Gold tone (#EDE7DC)`, `${whitishGoldCount} verified`);
+  assert(gold14kCount >= 8, `All ${gold14kCount} gold creations feature 14K Gold tone (#EDE7DC)`, `${gold14kCount} verified`);
 
   assert(PRODUCTS.length === 26, `Catalog contains exactly 26 genuine fine jewellery artworks from PDFs`, `26/26 verified`);
   const initialStockValid = PRODUCTS.every((p) => p.inventory === 2);

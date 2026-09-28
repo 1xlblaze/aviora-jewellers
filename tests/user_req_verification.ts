@@ -99,10 +99,10 @@ assert(!appJsx.includes('ALL {product.images.length} ANGLES IN HIGH-RESOLUTION')
 assert(!appJsx.includes('Full High-Resolution Exhibition Plates (Continuous Scroll)'), 'Continuous scroll duplicate exhibition plates removed');
 assert(!appJsx.includes('sticky top-24 z-30 flex items-center justify-between bg-[var(--bg-card)]/90'), 'Angle indicator bar is non-sticky so white strip does not linger during scroll');
 
-// 5. Check Curatorial Description typography & styling
-assert(appJsx.includes('Atelier Curatorial Description'), 'PDP features Atelier Curatorial Description');
-assert(appJsx.includes('font-playfair italic'), 'PDP description uses font-playfair italic for attractive editorial typography');
-assert(appJsx.includes('Atelier Edition'), 'PDP description includes Atelier Edition archival badge');
+// 5. Check Curatorial Description replaced with clean Product Description with dimensions inline
+assert(!appJsx.includes('Atelier Curatorial Description'), 'Atelier Curatorial Description header removed');
+assert(appJsx.includes('Product Description'), 'PDP features clean Product Description');
+assert(appJsx.includes('product.dimensions'), 'Product dimensions displayed inside product description');
 
 // 6. Check color styling in index.css
 const indexCss = fs.readFileSync(path.resolve(process.cwd(), 'src/index.css'), 'utf-8');
@@ -123,7 +123,7 @@ assert(!appJsx.includes('dark:from-[#191e1b] dark:via-[#151917] dark:to-[#101412
 
 // Test: Section 5 Everyday Edit image formatting fix
 assert(appJsx.includes('aspect-[4/3] sm:aspect-[16/11]'), 'Section 5 image uses responsive aspect framing without awkward mobile stretching');
-assert(appJsx.includes('Atelier Exhibit // 14K Whitish Gold'), 'Section 5 image includes Atelier Exhibit badge overlay');
+assert(appJsx.includes('Atelier Exhibit // 14K Gold Vermeil'), 'Section 5 image includes Atelier Exhibit badge overlay');
 
 // Test: Universal eye-catching editorial typography
 assert(appJsx.includes('font-editorial text-base sm:text-lg text-[var(--text-secondary)]'), 'Section 5 editorial text uses font-editorial styling');
