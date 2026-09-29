@@ -24,7 +24,10 @@ dist-ssr
 *.sw?
 node_modules/
 dist/
+# Environment variables & secrets
 .env
+.env.*
+!.env.example
 .vercel
 
 # Product catalogue PDFs (large binary files — not needed in git)

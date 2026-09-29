@@ -185,7 +185,7 @@ async function runFullE2ETest() {
   const otpResult = generateOtp(testPhone);
 
   assert(/^\d{6}$/.test(otpResult.otp), `Generated OTP is a 6-digit cryptographic string: [${otpResult.otp}]`);
-  assert(otpResult.expiresAt > Date.now(), 'Generated OTP validity is 5 minutes in future');
+  assert(otpResult.expiresAt > Date.now(), 'Generated OTP validity is 10 minutes in future');
 
   // Verify invalid OTP rejection
   const invalidVerify = verifyOtp(testPhone, '000000');

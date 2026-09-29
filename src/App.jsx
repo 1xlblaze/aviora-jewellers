@@ -99,6 +99,10 @@ import {
 import {
   generateOtp,
   verifyOtp,
+  sendFast2SmsOtp,
+  verifyFast2SmsOtp,
+  dispatchCustomerOtp,
+  verifyCustomerOtp,
   generateAwbNumber,
   getTrackingUrl,
   sendWhatsAppStageNotification,
@@ -4605,6 +4609,11 @@ function CheckoutView() {
   const [otpError, setOtpError] = useState('');
   const [activeGeneratedOtp, setActiveGeneratedOtp] = useState('');
   const [otpResendTimer, setOtpResendTimer] = useState(60);
+  const [otpDispatchLog, setOtpDispatchLog] = useState({
+    success: false,
+    message: 'Initiating carrier dispatch...',
+    mode: 'pending',
+  });
 
   // Payment Gateway Modal State & 12-Digit UPI UTR Verification
   const [showPaymentModal, setShowPaymentModal] = useState(false);
@@ -4690,6 +4699,46 @@ function CheckoutView() {
     setFormData({ ...formData, [name]: value });
   };
 
+  const handleTriggerPhoneOnlyVerification = () => {
+    setErrorMessage('');
+    const cleanPhone = (formData.customerPhone || '').replace(/[^\d]/g, '').slice(-10);
+    if (cleanPhone.length < 10) {
+      setErrorMessage('Please enter a valid 10-digit Indian mobile number to receive OTP.');
+      showToast('⚠️ Please enter a 10-digit mobile number first.');
+      return;
+    }
+
+    const generated = generateOtp(formData.customerPhone);
+    setActiveGeneratedOtp(generated.otp);
+    setOtpInput('');
+    setOtpError('');
+    setOtpResendTimer(60);
+    setShowOtpModal(true);
+    setOtpDispatchLog({
+      success: false,
+      message: 'Connecting to Google Firebase carrier gateway...',
+      mode: 'pending',
+    });
+    showToast(`✦ Initiating verification for +91 ${cleanPhone}...`);
+    dispatchCustomerOtp(formData.customerPhone).then((res) => {
+      if (res) {
+        setOtpDispatchLog(res);
+        if (res.success) {
+          showToast(`✓ SMS code dispatched to +91 ${cleanPhone}`);
+        } else {
+          showToast(res.message || '⚠️ SMS delivery pending. Use Auto-Fill code.');
+        }
+      }
+    }).catch((err) => {
+      setOtpDispatchLog({
+        success: false,
+        message: err?.message || 'Dispatch error. Use Auto-Fill code.',
+        mode: 'error',
+      });
+      showToast('✦ Use Auto-Fill test code to verify immediately.');
+    });
+  };
+
   const handleInitiateVerification = async (e) => {
     e.preventDefault();
     setErrorMessage('');
@@ -4722,7 +4771,29 @@ function CheckoutView() {
       setOtpError('');
       setOtpResendTimer(60);
       setShowOtpModal(true);
-      showToast(`✦ Verification code dispatched to +91 ${cleanPhone.slice(-10)}`);
+      setOtpDispatchLog({
+        success: false,
+        message: 'Connecting to Google Firebase carrier gateway...',
+        mode: 'pending',
+      });
+      showToast(`✦ Initiating verification for +91 ${cleanPhone.slice(-10)}...`);
+      dispatchCustomerOtp(formData.customerPhone).then((res) => {
+        if (res) {
+          setOtpDispatchLog(res);
+          if (res.success) {
+            showToast(`✓ SMS code dispatched to +91 ${cleanPhone.slice(-10)}`);
+          } else {
+            showToast(res.message || '⚠️ SMS delivery pending. Use Auto-Fill code.');
+          }
+        }
+      }).catch((err) => {
+        setOtpDispatchLog({
+          success: false,
+          message: err?.message || 'Dispatch error. Use Auto-Fill code.',
+          mode: 'error',
+        });
+        showToast('✦ Use Auto-Fill test code to verify immediately.');
+      });
     } else {
       setShowPaymentModal(true);
     }
@@ -4737,7 +4808,7 @@ function CheckoutView() {
       return;
     }
 
-    const result = verifyOtp(formData.customerPhone, otpInput.trim());
+    const result = await verifyCustomerOtp(formData.customerPhone, otpInput.trim());
     if (result.success) {
       setIsPhoneVerified(true);
       setShowOtpModal(false);
@@ -4757,6 +4828,16 @@ function CheckoutView() {
     setOtpInput('');
     setOtpError('');
     setOtpResendTimer(60);
+    setOtpDispatchLog({
+      success: false,
+      message: 'Reconnecting to carrier gateway...',
+      mode: 'pending',
+    });
+    dispatchCustomerOtp(formData.customerPhone).then((res) => {
+      if (res) {
+        setOtpDispatchLog(res);
+      }
+    }).catch(() => {});
     showToast(`✦ New verification code sent to +91 ${formData.customerPhone.replace(/[^\d]/g, '').slice(-10)}`);
   };
 
@@ -5139,9 +5220,15 @@ function CheckoutView() {
                       <Check className="w-3 h-3" /> OTP Verified
                     </span>
                   ) : (
-                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-mono text-[#b99762] dark:text-[#e6ca97]">
-                      OTP Required
-                    </span>
+                    <button
+                      type="button"
+                      id="btn-verify-checkout-phone"
+                      onClick={handleTriggerPhoneOnlyVerification}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 px-3 py-1.5 bg-[#1d4136] hover:bg-[#16332a] dark:bg-[#e6ca97] dark:hover:bg-[#d9b87c] text-white dark:text-[#242321] text-[10px] font-mono font-bold uppercase tracking-wider transition-all shadow-xs flex items-center gap-1 cursor-pointer"
+                    >
+                      <Smartphone className="w-3 h-3" />
+                      <span>Send OTP</span>
+                    </button>
                   )}
                 </div>
               </div>
@@ -5500,12 +5587,32 @@ function CheckoutView() {
 
               <div className="space-y-3 text-xs font-mono">
                 <p className="text-[var(--text-secondary)]">
-                  A 6-digit authentication code was sent to{' '}
+                  A 6-digit authentication code was requested for{' '}
                   <span className="text-[var(--text-primary)] font-bold font-mono">
                     +91 {formData.customerPhone}
                   </span>
                   .
                 </p>
+
+                {/* Live Gateway Telemetry / Logs */}
+                <div className="p-3 bg-[var(--bg-primary)] border border-[var(--border-subtle)] space-y-1.5 text-[11px] font-mono">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[var(--text-muted)] flex items-center gap-1.5 uppercase tracking-wider text-[9.5px]">
+                      <Smartphone className="w-3 h-3 text-[#b99762] dark:text-[#e6ca97]" />
+                      Carrier Gateway: Firebase Phone Auth
+                    </span>
+                    <span className={`px-1.5 py-0.5 text-[9px] font-bold uppercase rounded-xs ${
+                      otpDispatchLog.success
+                        ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30'
+                        : 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/30'
+                    }`}>
+                      {otpDispatchLog.success ? '● Dispatched' : '● Status'}
+                    </span>
+                  </div>
+                  <p className="text-[var(--text-secondary)] text-[10.5px] leading-relaxed break-words font-mono">
+                    {otpDispatchLog.message || 'Connecting to carrier gateway...'}
+                  </p>
+                </div>
 
                 {/* Auto-Fill Test OTP helper */}
                 <div className="p-3 bg-[var(--bg-secondary)] border border-[var(--border-subtle)] flex items-center justify-between gap-2">
@@ -6008,6 +6115,11 @@ function OrdersView() {
   const [loginError, setLoginError] = useState('');
   const [isVerifying, setIsVerifying] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
+  const [loginGatewayLog, setLoginGatewayLog] = useState({
+    success: false,
+    message: '',
+    mode: '',
+  });
 
   // Filter orders strictly to logged-in patron's phone number for complete customer privacy
   const patronCleanPhone = useMemo(() => {
@@ -6162,6 +6274,43 @@ function OrdersView() {
                 <p className="text-[10px] text-emerald-700 dark:text-emerald-300">
                   ✦ Verification code dispatched to +91 {loginPhone}. (Sandbox codes: 123456 or {generatedOtp})
                 </p>
+
+                {/* Auto-Fill Test OTP helper */}
+                <div className="p-2.5 bg-[var(--bg-secondary)] border border-[var(--border-subtle)] flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-1.5 text-[11px] text-[#b99762] dark:text-[#e6ca97]">
+                    <Sparkles className="w-3.5 h-3.5" />
+                    <span>Test Code: <strong className="font-mono">{generatedOtp || '849201'}</strong></span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setLoginOtp(generatedOtp || '849201')}
+                    className="px-2.5 py-1 bg-[#b99762]/10 hover:bg-[#b99762]/20 border border-[#b99762]/40 text-[#b99762] dark:text-[#e6ca97] text-[10px] font-bold uppercase tracking-wider transition-colors cursor-pointer"
+                  >
+                    Auto-Fill
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Live Carrier Gateway Telemetry */}
+            {loginGatewayLog.message && (
+              <div className="p-3 bg-[var(--bg-primary)] border border-[var(--border-subtle)] space-y-1.5 text-[11px] font-mono">
+                <div className="flex items-center justify-between">
+                  <span className="text-[var(--text-muted)] flex items-center gap-1.5 uppercase tracking-wider text-[9.5px]">
+                    <Smartphone className="w-3 h-3 text-[#b99762] dark:text-[#e6ca97]" />
+                    Carrier Gateway: Firebase Phone Auth
+                  </span>
+                  <span className={`px-1.5 py-0.5 text-[9px] font-bold uppercase rounded-xs ${
+                    loginGatewayLog.success
+                      ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30'
+                      : 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/30'
+                  }`}>
+                    {loginGatewayLog.success ? '● Dispatched' : '● Status'}
+                  </span>
+                </div>
+                <p className="text-[var(--text-secondary)] text-[10.5px] leading-relaxed break-words font-mono">
+                  {loginGatewayLog.message}
+                </p>
               </div>
             )}
 
@@ -6186,7 +6335,29 @@ function OrdersView() {
                     const res = generateOtp(clean);
                     setGeneratedOtp(res.otp);
                     setOtpSent(true);
-                    showToast(`✦ Verification code dispatched to +91 ${clean}`);
+                    setLoginGatewayLog({
+                      success: false,
+                      message: 'Connecting to Google Firebase carrier gateway...',
+                      mode: 'pending',
+                    });
+                    showToast(`✦ Initiating verification for +91 ${clean}...`);
+                    dispatchCustomerOtp(clean).then((resp) => {
+                      if (resp) {
+                        setLoginGatewayLog(resp);
+                        if (resp.success) {
+                          showToast(`✓ SMS code dispatched to +91 ${clean}`);
+                        } else {
+                          showToast(resp.message || '⚠️ SMS delivery pending. Use Auto-Fill code.');
+                        }
+                      }
+                    }).catch((err) => {
+                      setLoginGatewayLog({
+                        success: false,
+                        message: err?.message || 'Dispatch error. Use Auto-Fill code.',
+                        mode: 'error',
+                      });
+                      showToast('✦ Use test code 123456 to verify immediately.');
+                    });
                   }}
                   className="w-full py-3.5 bg-[#1d4136] hover:bg-[#16332a] dark:bg-[#e6ca97] dark:hover:bg-[#d9b87c] text-white dark:text-[#242321] font-mono text-xs tracking-wider uppercase font-bold transition-all shadow-md"
                 >
@@ -6204,7 +6375,7 @@ function OrdersView() {
                       }
                       setIsVerifying(true);
                       const clean = loginPhone.replace(/[^\d]/g, '').slice(-10);
-                      const check = verifyOtp(clean, loginOtp);
+                      const check = await verifyCustomerOtp(clean, loginOtp);
                       if (check.success) {
                         const matched = orders.find(
                           (o) => (o.customerPhone || '').replace(/[^\d]/g, '').slice(-10) === clean
@@ -6238,6 +6409,7 @@ function OrdersView() {
                       onClick={() => {
                         const res = generateOtp(loginPhone);
                         setGeneratedOtp(res.otp);
+                        dispatchCustomerOtp(loginPhone).catch(() => {});
                         showToast(`✦ New code dispatched to +91 ${loginPhone.slice(-10)}`);
                       }}
                       className="hover:underline text-[#b99762] dark:text-[#e6ca97]"
@@ -10292,6 +10464,7 @@ function PatronAuthModal() {
     setIsCartOpen,
     showToast,
     formatPrice,
+    navigate,
   } = useContext(AppContext);
 
   const [phone, setPhone] = useState('');
@@ -10300,6 +10473,24 @@ function PatronAuthModal() {
   const [generatedOtp, setGeneratedOtp] = useState('123456');
   const [isVerifying, setIsVerifying] = useState(false);
   const [error, setError] = useState('');
+  const [resendTimer, setResendTimer] = useState(0);
+  const [authGatewayLog, setAuthGatewayLog] = useState({
+    success: false,
+    message: '',
+    mode: '',
+  });
+
+  useEffect(() => {
+    let interval = null;
+    if (resendTimer > 0) {
+      interval = setInterval(() => {
+        setResendTimer((prev) => (prev > 0 ? prev - 1 : 0));
+      }, 1000);
+    }
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [resendTimer]);
 
   useEffect(() => {
     const handleKeyDown = (e) => {
@@ -10329,8 +10520,31 @@ function PatronAuthModal() {
     const res = generateOtp(clean);
     setGeneratedOtp(res.otp);
     setOtpSent(true);
+    setResendTimer(60);
     setError('');
-    showToast(`✦ Verification code dispatched to +91 ${clean}`);
+    setAuthGatewayLog({
+      success: false,
+      message: 'Connecting to Google Firebase carrier gateway...',
+      mode: 'pending',
+    });
+    showToast(`✦ Initiating verification for +91 ${clean}...`);
+    dispatchCustomerOtp(clean).then((resp) => {
+      if (resp) {
+        setAuthGatewayLog(resp);
+        if (resp.success) {
+          showToast(`✓ SMS code dispatched to +91 ${clean}`);
+        } else {
+          showToast(resp.message || '⚠️ SMS delivery pending. Use Auto-Fill code.');
+        }
+      }
+    }).catch((err) => {
+      setAuthGatewayLog({
+        success: false,
+        message: err?.message || 'Dispatch error. Use Auto-Fill code.',
+        mode: 'error',
+      });
+      showToast('✦ Use test code 123456 to verify immediately.');
+    });
   };
 
   const handleVerifyOtp = async () => {
@@ -10340,7 +10554,7 @@ function PatronAuthModal() {
     }
     setIsVerifying(true);
     const clean = phone.replace(/[^\d]/g, '').slice(-10);
-    const check = verifyOtp(clean, otp);
+    const check = await verifyCustomerOtp(clean, otp);
     if (check.success) {
       const matched = orders.find(
         (o) => (o.customerPhone || '').replace(/[^\d]/g, '').slice(-10) === clean
@@ -10370,13 +10584,15 @@ function PatronAuthModal() {
         showToast(`✓ Welcome ${customerName}! Added ${product.name} to your bag.`);
         setPendingCartAction(null);
       } else {
-        showToast(`✓ Welcome ${customerName}! Signed in successfully.`);
+        showToast(`✓ Welcome ${customerName}! Opening your order tracking dossier...`);
+        navigate('orders');
       }
 
       setPatronAuthModalOpen(false);
       setPhone('');
       setOtp('');
       setOtpSent(false);
+      setAuthGatewayLog({ success: false, message: '', mode: '' });
     } else {
       setError(check.message || 'Invalid verification code.');
     }
@@ -10414,7 +10630,7 @@ function PatronAuthModal() {
           <p className="font-mono text-xs text-[var(--text-secondary)] leading-relaxed">
             {pendingCartAction?.product
               ? 'Please sign in with your mobile phone number to add this piece to your bag.'
-              : 'Sign in to access your personal bespoke jewellery bag and order dossier.'}
+              : 'Sign in to access your personal jewellery bag and track live Blue Dart order logistics.'}
           </p>
         </div>
 
@@ -10473,13 +10689,13 @@ function PatronAuthModal() {
                 <button
                   type="button"
                   onClick={() => {
-                    setOtp('123456');
+                    setOtp(generatedOtp || '123456');
                     setError('');
-                    showToast('✓ Auto-filled test code: 123456');
+                    showToast(`✓ Auto-filled test code: ${generatedOtp || '123456'}`);
                   }}
                   className="text-[9px] font-mono text-[#b99762] dark:text-[#e6ca97] hover:underline uppercase font-bold cursor-pointer"
                 >
-                  Auto-Fill Test (123456)
+                  Auto-Fill ({generatedOtp || '123456'})
                 </button>
               </div>
               <input
@@ -10493,8 +10709,35 @@ function PatronAuthModal() {
                 placeholder="123456"
                 className="w-full h-11 px-3 bg-[var(--bg-primary)] border border-[var(--border-strong)] text-center text-lg font-mono tracking-[0.4em] text-[var(--text-primary)] font-bold outline-none focus:border-[#b99762]"
               />
-              <p className="text-[10px] text-emerald-700 dark:text-emerald-300">
-                ✦ Verification code sent to +91 {phone}. (Sandbox: 123456 or {generatedOtp})
+              <div className="flex items-center justify-between text-[10px]">
+                <span className="text-emerald-700 dark:text-emerald-300">
+                  ✦ Verification code is valid for 10 minutes.
+                </span>
+                <span className="text-[var(--text-muted)] font-mono">
+                  (Test: {generatedOtp || '123456'})
+                </span>
+              </div>
+            </div>
+          )}
+
+          {/* Live Carrier Gateway Telemetry */}
+          {authGatewayLog.message && (
+            <div className="p-3 bg-[var(--bg-primary)] border border-[var(--border-subtle)] space-y-1.5 text-[11px] font-mono">
+              <div className="flex items-center justify-between">
+                <span className="text-[var(--text-muted)] flex items-center gap-1.5 uppercase tracking-wider text-[9.5px]">
+                  <Smartphone className="w-3 h-3 text-[#b99762] dark:text-[#e6ca97]" />
+                  Carrier Gateway: Firebase Phone Auth
+                </span>
+                <span className={`px-1.5 py-0.5 text-[9px] font-bold uppercase rounded-xs ${
+                  authGatewayLog.success
+                    ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30'
+                    : 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/30'
+                }`}>
+                  {authGatewayLog.success ? '● Dispatched' : '● Status'}
+                </span>
+              </div>
+              <p className="text-[var(--text-secondary)] text-[10.5px] leading-relaxed break-words font-mono">
+                {authGatewayLog.message}
               </p>
             </div>
           )}
@@ -10511,24 +10754,53 @@ function PatronAuthModal() {
               <button
                 type="button"
                 onClick={handleSendOtp}
-                className="w-full py-3.5 bg-[#132A22] hover:bg-[#1d4136] dark:bg-[#e6ca97] dark:hover:bg-[#d8c39f] text-white dark:text-black font-sans text-xs tracking-[0.16em] uppercase font-bold transition-all shadow-md cursor-pointer"
+                className="w-full py-3.5 bg-[#132A22] hover:bg-[#1d4136] dark:bg-[#e6ca97] dark:hover:bg-[#d8c39f] text-white dark:text-black font-sans text-xs tracking-[0.16em] uppercase font-bold transition-all shadow-md cursor-pointer flex items-center justify-center gap-2"
               >
-                Send Verification Code
+                <Smartphone className="w-3.5 h-3.5" />
+                <span>Send Verification Code</span>
               </button>
             ) : (
-              <button
-                type="button"
-                disabled={isVerifying}
-                onClick={handleVerifyOtp}
-                className="w-full py-3.5 bg-[#132A22] hover:bg-[#1d4136] dark:bg-[#e6ca97] dark:hover:bg-[#d8c39f] text-white dark:text-black font-sans text-xs tracking-[0.16em] uppercase font-bold transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer"
-              >
-                {isVerifying ? (
-                  <RefreshCw className="w-4 h-4 animate-spin" />
-                ) : (
-                  <CheckCircle2 className="w-4 h-4" />
-                )}
-                <span>Verify & Sign In</span>
-              </button>
+              <div className="space-y-2.5">
+                <button
+                  type="button"
+                  disabled={isVerifying}
+                  onClick={handleVerifyOtp}
+                  className="w-full py-3.5 bg-[#132A22] hover:bg-[#1d4136] dark:bg-[#e6ca97] dark:hover:bg-[#d8c39f] text-white dark:text-black font-sans text-xs tracking-[0.16em] uppercase font-bold transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  {isVerifying ? (
+                    <RefreshCw className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <CheckCircle2 className="w-4 h-4" />
+                  )}
+                  <span>{pendingCartAction?.product ? 'Verify & Continue' : 'Verify & Track Orders'}</span>
+                </button>
+                <div className="flex justify-between items-center text-[10px] text-[var(--text-muted)] pt-1 font-mono">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setOtpSent(false);
+                      setOtp('');
+                      setError('');
+                    }}
+                    className="hover:underline cursor-pointer"
+                  >
+                    Change Mobile Number
+                  </button>
+                  {resendTimer > 0 ? (
+                    <span className="text-[var(--text-muted)]">
+                      Resend code in 00:{resendTimer.toString().padStart(2, '0')}
+                    </span>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={handleSendOtp}
+                      className="hover:underline text-[#b99762] dark:text-[#e6ca97] font-bold cursor-pointer"
+                    >
+                      Resend Code
+                    </button>
+                  )}
+                </div>
+              </div>
             )}
           </div>
         </div>
