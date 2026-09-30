@@ -29,6 +29,8 @@ dist/
 .env.*
 !.env.example
 .vercel
+*.csv
+rzp-key.csv
 
 # Product catalogue PDFs (large binary files — not needed in git)
 *.pdf

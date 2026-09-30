@@ -66,6 +66,64 @@ function fast2SmsDevMiddleware(env) {
           return;
         }
 
+        if (req.url === '/api/razorpay/create-order' && req.method === 'POST') {
+          let bodyStr = '';
+          req.on('data', chunk => { bodyStr += chunk; });
+          req.on('end', async () => {
+            try {
+              req.body = bodyStr ? JSON.parse(bodyStr) : {};
+            } catch {
+              req.body = {};
+            }
+            process.env.RAZORPAY_KEY_ID = env.RAZORPAY_KEY_ID || process.env.RAZORPAY_KEY_ID;
+            process.env.RAZORPAY_KEY_SECRET = env.RAZORPAY_KEY_SECRET || process.env.RAZORPAY_KEY_SECRET;
+            const { default: handler } = await import('./api/razorpay/create-order.js');
+            const customRes = {
+              setHeader: (k, v) => res.setHeader(k, v),
+              status: (code) => {
+                res.statusCode = code;
+                return customRes;
+              },
+              json: (data) => {
+                res.setHeader('Content-Type', 'application/json');
+                res.end(JSON.stringify(data));
+              },
+              end: () => res.end(),
+            };
+            await handler(req, customRes);
+          });
+          return;
+        }
+
+        if (req.url === '/api/razorpay/verify' && req.method === 'POST') {
+          let bodyStr = '';
+          req.on('data', chunk => { bodyStr += chunk; });
+          req.on('end', async () => {
+            try {
+              req.body = bodyStr ? JSON.parse(bodyStr) : {};
+            } catch {
+              req.body = {};
+            }
+            process.env.RAZORPAY_KEY_ID = env.RAZORPAY_KEY_ID || process.env.RAZORPAY_KEY_ID;
+            process.env.RAZORPAY_KEY_SECRET = env.RAZORPAY_KEY_SECRET || process.env.RAZORPAY_KEY_SECRET;
+            const { default: handler } = await import('./api/razorpay/verify.js');
+            const customRes = {
+              setHeader: (k, v) => res.setHeader(k, v),
+              status: (code) => {
+                res.statusCode = code;
+                return customRes;
+              },
+              json: (data) => {
+                res.setHeader('Content-Type', 'application/json');
+                res.end(JSON.stringify(data));
+              },
+              end: () => res.end(),
+            };
+            await handler(req, customRes);
+          });
+          return;
+        }
+
         next();
       });
     },

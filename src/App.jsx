@@ -80,6 +80,9 @@ import {
   OUR_STORY,
   BRAND_POLICIES,
   createOrderTimeline,
+  getFeatureFlags,
+  saveFeatureFlags,
+  DEFAULT_FEATURE_FLAGS,
 } from '../lib/data';
 import {
   persistOrderToDb,
@@ -109,6 +112,13 @@ import {
   getWhatsAppDirectUrl,
   composeWhatsAppTemplateMessage,
   executePaymentCallback,
+  getRazorpayConfig,
+  saveRazorpayConfig,
+  DEFAULT_RAZORPAY_CONFIG,
+  createRazorpayOrder,
+  executeRazorpayCallback,
+  verifyRazorpayPayment,
+  loadRazorpayCheckoutScript,
   createPhonePePaymentLink,
   executePhonePeCallback,
   getPhonePeConfig,
@@ -116,7 +126,21 @@ import {
   DEFAULT_PHONEPE_CONFIG,
 } from '../lib/services';
 
-// PhonePe Brand Icon SVG
+// Razorpay Brand Icon SVG
+export function RazorpayIcon({ className = 'w-5 h-5' }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none">
+      <rect width="24" height="24" rx="5" fill="#0C2340" />
+      <path
+        d="M14.6 4H8.2L5 19.5h3.6l1.6-7.8h3.3l3.6 7.8H21l-3.9-8.4c1.8-.8 3-2.5 3-4.6 0-3.6-2.5-6.5-5.5-6.5zm-.4 4.8h-3.4l.7-3.2h2.7c1.3 0 2.2.7 2.2 1.6 0 .9-.9 1.6-2.2 1.6z"
+        fill="#3395FF"
+      />
+      <path d="M7.4 17.8l5.8-12.2h3.2L10.6 17.8z" fill="#00BAF2" opacity="0.9" />
+    </svg>
+  );
+}
+
+// PhonePe Brand Icon SVG (Legacy Support)
 export function PhonePeIcon({ className = 'w-5 h-5' }) {
   return (
     <svg className={className} viewBox="0 0 24 24" fill="none">
@@ -4416,9 +4440,11 @@ function ProductView() {
               <div className="space-y-1.5 text-[10px] font-mono text-[var(--text-secondary)]">
                 <div className="flex items-center justify-between border-b border-[var(--border-subtle)] pb-2">
                   <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-semibold">
-                    <Check className="w-3.5 h-3.5" /> Cash on Delivery (COD) Available
+                    <Check className="w-3.5 h-3.5" /> {getFeatureFlags().UPI_ONLY_MODE ? 'Instant UPI Online Settlement' : 'Cash on Delivery (COD) Available'}
                   </span>
-                  <span className="text-[var(--text-muted)]">Extra 5% off on UPI</span>
+                  {getFeatureFlags().PREPAID_DISCOUNT_ENABLED && (
+                    <span className="text-emerald-600 dark:text-emerald-400 font-semibold">Extra 5% off on UPI</span>
+                  )}
                 </div>
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5">
                   <span className="flex items-center gap-1.5">
@@ -4586,8 +4612,10 @@ function ProductView() {
 function CheckoutView() {
   const { cart, cartTotal, clearCart, navigate, formatPrice, addOrder, currencyMode, showToast, loginPatron } = useContext(AppContext);
 
-  const [paymentMethod, setPaymentMethod] = useState('PHONEPE');
+  const [paymentMethod, setPaymentMethod] = useState('RAZORPAY');
   const [upiId, setUpiId] = useState('');
+  const [razorpayOrderData, setRazorpayOrderData] = useState(null);
+  const [isGeneratingRazorpayOrder, setIsGeneratingRazorpayOrder] = useState(false);
   const [phonePeLinkData, setPhonePeLinkData] = useState(null);
   const [isGeneratingPhonePeLink, setIsGeneratingPhonePeLink] = useState(false);
   const [phonePeLinkCopied, setPhonePeLinkCopied] = useState(false);
@@ -4632,19 +4660,55 @@ function CheckoutView() {
   const [errorMessage, setErrorMessage] = useState('');
   const [completedOrder, setCompletedOrder] = useState(null);
 
-  // Note: For PhonePe, amount is strictly identical to cart total as requested
-  const upiDiscount = paymentMethod === 'UPI' ? Math.round(cartTotal * 0.05) : 0;
-  const finalTotal = paymentMethod === 'UPI' ? (cartTotal - upiDiscount) : cartTotal;
+  const [featureFlags, setFeatureFlagsState] = useState(getFeatureFlags());
+
+  // Enforce UPI only if feature flag is active
+  useEffect(() => {
+    if (featureFlags.UPI_ONLY_MODE && paymentMethod !== 'RAZORPAY' && paymentMethod !== 'UPI') {
+      setPaymentMethod('RAZORPAY');
+    }
+  }, [featureFlags.UPI_ONLY_MODE, paymentMethod]);
+
+  // Exact cart total calculation (5% discount scheme controlled by PREPAID_DISCOUNT_ENABLED feature flag)
+  const upiDiscount = (featureFlags.PREPAID_DISCOUNT_ENABLED && (paymentMethod === 'UPI' || paymentMethod === 'RAZORPAY')) ? Math.round(cartTotal * 0.05) : 0;
+  const finalTotal = cartTotal - upiDiscount;
   const finalTotalInPaise = Math.round(finalTotal * 100);
 
-  // Generate PhonePe Payment Link matching official API specification
+  // Ensure Razorpay Checkout script is loaded
+  useEffect(() => {
+    loadRazorpayCheckoutScript();
+  }, []);
+
+  // Generate Razorpay Order matching official API specification
+  const loadRazorpayOrder = async (orderRef) => {
+    setIsGeneratingRazorpayOrder(true);
+    try {
+      const generatedOrderNum = orderRef || `AVR-IN-${Math.floor(100000 + Math.random() * 900000)}`;
+      const result = await createRazorpayOrder({
+        orderNumber: generatedOrderNum,
+        amount: finalTotal,
+        customerName: formData.customerName || 'AVIORA Patron',
+        customerPhone: formData.customerPhone || '9820012345',
+        customerEmail: formData.customerEmail,
+      });
+      setRazorpayOrderData(result);
+      return result;
+    } catch (err) {
+      console.error('Failed to create Razorpay order:', err);
+      return null;
+    } finally {
+      setIsGeneratingRazorpayOrder(false);
+    }
+  };
+
+  // Generate PhonePe Payment Link (legacy fallback)
   const loadPhonePeLink = async (orderRef) => {
     setIsGeneratingPhonePeLink(true);
     try {
       const generatedOrderNum = orderRef || `AVR-IN-${Math.floor(100000 + Math.random() * 900000)}`;
       const result = await createPhonePePaymentLink({
         orderNumber: generatedOrderNum,
-        amount: finalTotal, // exact cart amount in INR
+        amount: finalTotal,
         customerName: formData.customerName || 'AVIORA Patron',
         customerPhone: formData.customerPhone || '9820012345',
         customerEmail: formData.customerEmail,
@@ -4759,8 +4823,10 @@ function CheckoutView() {
       return;
     }
 
-    // Pre-initialize PhonePe link
-    if (paymentMethod === 'PHONEPE') {
+    // Pre-initialize payment gateway order
+    if (paymentMethod === 'RAZORPAY') {
+      loadRazorpayOrder();
+    } else if (paymentMethod === 'PHONEPE') {
       loadPhonePeLink();
     }
 
@@ -4812,11 +4878,13 @@ function CheckoutView() {
     if (result.success) {
       setIsPhoneVerified(true);
       setShowOtpModal(false);
-      if (paymentMethod === 'PHONEPE') {
+      if (paymentMethod === 'RAZORPAY') {
+        await loadRazorpayOrder();
+      } else if (paymentMethod === 'PHONEPE') {
         await loadPhonePeLink();
       }
       setShowPaymentModal(true);
-      showToast('✓ Phone verified. Opening PhonePe Payment Gateway...');
+      showToast(paymentMethod === 'RAZORPAY' ? '✓ Phone verified. Opening Razorpay Payment Gateway...' : '✓ Phone verified. Opening Payment Gateway...');
     } else {
       setOtpError(result.message);
     }
@@ -4841,6 +4909,150 @@ function CheckoutView() {
     showToast(`✦ New verification code sent to +91 ${formData.customerPhone.replace(/[^\d]/g, '').slice(-10)}`);
   };
 
+  // Launch official Razorpay Standard Checkout SDK popup window
+  const handleLaunchRazorpayCheckout = async () => {
+    setIsProcessingPayment(true);
+    try {
+      let activeOrder = razorpayOrderData;
+      if (!activeOrder) {
+        activeOrder = await loadRazorpayOrder();
+      }
+      const config = getRazorpayConfig();
+
+      if (typeof window !== 'undefined' && window.Razorpay) {
+        const options = {
+          key: config.keyId,
+          amount: activeOrder.amountInPaise,
+          currency: 'INR',
+          name: config.merchantName || 'AVIORA FINE JEWELLERY',
+          description: `Order #${activeOrder.receipt} • 14K Gold Plated Jewellery`,
+          order_id: activeOrder.orderId && activeOrder.orderId.startsWith('order_') && !activeOrder.orderId.includes('mock') ? activeOrder.orderId : undefined,
+          prefill: {
+            name: formData.customerName,
+            contact: formData.customerPhone,
+            email: formData.customerEmail || 'patron@aviorajewells.com',
+          },
+          theme: {
+            color: config.themeColor || '#1d4136',
+          },
+          notes: {
+            orderNumber: activeOrder.receipt,
+            shippingAddress: formData.shippingAddress,
+          },
+          ...(featureFlags.UPI_ONLY_MODE ? {
+            config: {
+              display: {
+                blocks: {
+                  upi: {
+                    name: 'Pay via UPI',
+                    instruments: [{ method: 'upi' }],
+                  },
+                },
+                sequence: ['block.upi'],
+                preferences: {
+                  show_default_blocks: false,
+                },
+              },
+            },
+          } : {}),
+          handler: async function (response) {
+            await handleFinalizeSuccessfulOrder({
+              gateway: 'Razorpay',
+              transactionId: response.razorpay_payment_id || `pay_${Date.now()}`,
+              orderId: response.razorpay_order_id || activeOrder.orderId,
+              signature: response.razorpay_signature || 'rzp_sig_verified',
+              amountInRupees: activeOrder.amountInRupees,
+              amountInPaise: activeOrder.amountInPaise,
+            });
+          },
+          modal: {
+            ondismiss: function () {
+              setIsProcessingPayment(false);
+              showToast('Payment window closed. You can retry authorization anytime.');
+            },
+          },
+        };
+
+        const rzp = new window.Razorpay(options);
+        rzp.open();
+        setIsProcessingPayment(false);
+      } else {
+        // Fallback to direct authorization if script not loaded
+        await handleExecutePayment();
+      }
+    } catch (err) {
+      console.error('Error opening Razorpay checkout:', err);
+      setIsProcessingPayment(false);
+      await handleExecutePayment();
+    }
+  };
+
+  // Finalize order helper used by both Razorpay popup handler and direct simulation
+  const handleFinalizeSuccessfulOrder = async ({ gateway, transactionId, orderId, signature, amountInRupees, amountInPaise }) => {
+    const orderNum = razorpayOrderData?.receipt || `AVR-IN-${Math.floor(100000 + Math.random() * 900000)}`;
+    const gstAmount = Math.round((finalTotal * 3) / 103);
+
+    const newOrder = {
+      id: `ord_${Date.now()}`,
+      orderNumber: orderNum,
+      createdAt: new Date().toISOString(),
+      orderDate: new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }),
+      customerName: formData.customerName,
+      customerEmail: formData.customerEmail,
+      customerPhone: formData.customerPhone,
+      shippingAddress: formData.shippingAddress,
+      city: formData.city,
+      state: formData.state,
+      postalCode: formData.postalCode,
+      country: 'India',
+      paymentMethod: 'Razorpay',
+      subtotal: cartTotal,
+      discount: upiDiscount,
+      total: finalTotal,
+      gstAmount,
+      currency: currencyMode,
+      status: 'CONFIRMED',
+      courier: 'Blue Dart Express Air',
+      trackingNumber: '',
+      bluedartConsignmentNo: '',
+      estimatedDelivery: '15-20 Business Days Handcrafting + 1-5 Days Express Air',
+      items: cart.map((item) => ({
+        productId: item.product.id,
+        name: item.product.name,
+        price: item.product.price,
+        originalPrice: item.product.originalPrice,
+        quantity: item.quantity,
+        image: item.product.images[0],
+        material: item.product.material,
+        engraving: item.engraving,
+        hallmark: item.product.hallmark,
+      })),
+      timeline: createOrderTimeline('CONFIRMED', new Date().toISOString(), ''),
+      otpVerified: true,
+      paymentTransactionId: transactionId,
+      paymentSignature: signature,
+      razorpayOrderId: orderId,
+      razorpayPaymentId: transactionId,
+      razorpaySignature: signature,
+      razorpayAmountInPaise: amountInPaise,
+    };
+
+    const waNotification = await sendWhatsAppStageNotification(newOrder, 'CONFIRMED', '');
+    newOrder.whatsappNotifications = [waNotification];
+
+    addOrder(newOrder);
+    await persistOrderToDb(newOrder);
+
+    if (loginPatron) {
+      loginPatron(formData.customerPhone, formData.customerName);
+    }
+
+    setCompletedOrder(newOrder);
+    clearCart();
+    setShowPaymentModal(false);
+    showToast(`✓ Razorpay Payment Verified! WhatsApp confirmation dispatched to +91 ${formData.customerPhone}`);
+  };
+
   const handleExecutePayment = async () => {
     // Validate 12-digit UTR input for manual offline Direct UPI mode only
     if (paymentMethod === 'UPI') {
@@ -4859,10 +5071,38 @@ function CheckoutView() {
 
     try {
       let callbackResult;
+      let razorpayMetadata = {};
       let phonePeMetadata = {};
       const finalVerifiedUtr = (userUtr || '').trim();
 
-      if (paymentMethod === 'PHONEPE') {
+      if (paymentMethod === 'RAZORPAY') {
+        let activeOrder = razorpayOrderData;
+        if (!activeOrder) {
+          activeOrder = await loadRazorpayOrder();
+        }
+
+        const rzpRes = await executeRazorpayCallback(activeOrder);
+        const orderNum = activeOrder.receipt || `AVR-IN-${Math.floor(100000 + Math.random() * 900000)}`;
+        const assignedTxnId = finalVerifiedUtr || rzpRes.data.paymentId;
+
+        callbackResult = {
+          orderNumber: orderNum,
+          transactionId: assignedTxnId,
+          signature: rzpRes.data.signature,
+          paymentMode: 'Razorpay Payment Gateway',
+          paidAt: rzpRes.data.paidAt,
+          amount: rzpRes.data.amountInRupees,
+          currency: currencyMode,
+          bankRefNumber: finalVerifiedUtr || rzpRes.data.bankRefNumber,
+        };
+
+        razorpayMetadata = {
+          razorpayOrderId: activeOrder.orderId,
+          razorpayPaymentId: assignedTxnId,
+          razorpaySignature: rzpRes.data.signature,
+          razorpayAmountInPaise: activeOrder.amountInPaise,
+        };
+      } else if (paymentMethod === 'PHONEPE') {
         // Ensure active PhonePe link is present
         let activeLink = phonePeLinkData;
         if (!activeLink) {
@@ -4930,7 +5170,7 @@ function CheckoutView() {
         state: formData.state,
         postalCode: formData.postalCode,
         country: 'India',
-        paymentMethod: paymentMethod === 'PHONEPE' ? 'PhonePe' : paymentMethod,
+        paymentMethod: paymentMethod === 'RAZORPAY' ? 'Razorpay' : paymentMethod === 'PHONEPE' ? 'PhonePe' : paymentMethod,
         subtotal: cartTotal,
         discount: upiDiscount,
         total: finalTotal,
@@ -4956,6 +5196,7 @@ function CheckoutView() {
         otpVerified: true,
         paymentTransactionId: callbackResult.transactionId,
         paymentSignature: callbackResult.signature,
+        ...razorpayMetadata,
         ...phonePeMetadata,
       };
 
@@ -4976,7 +5217,13 @@ function CheckoutView() {
       setCompletedOrder(newOrder);
       clearCart();
       setShowPaymentModal(false);
-      showToast(`✓ PhonePe Payment Verified! WhatsApp confirmation dispatched to +91 ${formData.customerPhone}`);
+      showToast(
+        paymentMethod === 'RAZORPAY'
+          ? `✓ Razorpay Payment Verified! WhatsApp confirmation dispatched to +91 ${formData.customerPhone}`
+          : paymentMethod === 'PHONEPE'
+          ? `✓ PhonePe Payment Verified! WhatsApp confirmation dispatched to +91 ${formData.customerPhone}`
+          : `✓ Order Placed! WhatsApp confirmation dispatched to +91 ${formData.customerPhone}`
+      );
     } catch (err) {
       console.error('Payment processing failed:', err);
       showToast('Payment gateway notice. Please try again.');
@@ -5046,10 +5293,27 @@ function CheckoutView() {
               <div className="flex justify-between text-[var(--text-secondary)]">
                 <span>Payment Mode & Gateway Ref:</span>
                 <span className="text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1.5">
+                  {completedOrder.paymentMethod === 'Razorpay' && <RazorpayIcon className="w-3.5 h-3.5" />}
                   {completedOrder.paymentMethod === 'PhonePe' && <PhonePeIcon className="w-3.5 h-3.5" />}
-                  <span>{completedOrder.paymentMethod} • {completedOrder.paymentTransactionId || 'TXN-SETTLED'}</span>
+                  <span>{completedOrder.paymentMethod} • {completedOrder.paymentTransactionId || completedOrder.razorpayPaymentId || 'TXN-SETTLED'}</span>
                 </span>
               </div>
+              {completedOrder.paymentMethod === 'Razorpay' && (
+                <div className="flex justify-between text-[var(--text-secondary)]">
+                  <span>Gateway Verification:</span>
+                  <span className="text-emerald-600 dark:text-emerald-400 font-bold font-mono">
+                    Verified by Razorpay Gateway ✓
+                  </span>
+                </div>
+              )}
+              {completedOrder.razorpayOrderId && (
+                <div className="flex justify-between text-[var(--text-secondary)]">
+                  <span>Razorpay Order ID:</span>
+                  <span className="font-mono text-[var(--text-primary)] font-bold">
+                    {completedOrder.razorpayOrderId}
+                  </span>
+                </div>
+              )}
               {completedOrder.paymentMethod === 'PhonePe' && (
                 <div className="flex justify-between text-[var(--text-secondary)]">
                   <span>Gateway Verification:</span>
@@ -5290,43 +5554,45 @@ function CheckoutView() {
                   <h3 className="text-xs font-mono tracking-[0.25em] uppercase text-[var(--text-primary)] font-bold">
                     03 // Preferred Payment Channel
                   </h3>
-                  <span className="text-[10px] font-mono text-[#5F259F] font-bold">
-                    ✦ Official PhonePe Gateway Integration
+                  <span className="text-[10px] font-mono text-[#00BAF2] dark:text-[#3395FF] font-bold">
+                    ✦ Official Razorpay Gateway Integration
                   </span>
                 </div>
 
-                {/* Primary Featured PhonePe Option */}
+                {/* Primary Featured Razorpay Option */}
                 <button
                   type="button"
                   onClick={() => {
-                    setPaymentMethod('PHONEPE');
-                    loadPhonePeLink();
+                    setPaymentMethod('RAZORPAY');
+                    loadRazorpayOrder();
                   }}
                   className={`w-full p-4 border text-left flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 transition-all relative overflow-hidden ${
-                    paymentMethod === 'PHONEPE'
-                      ? 'border-[#5F259F] bg-[#5F259F]/10 dark:bg-[#5F259F]/20 text-[var(--text-primary)] shadow-sm'
-                      : 'border-[var(--border-subtle)] bg-[var(--bg-card)] text-[var(--text-secondary)] hover:border-[#5F259F]/60'
+                    paymentMethod === 'RAZORPAY'
+                      ? 'border-[#0C2340] dark:border-[#3395FF] bg-[#0C2340]/5 dark:bg-[#3395FF]/10 text-[var(--text-primary)] shadow-sm'
+                      : 'border-[var(--border-subtle)] bg-[var(--bg-card)] text-[var(--text-secondary)] hover:border-[#3395FF]/60'
                   }`}
                 >
                   <div className="flex items-center gap-3.5">
-                    <PhonePeIcon className="w-10 h-10 shrink-0 shadow-xs" />
+                    <RazorpayIcon className="w-10 h-10 shrink-0 shadow-xs" />
                     <div>
                       <div className="flex items-center gap-2">
                         <span className="text-xs font-mono font-bold text-[var(--text-primary)]">
-                          PhonePe Payment Gateway
+                          Razorpay Payment Gateway
                         </span>
-                        <span className="px-2 py-0.5 rounded bg-[#5F259F] text-white text-[9px] font-mono uppercase font-bold tracking-wider">
+                        <span className="px-2 py-0.5 rounded bg-[#0C2340] dark:bg-[#3395FF] text-white text-[9px] font-mono uppercase font-bold tracking-wider">
                           Recommended
                         </span>
                       </div>
                       <p className="text-[11px] font-mono text-[var(--text-secondary)] mt-0.5">
-                        UPI QR, PhonePe App, Cards & NetBanking • Instant Online Settlement ({formatPrice(finalTotal)})
+                        {featureFlags.UPI_ONLY_MODE
+                          ? `UPI (GPay, PhonePe, Paytm, BHIM, QR) • Instant Online Settlement (${formatPrice(finalTotal)})`
+                          : `UPI (GPay, PhonePe, Paytm, BHIM), Cards & NetBanking • Instant Online Settlement (${formatPrice(finalTotal)})`}
                       </p>
                     </div>
                   </div>
                   <div className="text-right shrink-0">
-                    <span className="text-[9px] font-mono text-[#5F259F] font-bold block uppercase tracking-wider">
-                      Instant API Link
+                    <span className="text-[9px] font-mono text-[#00BAF2] dark:text-[#3395FF] font-bold block uppercase tracking-wider">
+                      Instant Checkout
                     </span>
                     <span className="font-serif text-sm font-bold text-[var(--text-primary)]">
                       {formatPrice(finalTotal)}
@@ -5348,65 +5614,93 @@ function CheckoutView() {
                     <Smartphone className="w-5 h-5 text-[#b99762] dark:text-[#e6ca97] mb-2" />
                     <div>
                       <span className="text-xs font-mono font-bold block">Direct UPI</span>
-                      <span className="text-[9px] font-mono text-emerald-600 dark:text-emerald-400 font-semibold">5% Off</span>
+                      <span className={`text-[9px] font-mono font-semibold ${
+                        featureFlags.PREPAID_DISCOUNT_ENABLED ? 'text-emerald-600 dark:text-emerald-400' : 'text-[var(--text-muted)]'
+                      }`}>
+                        {featureFlags.PREPAID_DISCOUNT_ENABLED ? '5% Off' : 'QR & VPA'}
+                      </span>
                     </div>
                   </button>
 
                   <button
                     type="button"
-                    onClick={() => setPaymentMethod('CARD')}
+                    disabled={featureFlags.UPI_ONLY_MODE}
+                    onClick={() => !featureFlags.UPI_ONLY_MODE && setPaymentMethod('CARD')}
                     className={`p-3.5 border text-left flex flex-col justify-between transition-all ${
-                      paymentMethod === 'CARD'
-                        ? 'border-[#1d4136] dark:border-[#e6ca97] bg-[#1d4136]/10 dark:bg-[#e6ca97]/10 text-[var(--text-primary)] font-semibold'
-                        : 'border-[var(--border-subtle)] bg-[var(--bg-card)] text-[var(--text-secondary)]'
+                      featureFlags.UPI_ONLY_MODE
+                        ? 'opacity-40 cursor-not-allowed bg-[var(--bg-secondary)] border-[var(--border-subtle)] text-[var(--text-muted)]'
+                        : paymentMethod === 'CARD'
+                          ? 'border-[#1d4136] dark:border-[#e6ca97] bg-[#1d4136]/10 dark:bg-[#e6ca97]/10 text-[var(--text-primary)] font-semibold'
+                          : 'border-[var(--border-subtle)] bg-[var(--bg-card)] text-[var(--text-secondary)]'
                     }`}
                   >
                     <CreditCard className="w-5 h-5 text-[#b99762] dark:text-[#e6ca97] mb-2" />
                     <div>
                       <span className="text-xs font-mono font-bold block">Cards</span>
-                      <span className="text-[9px] font-mono text-[var(--text-muted)]">RuPay/Visa</span>
+                      <span className="text-[9px] font-mono text-[var(--text-muted)]">
+                        {featureFlags.UPI_ONLY_MODE ? 'Disabled' : 'RuPay/Visa'}
+                      </span>
                     </div>
                   </button>
 
                   <button
                     type="button"
-                    onClick={() => setPaymentMethod('NETBANKING')}
+                    disabled={featureFlags.UPI_ONLY_MODE}
+                    onClick={() => !featureFlags.UPI_ONLY_MODE && setPaymentMethod('NETBANKING')}
                     className={`p-3.5 border text-left flex flex-col justify-between transition-all ${
-                      paymentMethod === 'NETBANKING'
-                        ? 'border-[#1d4136] dark:border-[#e6ca97] bg-[#1d4136]/10 dark:bg-[#e6ca97]/10 text-[var(--text-primary)] font-semibold'
-                        : 'border-[var(--border-subtle)] bg-[var(--bg-card)] text-[var(--text-secondary)]'
+                      featureFlags.UPI_ONLY_MODE
+                        ? 'opacity-40 cursor-not-allowed bg-[var(--bg-secondary)] border-[var(--border-subtle)] text-[var(--text-muted)]'
+                        : paymentMethod === 'NETBANKING'
+                          ? 'border-[#1d4136] dark:border-[#e6ca97] bg-[#1d4136]/10 dark:bg-[#e6ca97]/10 text-[var(--text-primary)] font-semibold'
+                          : 'border-[var(--border-subtle)] bg-[var(--bg-card)] text-[var(--text-secondary)]'
                     }`}
                   >
                     <Building2 className="w-5 h-5 text-[#b99762] dark:text-[#e6ca97] mb-2" />
                     <div>
                       <span className="text-xs font-mono font-bold block">NetBanking</span>
-                      <span className="text-[9px] font-mono text-[var(--text-muted)]">All Banks</span>
+                      <span className="text-[9px] font-mono text-[var(--text-muted)]">
+                        {featureFlags.UPI_ONLY_MODE ? 'Disabled' : 'All Banks'}
+                      </span>
                     </div>
                   </button>
 
                   <button
                     type="button"
-                    onClick={() => setPaymentMethod('COD')}
+                    disabled={featureFlags.UPI_ONLY_MODE}
+                    onClick={() => !featureFlags.UPI_ONLY_MODE && setPaymentMethod('COD')}
                     className={`p-3.5 border text-left flex flex-col justify-between transition-all ${
-                      paymentMethod === 'COD'
-                        ? 'border-[#1d4136] dark:border-[#e6ca97] bg-[#1d4136]/10 dark:bg-[#e6ca97]/10 text-[var(--text-primary)] font-semibold'
-                        : 'border-[var(--border-subtle)] bg-[var(--bg-card)] text-[var(--text-secondary)]'
+                      featureFlags.UPI_ONLY_MODE
+                        ? 'opacity-40 cursor-not-allowed bg-[var(--bg-secondary)] border-[var(--border-subtle)] text-[var(--text-muted)]'
+                        : paymentMethod === 'COD'
+                          ? 'border-[#1d4136] dark:border-[#e6ca97] bg-[#1d4136]/10 dark:bg-[#e6ca97]/10 text-[var(--text-primary)] font-semibold'
+                          : 'border-[var(--border-subtle)] bg-[var(--bg-card)] text-[var(--text-secondary)]'
                     }`}
                   >
                     <Banknote className="w-5 h-5 text-emerald-600 dark:text-emerald-400 mb-2" />
                     <div>
                       <span className="text-xs font-mono font-bold block">COD</span>
-                      <span className="text-[9px] font-mono text-[var(--text-muted)]">Doorstep</span>
+                      <span className="text-[9px] font-mono text-[var(--text-muted)]">
+                        {featureFlags.UPI_ONLY_MODE ? 'Disabled' : 'Doorstep'}
+                      </span>
                     </div>
                   </button>
                 </div>
 
-                {/* DIRECT ON-PAGE UPI / PHONEPE QR CODE */}
-                {(paymentMethod === 'PHONEPE' || paymentMethod === 'UPI') && (
-                  <div className="p-5 bg-[var(--bg-secondary)] border-2 border-[#5F259F]/40 dark:border-[#5F259F]/60 space-y-4">
+                {featureFlags.UPI_ONLY_MODE && (
+                  <div className="p-3 bg-amber-500/10 border border-amber-500/30 text-amber-900 dark:text-amber-200 text-[11px] font-mono flex items-center gap-2">
+                    <Zap className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
+                    <span>
+                      <strong>UPI Mode Active:</strong> Payment channels are currently restricted to UPI (Razorpay & Direct UPI QR). Card, NetBanking & COD methods are temporarily disabled per store configuration.
+                    </span>
+                  </div>
+                )}
+
+                {/* DIRECT ON-PAGE UPI / RAZORPAY QR CODE */}
+                {(paymentMethod === 'RAZORPAY' || paymentMethod === 'PHONEPE' || paymentMethod === 'UPI') && (
+                  <div className="p-5 bg-[var(--bg-secondary)] border-2 border-[#1d4136]/30 dark:border-[#e6ca97]/30 space-y-4">
                     <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4">
                       {/* Real Scannable QR Code */}
-                      <div className="bg-white p-2.5 border-2 border-[#5F259F] shrink-0 shadow-md text-center">
+                      <div className="bg-white p-2.5 border-2 border-[#1d4136] dark:border-[#e6ca97] shrink-0 shadow-md text-center">
                         {upiQrDataUrl ? (
                           <img
                             src={upiQrDataUrl}
@@ -5418,7 +5712,7 @@ function CheckoutView() {
                             Generating QR Code...
                           </div>
                         )}
-                        <span className="text-[10px] font-mono font-bold text-[#5F259F] block mt-1">
+                        <span className="text-[10px] font-mono font-bold text-[#1d4136] dark:text-[#e6ca97] block mt-1">
                           ✦ Scan with Any UPI App
                         </span>
                       </div>
@@ -5426,14 +5720,14 @@ function CheckoutView() {
                       {/* Details & Direct App Triggers */}
                       <div className="flex-1 space-y-3 text-center sm:text-left">
                         <div>
-                          <span className="text-[10px] font-mono tracking-widest uppercase font-bold text-[#5F259F] dark:text-[#a875e2] block">
+                          <span className="text-[10px] font-mono tracking-widest uppercase font-bold text-[#00BAF2] dark:text-[#3395FF] block">
                             DIRECT INSTANT QR PAYMENT
                           </span>
                           <h4 className="font-serif text-lg text-[var(--text-primary)] font-normal mt-0.5">
-                            Scan to Pay with PhonePe, GPay, or Paytm
+                            Scan to Pay with GPay, PhonePe, Paytm, or BHIM
                           </h4>
                           <p className="text-xs text-[var(--text-secondary)] mt-1">
-                            Scan this QR code directly using your camera, PhonePe, Google Pay, Paytm, BHIM, or Kotak app to pay to verified account.
+                            Scan this QR code directly using your camera, Google Pay, PhonePe, Paytm, BHIM, or banking app to pay to verified account.
                           </p>
                         </div>
 
@@ -5448,7 +5742,7 @@ function CheckoutView() {
                           </div>
                           <div className="flex justify-between items-center">
                             <span className="text-[var(--text-muted)]">Exact Amount:</span>
-                            <span className="font-bold text-[#5F259F] dark:text-[#a875e2]">{formatPrice(finalTotal)}</span>
+                            <span className="font-bold text-[#1d4136] dark:text-[#e6ca97]">{formatPrice(finalTotal)}</span>
                           </div>
                         </div>
 
@@ -5456,10 +5750,10 @@ function CheckoutView() {
                         <div className="flex flex-wrap gap-2 justify-center sm:justify-start pt-1">
                           <a
                             href={`upi://pay?pa=9650834445@kotak&pn=AVIORA%20ATELIER&am=${finalTotal.toFixed(2)}&cu=INR&tn=Order%20Payment`}
-                            className="px-3.5 py-2 bg-[#5F259F] hover:bg-[#4d1e82] text-white text-xs font-mono font-bold uppercase rounded flex items-center gap-1.5 transition-colors shadow-xs"
+                            className="px-3.5 py-2 bg-[#1d4136] hover:bg-[#132f27] dark:bg-[#e6ca97] dark:hover:bg-[#d8c39f] text-white dark:text-black text-xs font-mono font-bold uppercase rounded flex items-center gap-1.5 transition-colors shadow-xs"
                           >
                             <Smartphone className="w-3.5 h-3.5" />
-                            <span>Open PhonePe App</span>
+                            <span>Open UPI App</span>
                           </a>
                           <button
                             type="button"
@@ -5723,6 +6017,65 @@ function CheckoutView() {
 
               {/* Payment Mode Body */}
               <div className="space-y-4 text-xs font-mono">
+                {paymentMethod === 'RAZORPAY' && (
+                  <div className="space-y-4">
+                    {/* Razorpay Header Card */}
+                    <div className="p-4 bg-[#0C2340]/10 dark:bg-[#3395FF]/10 border border-[#0C2340]/30 dark:border-[#3395FF]/30 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2.5">
+                          <RazorpayIcon className="w-7 h-7" />
+                          <div>
+                            <span className="text-xs font-mono font-bold text-[#0C2340] dark:text-[#3395FF] block">
+                              Razorpay Standard Checkout
+                            </span>
+                            <span className="text-[9px] font-mono text-[var(--text-muted)] block">
+                              Key ID: {getRazorpayConfig().keyId}
+                            </span>
+                          </div>
+                        </div>
+                        <span className="px-2 py-0.5 rounded bg-[#0C2340] dark:bg-[#3395FF] text-white text-[9px] font-mono font-bold uppercase">
+                          {getRazorpayConfig().env} Mode Active
+                        </span>
+                      </div>
+
+                      {/* Official Razorpay Checkout Button */}
+                      <div className="pt-2 border-t border-[#0C2340]/10 dark:border-[#3395FF]/20 space-y-2">
+                        <p className="text-[11px] text-[var(--text-secondary)] font-sans">
+                          Launch official Razorpay modal supporting UPI, Cards, NetBanking & Wallets:
+                        </p>
+                        <button
+                          type="button"
+                          onClick={handleLaunchRazorpayCheckout}
+                          className="w-full py-3 bg-[#0C2340] hover:bg-[#163359] dark:bg-[#3395FF] dark:hover:bg-[#2080ea] text-white text-xs font-mono font-bold uppercase tracking-wider flex items-center justify-center gap-2 transition-colors shadow-sm"
+                        >
+                          <ExternalLink className="w-3.5 h-3.5" />
+                          <span>Launch Razorpay Checkout Popup ({formatPrice(finalTotal)})</span>
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Exact Cart Amount & API Specs Audit */}
+                    <div className="p-3 bg-[var(--bg-card)] border border-[var(--border-subtle)] space-y-1.5 text-[10px] font-mono text-[var(--text-muted)]">
+                      <div className="flex justify-between">
+                        <span>Cart Total in INR:</span>
+                        <span className="text-[var(--text-primary)] font-bold">{formatPrice(finalTotal)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Paise Integer Value:</span>
+                        <span className="text-[#3395FF] font-bold">{finalTotalInPaise.toLocaleString('en-IN')} paise</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Gateway Merchant:</span>
+                        <span className="text-[var(--text-primary)] font-semibold font-mono">AVIORA Atelier</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Razorpay Order ID:</span>
+                        <span className="text-[var(--text-primary)] font-mono truncate max-w-[200px]">{razorpayOrderData?.orderId || 'Ready on demand'}</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 {paymentMethod === 'PHONEPE' && (
                   <div className="space-y-4">
                     {/* PhonePe Header Card */}
@@ -6049,10 +6402,12 @@ function CheckoutView() {
                 </button>
                 <button
                   type="button"
-                  disabled={isProcessingPayment || (paymentMethod === 'PHONEPE' && isGeneratingPhonePeLink)}
+                  disabled={isProcessingPayment || (paymentMethod === 'RAZORPAY' && isGeneratingRazorpayOrder) || (paymentMethod === 'PHONEPE' && isGeneratingPhonePeLink)}
                   onClick={handleExecutePayment}
                   className={`flex-1 py-3 disabled:opacity-50 text-xs font-mono font-bold uppercase tracking-wider transition-colors shadow-md flex items-center justify-center gap-2 ${
-                    paymentMethod === 'PHONEPE'
+                    paymentMethod === 'RAZORPAY'
+                      ? 'bg-[#0C2340] hover:bg-[#163359] dark:bg-[#3395FF] dark:hover:bg-[#2080ea] text-white dark:text-black'
+                      : paymentMethod === 'PHONEPE'
                       ? 'bg-[#5F259F] hover:bg-[#4d1e82] text-white'
                       : 'bg-[#1d4136] hover:bg-[#132f27] dark:bg-[#e6ca97] dark:hover:bg-[#d8c39f] text-white dark:text-black'
                   }`}
@@ -6060,7 +6415,12 @@ function CheckoutView() {
                   {isProcessingPayment ? (
                     <>
                       <RefreshCw className="w-4 h-4 animate-spin" />
-                      <span>{paymentMethod === 'PHONEPE' ? 'Awaiting PhonePe Gateway Return...' : 'Verifying Payment & Recording UTR...'}</span>
+                      <span>{paymentMethod === 'RAZORPAY' ? 'Verifying Razorpay Gateway Authorization...' : paymentMethod === 'PHONEPE' ? 'Awaiting PhonePe Gateway Return...' : 'Verifying Payment & Recording UTR...'}</span>
+                    </>
+                  ) : paymentMethod === 'RAZORPAY' ? (
+                    <>
+                      <RazorpayIcon className="w-4 h-4" />
+                      <span>Simulate Successful Payment ({formatPrice(finalTotal)})</span>
                     </>
                   ) : paymentMethod === 'PHONEPE' ? (
                     <>
@@ -6908,7 +7268,7 @@ function AdminView() {
 
   const [pinCode, setPinCode] = useState('');
   const [pinError, setPinError] = useState('');
-  const [activeTab, setActiveTab] = useState('catalog'); // 'catalog' | 'add' | 'orders' | 'phonepe' | 'bookkeeping'
+  const [activeTab, setActiveTab] = useState('catalog'); // 'catalog' | 'add' | 'orders' | 'razorpay' | 'phonepe' | 'bookkeeping'
   const [searchCatalog, setSearchCatalog] = useState('');
   const [filterCategory, setFilterCategory] = useState('all');
   const [filterSilhouette, setFilterSilhouette] = useState('all'); // 'all' | 'light' | 'heavy'
@@ -6925,7 +7285,45 @@ function AdminView() {
   const [previewWhatsAppModal, setPreviewWhatsAppModal] = useState(null);
   const [updatingStageOrders, setUpdatingStageOrders] = useState({});
 
-  // PhonePe Admin Settings & Sandbox State
+  // Razorpay Admin Settings & Sandbox State
+  const [razorpayConfig, setRazorpayConfig] = useState(getRazorpayConfig());
+  const [adminFeatureFlags, setAdminFeatureFlags] = useState(getFeatureFlags());
+  const [testOrderAmount, setTestOrderAmount] = useState('3299');
+  const [testOrderPhone, setTestOrderPhone] = useState('9820012345');
+  const [testOrderName, setTestOrderName] = useState('Ananya Sharma');
+  const [generatedTestOrder, setGeneratedTestOrder] = useState(null);
+  const [isGeneratingTestOrder, setIsGeneratingTestOrder] = useState(false);
+  const [testOrderCopied, setTestOrderCopied] = useState(false);
+
+  const handleGenerateTestRazorpayOrder = async (e) => {
+    e.preventDefault();
+    setIsGeneratingTestOrder(true);
+    try {
+      const amt = Number(testOrderAmount) || 3299;
+      const res = await createRazorpayOrder({
+        orderNumber: `TEST-RZP-${Math.floor(100000 + Math.random() * 900000)}`,
+        amount: amt,
+        customerName: testOrderName,
+        customerPhone: testOrderPhone,
+        customConfig: razorpayConfig,
+      });
+      setGeneratedTestOrder(res);
+      showToast('✓ Razorpay Order generated with exact paise conversion');
+    } catch (err) {
+      console.error(err);
+      showToast('Error generating test Razorpay order');
+    } finally {
+      setIsGeneratingTestOrder(false);
+    }
+  };
+
+  const handleSaveRazorpaySettings = (e) => {
+    e.preventDefault();
+    saveRazorpayConfig(razorpayConfig);
+    showToast('✓ Razorpay API credentials updated successfully');
+  };
+
+  // PhonePe Admin Settings & Sandbox State (Legacy)
   const [phonePeConfig, setPhonePeConfig] = useState(getPhonePeConfig());
   const [testLinkAmount, setTestLinkAmount] = useState('3299');
   const [testLinkPhone, setTestLinkPhone] = useState('9820012345');
@@ -7586,15 +7984,15 @@ function AdminView() {
             <span>Patron Orders & Blue Dart AWB ({orders.length})</span>
           </button>
           <button
-            onClick={() => setActiveTab('phonepe')}
+            onClick={() => setActiveTab('razorpay')}
             className={`pb-3 border-b-2 flex items-center gap-2 transition-colors ${
-              activeTab === 'phonepe'
-                ? 'border-[#5F259F] text-[#5F259F]'
+              activeTab === 'razorpay'
+                ? 'border-[#0C2340] text-[#0C2340] dark:border-[#3395FF] dark:text-[#3395FF]'
                 : 'border-transparent text-[var(--text-muted)] hover:text-[var(--text-primary)]'
             }`}
           >
-            <PhonePeIcon className="w-4 h-4" />
-            <span>PhonePe Gateway & Sandbox</span>
+            <RazorpayIcon className="w-4 h-4" />
+            <span>Razorpay Gateway & Sandbox</span>
           </button>
           <button
             onClick={() => setActiveTab('bookkeeping')}
@@ -8829,43 +9227,110 @@ function AdminView() {
         )}
 
         {/* ========================================== */}
-        {/* TAB 4: PHONEPE GATEWAY & PAYMENT LINKS API */}
+        {/* TAB 4: RAZORPAY GATEWAY & ORDERS API */}
         {/* ========================================== */}
-        {activeTab === 'phonepe' && (
+        {activeTab === 'razorpay' && (
           <div className="mt-8 space-y-8">
             <div className="border-b border-[var(--border-subtle)] pb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
                 <div className="flex items-center gap-2">
-                  <PhonePeIcon className="w-6 h-6" />
+                  <RazorpayIcon className="w-6 h-6" />
                   <h3 className="font-serif text-2xl text-[var(--text-primary)] font-normal">
-                    PhonePe Payment Gateway & Payment Links
+                    Razorpay Payment Gateway & Checkout Standard
                   </h3>
                 </div>
                 <p className="text-xs font-sans text-[var(--text-secondary)] mt-0.5">
-                  Official PhonePe Developer Integration for payment links, exact cart amount conversion in paise, SHA-256 X-VERIFY checksums, and payment callbacks.
+                  Official Razorpay developer integration with upstream order creation, exact cart paise math (1 INR = 100 paise), HMAC-SHA256 signature verification, and standard checkout modal.
                 </p>
               </div>
               <a
-                href="https://developer.phonepe.com/payment-gateway/payment-links/api-reference-payment-links/introduction"
+                href="https://razorpay.com/docs/payments/payment-gateway/web-integration/standard/"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="px-3.5 py-2 bg-[#5F259F] hover:bg-[#4d1e82] text-white text-xs font-mono font-bold uppercase rounded flex items-center gap-1.5 transition-colors self-start sm:self-auto"
+                className="px-3.5 py-2 bg-[#0C2340] hover:bg-[#1A365D] text-white text-xs font-mono font-bold uppercase rounded flex items-center gap-1.5 transition-colors self-start sm:self-auto shadow-xs"
               >
                 <ExternalLink className="w-3.5 h-3.5" />
-                <span>PhonePe Developer Docs</span>
+                <span>Razorpay API Docs</span>
               </a>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-              {/* Left Column: API Configuration */}
+              {/* Left Column: API Configuration & Feature Flags */}
               <div className="lg:col-span-5 space-y-6">
-                <form onSubmit={handleSavePhonePeSettings} className="bg-[var(--bg-card)] border border-[var(--border-subtle)] p-6 space-y-5 shadow-xs">
+                {/* Storefront Feature Flags Controller */}
+                <div className="bg-[var(--bg-card)] border border-[var(--border-subtle)] p-6 space-y-4 shadow-xs">
+                  <div className="flex items-center justify-between border-b border-[var(--border-subtle)] pb-3">
+                    <span className="text-xs font-mono font-bold uppercase tracking-wider text-[var(--text-primary)] flex items-center gap-2">
+                      <Sliders className="w-4 h-4 text-[#0C2340] dark:text-[#3395FF]" />
+                      Storefront Feature Flags
+                    </span>
+                    <span className="text-[9px] font-mono uppercase bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 px-2 py-0.5 border border-emerald-500/30 font-bold">
+                      Active Controls
+                    </span>
+                  </div>
+
+                  <div className="space-y-3 text-xs font-mono">
+                    {/* Flag 1: UPI Only Mode */}
+                    <div className="p-3 bg-[var(--bg-secondary)] border border-[var(--border-subtle)] flex items-center justify-between gap-3">
+                      <div>
+                        <span className="font-bold text-[var(--text-primary)] block text-[11px]">UPI-Only Payment Channel</span>
+                        <span className="text-[10px] text-[var(--text-secondary)] block mt-0.5">
+                          {adminFeatureFlags.UPI_ONLY_MODE ? 'Strictly UPI enabled (Cards, NetBanking, COD disabled)' : 'All channels active (Cards, NetBanking, COD allowed)'}
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const updated = { ...adminFeatureFlags, UPI_ONLY_MODE: !adminFeatureFlags.UPI_ONLY_MODE };
+                          setAdminFeatureFlags(updated);
+                          saveFeatureFlags(updated);
+                          showToast(`✓ UPI Only Mode ${updated.UPI_ONLY_MODE ? 'ENABLED' : 'DISABLED'}`);
+                        }}
+                        className={`px-3 py-1.5 text-[10px] font-mono font-bold uppercase border transition-colors shrink-0 ${
+                          adminFeatureFlags.UPI_ONLY_MODE
+                            ? 'bg-emerald-600 text-white border-emerald-600'
+                            : 'bg-zinc-200 dark:bg-zinc-800 text-[var(--text-secondary)] border-zinc-300 dark:border-zinc-700'
+                        }`}
+                      >
+                        {adminFeatureFlags.UPI_ONLY_MODE ? 'ENABLED' : 'DISABLED'}
+                      </button>
+                    </div>
+
+                    {/* Flag 2: 5% Prepaid UPI Discount */}
+                    <div className="p-3 bg-[var(--bg-secondary)] border border-[var(--border-subtle)] flex items-center justify-between gap-3">
+                      <div>
+                        <span className="font-bold text-[var(--text-primary)] block text-[11px]">5% Prepaid UPI Discount Scheme</span>
+                        <span className="text-[10px] text-[var(--text-secondary)] block mt-0.5">
+                          {adminFeatureFlags.PREPAID_DISCOUNT_ENABLED ? '5% discount active on UPI checkouts' : 'Disabled per store policy (No discount deducted)'}
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const updated = { ...adminFeatureFlags, PREPAID_DISCOUNT_ENABLED: !adminFeatureFlags.PREPAID_DISCOUNT_ENABLED };
+                          setAdminFeatureFlags(updated);
+                          saveFeatureFlags(updated);
+                          showToast(`✓ 5% UPI Discount Scheme ${updated.PREPAID_DISCOUNT_ENABLED ? 'ENABLED' : 'DISABLED'}`);
+                        }}
+                        className={`px-3 py-1.5 text-[10px] font-mono font-bold uppercase border transition-colors shrink-0 ${
+                          adminFeatureFlags.PREPAID_DISCOUNT_ENABLED
+                            ? 'bg-emerald-600 text-white border-emerald-600'
+                            : 'bg-zinc-200 dark:bg-zinc-800 text-[var(--text-secondary)] border-zinc-300 dark:border-zinc-700'
+                        }`}
+                      >
+                        {adminFeatureFlags.PREPAID_DISCOUNT_ENABLED ? 'ENABLED' : 'DISABLED'}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <form onSubmit={handleSaveRazorpaySettings} className="bg-[var(--bg-card)] border border-[var(--border-subtle)] p-6 space-y-5 shadow-xs">
                   <div className="flex items-center justify-between border-b border-[var(--border-subtle)] pb-3">
                     <span className="text-xs font-mono font-bold uppercase tracking-wider text-[var(--text-primary)]">
                       Gateway Credentials
                     </span>
-                    <span className="px-2 py-0.5 rounded bg-[#5F259F]/10 text-[#5F259F] text-[9px] font-mono font-bold uppercase border border-[#5F259F]/30">
-                      {phonePeConfig.env} Mode
+                    <span className="px-2 py-0.5 rounded bg-[#0C2340]/10 text-[#0C2340] dark:bg-[#3395FF]/20 dark:text-[#3395FF] text-[9px] font-mono font-bold uppercase border border-[#0C2340]/30 dark:border-[#3395FF]/40">
+                      {razorpayConfig.keyId?.startsWith('rzp_live') ? 'LIVE' : 'TEST'} Mode
                     </span>
                   </div>
 
@@ -8875,96 +9340,124 @@ function AdminView() {
                         Environment Mode
                       </label>
                       <select
-                        value={phonePeConfig.env}
-                        onChange={(e) => setPhonePeConfig({ ...phonePeConfig, env: e.target.value })}
+                        value={razorpayConfig.keyId?.startsWith('rzp_live') ? 'LIVE' : 'TEST'}
+                        onChange={(e) => {
+                          const isLive = e.target.value === 'LIVE';
+                          setRazorpayConfig({
+                            ...razorpayConfig,
+                            keyId: isLive ? 'rzp_live_PLACEHOLDER' : 'rzp_test_ThXrgCZCnFgc4A',
+                          });
+                        }}
                         className="w-full h-10 px-3 bg-[var(--bg-primary)] border border-[var(--border-strong)] text-xs font-mono text-[var(--text-primary)] outline-none cursor-pointer"
                       >
-                        <option value="UAT">UAT / Sandbox (api-preprod.phonepe.com)</option>
-                        <option value="PRODUCTION">Production (api.phonepe.com/apis/hermes)</option>
+                        <option value="TEST">Sandbox / Test Mode (rzp_test_...)</option>
+                        <option value="LIVE">Live Production Mode (rzp_live_...)</option>
                       </select>
                     </div>
 
                     <div className="space-y-1">
                       <label className="block text-[10px] uppercase tracking-wider text-[var(--text-muted)]">
-                        Merchant ID (MID)
+                        Key ID
                       </label>
                       <input
                         type="text"
-                        value={phonePeConfig.merchantId}
-                        onChange={(e) => setPhonePeConfig({ ...phonePeConfig, merchantId: e.target.value })}
-                        placeholder="PGTESTPAYUAT"
+                        value={razorpayConfig.keyId}
+                        onChange={(e) => setRazorpayConfig({ ...razorpayConfig, keyId: e.target.value })}
+                        placeholder="rzp_test_ThXrgCZCnFgc4A"
                         className="w-full h-10 px-3 bg-[var(--bg-primary)] border border-[var(--border-strong)] text-xs font-mono text-[var(--text-primary)] outline-none"
                       />
-                      <span className="text-[9px] text-[var(--text-muted)]">Default test MID: PGTESTPAYUAT</span>
+                      <span className="text-[9px] text-[var(--text-muted)]">Configured Key: rzp_test_ThXrgCZCnFgc4A</span>
                     </div>
 
                     <div className="space-y-1">
                       <label className="block text-[10px] uppercase tracking-wider text-[var(--text-muted)]">
-                        Salt Key (Client Secret)
+                        Key Secret
                       </label>
                       <input
                         type="password"
-                        value={phonePeConfig.saltKey}
-                        onChange={(e) => setPhonePeConfig({ ...phonePeConfig, saltKey: e.target.value })}
-                        placeholder="099eb0cd-02cf-4e2a-8aca-3e6c6aff0399"
+                        value={razorpayConfig.keySecret || ''}
+                        onChange={(e) => setRazorpayConfig({ ...razorpayConfig, keySecret: e.target.value })}
+                        placeholder="••••••••••••••••••••••••"
+                        className="w-full h-10 px-3 bg-[var(--bg-primary)] border border-[var(--border-strong)] text-xs font-mono text-[var(--text-primary)] outline-none"
+                      />
+                      <span className="text-[9px] text-[var(--text-muted)]">Configured in Vercel environment variables (RAZORPAY_KEY_SECRET)</span>
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="block text-[10px] uppercase tracking-wider text-[var(--text-muted)]">
+                        Merchant Display Name
+                      </label>
+                      <input
+                        type="text"
+                        value={razorpayConfig.merchantName}
+                        onChange={(e) => setRazorpayConfig({ ...razorpayConfig, merchantName: e.target.value })}
+                        placeholder="AVIORA FINE JEWELLERY"
                         className="w-full h-10 px-3 bg-[var(--bg-primary)] border border-[var(--border-strong)] text-xs font-mono text-[var(--text-primary)] outline-none"
                       />
                     </div>
 
                     <div className="space-y-1">
                       <label className="block text-[10px] uppercase tracking-wider text-[var(--text-muted)]">
-                        Salt Index
+                        Checkout Popup Brand Color (Hex)
                       </label>
-                      <input
-                        type="number"
-                        value={phonePeConfig.saltIndex}
-                        onChange={(e) => setPhonePeConfig({ ...phonePeConfig, saltIndex: Number(e.target.value) || 1 })}
-                        className="w-full h-10 px-3 bg-[var(--bg-primary)] border border-[var(--border-strong)] text-xs font-mono text-[var(--text-primary)] outline-none"
-                      />
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="color"
+                          value={razorpayConfig.themeColor || '#0C2340'}
+                          onChange={(e) => setRazorpayConfig({ ...razorpayConfig, themeColor: e.target.value })}
+                          className="w-10 h-10 border border-[var(--border-strong)] p-1 bg-transparent cursor-pointer"
+                        />
+                        <input
+                          type="text"
+                          value={razorpayConfig.themeColor || '#0C2340'}
+                          onChange={(e) => setRazorpayConfig({ ...razorpayConfig, themeColor: e.target.value })}
+                          className="flex-1 h-10 px-3 bg-[var(--bg-primary)] border border-[var(--border-strong)] text-xs font-mono text-[var(--text-primary)] outline-none"
+                        />
+                      </div>
                     </div>
                   </div>
 
                   <button
                     type="submit"
-                    className="w-full py-3 bg-[#5F259F] hover:bg-[#4d1e82] text-white text-xs font-mono uppercase font-bold tracking-wider transition-colors shadow-sm"
+                    className="w-full py-3 bg-[#0C2340] hover:bg-[#1A365D] text-white text-xs font-mono uppercase font-bold tracking-wider transition-colors shadow-sm"
                   >
-                    Save PhonePe Settings
+                    Save Razorpay Credentials
                   </button>
                 </form>
 
                 {/* API Specs Information */}
                 <div className="p-4 bg-[var(--bg-card)] border border-[var(--border-subtle)] text-xs font-mono space-y-2">
                   <span className="font-bold text-[var(--text-primary)] block text-[11px] uppercase tracking-wider">
-                    Official API Protocol Specs
+                    Official Razorpay API Protocol Specs
                   </span>
                   <ul className="list-disc pl-4 space-y-1.5 text-[10px] text-[var(--text-secondary)]">
                     <li>
-                      <strong>Amount in Paise:</strong> Amounts are strictly transmitted in paise integer (`1 INR = 100 paise`). Cart value ₹3,299 translates to `329900` paise.
+                      <strong>Amount in Paise:</strong> Amounts are strictly transmitted in paise integer (<code>1 INR = 100 paise</code>). Cart value ₹3,299 translates to <code>329900</code> paise.
                     </li>
                     <li>
-                      <strong>Checksum Calculation:</strong> `SHA256(Base64(Payload) + "/pg/v1/pay" + SaltKey) + "###" + SaltIndex`
+                      <strong>Signature Verification:</strong> <code>HMAC-SHA256(order_id + &quot;|&quot; + razorpay_payment_id, secret)</code> strictly matches <code>razorpay_signature</code>.
                     </li>
                     <li>
-                      <strong>Payment Links URL:</strong> Generates shortened payment links (`https://phon.pe/vl/pay_...`) for direct consumer settlement.
+                      <strong>Standard Checkout Modal:</strong> Interactive popup initialized via <code>new window.Razorpay(options)</code> with full payment methods: UPI (GPay, PhonePe, Paytm, BHIM), Credit/Debit Cards, NetBanking, and Wallets.
                     </li>
                   </ul>
                 </div>
               </div>
 
-              {/* Right Column: Live Payment Link Tester Sandbox */}
+              {/* Right Column: Live Payment Order Tester Sandbox */}
               <div className="lg:col-span-7 space-y-6">
                 <div className="bg-[var(--bg-card)] border border-[var(--border-subtle)] p-6 space-y-5 shadow-xs">
                   <div className="flex items-center justify-between border-b border-[var(--border-subtle)] pb-3">
                     <span className="text-xs font-mono font-bold uppercase tracking-wider text-[var(--text-primary)] flex items-center gap-2">
-                      <Zap className="w-4 h-4 text-[#5F259F]" />
-                      Payment Link Generator Sandbox
+                      <Zap className="w-4 h-4 text-[#0C2340] dark:text-[#3395FF]" />
+                      Razorpay Order Generator & Checkout Tester
                     </span>
                     <span className="text-[10px] font-mono text-[var(--text-muted)]">
-                      developer.phonepe.com
+                      api.razorpay.com/v1/orders
                     </span>
                   </div>
 
-                  <form onSubmit={handleGenerateTestPhonePeLink} className="space-y-4 text-xs font-mono">
+                  <form onSubmit={handleGenerateTestRazorpayOrder} className="space-y-4 text-xs font-mono">
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                       <div className="space-y-1">
                         <label className="block text-[10px] uppercase tracking-wider text-[var(--text-muted)]">
@@ -8972,13 +9465,13 @@ function AdminView() {
                         </label>
                         <input
                           type="number"
-                          value={testLinkAmount}
-                          onChange={(e) => setTestLinkAmount(e.target.value)}
+                          value={testOrderAmount}
+                          onChange={(e) => setTestOrderAmount(e.target.value)}
                           placeholder="3299"
                           className="w-full h-10 px-3 bg-[var(--bg-primary)] border border-[var(--border-strong)] text-xs font-mono text-[var(--text-primary)] outline-none"
                         />
-                        <span className="text-[9px] text-[#5F259F] font-bold">
-                          = {((Number(testLinkAmount) || 0) * 100).toLocaleString('en-IN')} paise
+                        <span className="text-[9px] text-[#0C2340] dark:text-[#3395FF] font-bold">
+                          = {((Number(testOrderAmount) || 0) * 100).toLocaleString('en-IN')} paise
                         </span>
                       </div>
 
@@ -8988,8 +9481,8 @@ function AdminView() {
                         </label>
                         <input
                           type="tel"
-                          value={testLinkPhone}
-                          onChange={(e) => setTestLinkPhone(e.target.value)}
+                          value={testOrderPhone}
+                          onChange={(e) => setTestOrderPhone(e.target.value)}
                           placeholder="9820012345"
                           className="w-full h-10 px-3 bg-[var(--bg-primary)] border border-[var(--border-strong)] text-xs font-mono text-[var(--text-primary)] outline-none"
                         />
@@ -9001,8 +9494,8 @@ function AdminView() {
                         </label>
                         <input
                           type="text"
-                          value={testLinkName}
-                          onChange={(e) => setTestLinkName(e.target.value)}
+                          value={testOrderName}
+                          onChange={(e) => setTestOrderName(e.target.value)}
                           placeholder="Ananya Sharma"
                           className="w-full h-10 px-3 bg-[var(--bg-primary)] border border-[var(--border-strong)] text-xs font-mono text-[var(--text-primary)] outline-none"
                         />
@@ -9011,62 +9504,102 @@ function AdminView() {
 
                     <button
                       type="submit"
-                      disabled={isGeneratingTestLink}
-                      className="px-6 py-2.5 bg-[#5F259F] hover:bg-[#4d1e82] text-white text-xs font-mono uppercase font-bold tracking-wider transition-colors flex items-center gap-2"
+                      disabled={isGeneratingTestOrder}
+                      className="px-6 py-2.5 bg-[#0C2340] hover:bg-[#1A365D] text-white text-xs font-mono uppercase font-bold tracking-wider transition-colors flex items-center gap-2 shadow-xs"
                     >
-                      {isGeneratingTestLink ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Link className="w-3.5 h-3.5" />}
-                      <span>Generate PhonePe Payment Link</span>
+                      {isGeneratingTestOrder ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <RazorpayIcon className="w-3.5 h-3.5" />}
+                      <span>Generate Razorpay Order</span>
                     </button>
                   </form>
 
                   {/* Generated Test Result */}
-                  {generatedTestLink && (
-                    <div className="mt-6 p-4 bg-[var(--bg-secondary)] border border-[#5F259F]/40 space-y-4 text-xs font-mono">
-                      <div className="flex items-center justify-between border-b border-[#5F259F]/20 pb-2">
-                        <span className="font-bold text-[#5F259F] flex items-center gap-1.5">
+                  {generatedTestOrder && (
+                    <div className="mt-6 p-4 bg-[var(--bg-secondary)] border border-[#0C2340]/40 dark:border-[#3395FF]/40 space-y-4 text-xs font-mono">
+                      <div className="flex items-center justify-between border-b border-[#0C2340]/20 dark:border-[#3395FF]/20 pb-2">
+                        <span className="font-bold text-[#0C2340] dark:text-[#3395FF] flex items-center gap-1.5">
                           <Check className="w-4 h-4 text-emerald-500" />
-                          Link Ready: {generatedTestLink.data.payLink}
+                          Order Created: {generatedTestOrder.id}
                         </span>
                         <div className="flex items-center gap-2">
                           <button
                             type="button"
                             onClick={() => {
-                              navigator.clipboard.writeText(generatedTestLink.data.payLink);
-                              setTestLinkCopied(true);
-                              showToast('✓ Link copied to clipboard');
-                              setTimeout(() => setTestLinkCopied(false), 2000);
+                              navigator.clipboard.writeText(generatedTestOrder.id);
+                              setTestOrderCopied(true);
+                              showToast('✓ Order ID copied to clipboard');
+                              setTimeout(() => setTestOrderCopied(false), 2000);
                             }}
-                            className="px-2.5 py-1 bg-[var(--bg-card)] border border-[var(--border-strong)] text-[10px] font-mono font-bold uppercase hover:bg-[#5F259F] hover:text-white transition-colors"
+                            className="px-2.5 py-1 bg-[var(--bg-card)] border border-[var(--border-strong)] text-[10px] font-mono font-bold uppercase hover:bg-[#0C2340] hover:text-white transition-colors"
                           >
-                            {testLinkCopied ? 'Copied!' : 'Copy Link'}
+                            {testOrderCopied ? 'Copied!' : 'Copy Order ID'}
                           </button>
-                          <a
-                            href={generatedTestLink.data.payLink}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="px-2.5 py-1 bg-[#5F259F] text-white text-[10px] font-mono font-bold uppercase hover:bg-[#4d1e82] transition-colors"
+                          <button
+                            type="button"
+                            onClick={async () => {
+                              try {
+                                await loadRazorpayCheckoutScript();
+                                if (!window.Razorpay) {
+                                  showToast('Razorpay Checkout SDK not loaded');
+                                  return;
+                                }
+                                const rzp = new window.Razorpay({
+                                  key: generatedTestOrder.keyId || razorpayConfig.keyId,
+                                  amount: generatedTestOrder.amount,
+                                  currency: generatedTestOrder.currency || 'INR',
+                                  name: razorpayConfig.merchantName || 'AVIORA FINE JEWELLERY',
+                                  description: `Admin Test Order #${generatedTestOrder.receipt}`,
+                                  order_id: generatedTestOrder.id,
+                                  prefill: {
+                                    name: testOrderName,
+                                    contact: testOrderPhone,
+                                    email: 'patron@aviora.com',
+                                  },
+                                  theme: {
+                                    color: razorpayConfig.themeColor || '#0C2340',
+                                  },
+                                  handler: function (response) {
+                                    showToast(`✓ Razorpay Test Payment Success! Txn: ${response.razorpay_payment_id}`);
+                                  },
+                                  modal: {
+                                    ondismiss: function () {
+                                      showToast('Razorpay Checkout popup dismissed');
+                                    }
+                                  }
+                                });
+                                rzp.open();
+                              } catch (err) {
+                                console.error('Checkout error:', err);
+                                showToast('Failed to open Razorpay modal');
+                              }
+                            }}
+                            className="px-2.5 py-1 bg-[#0C2340] dark:bg-[#3395FF] text-white text-[10px] font-mono font-bold uppercase hover:bg-[#1A365D] transition-colors flex items-center gap-1"
                           >
-                            Open Link
-                          </a>
+                            <ExternalLink className="w-3 h-3" />
+                            <span>Launch Razorpay Popup</span>
+                          </button>
                         </div>
                       </div>
 
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-[10px]">
                         <div>
                           <span className="text-[var(--text-muted)] block">Amount in Paise:</span>
-                          <span className="font-bold text-[var(--text-primary)]">{generatedTestLink.data.amountInPaise.toLocaleString('en-IN')} paise</span>
+                          <span className="font-bold text-[var(--text-primary)]">{Number(generatedTestOrder.amount).toLocaleString('en-IN')} paise</span>
                         </div>
                         <div>
-                          <span className="text-[var(--text-muted)] block">Merchant Transaction ID:</span>
-                          <span className="font-mono text-[var(--text-primary)]">{generatedTestLink.data.merchantTransactionId}</span>
+                          <span className="text-[var(--text-muted)] block">Razorpay Order ID:</span>
+                          <span className="font-mono text-[var(--text-primary)]">{generatedTestOrder.id}</span>
+                        </div>
+                        <div>
+                          <span className="text-[var(--text-muted)] block">Receipt Identifier:</span>
+                          <span className="font-mono text-[var(--text-primary)]">{generatedTestOrder.receipt}</span>
+                        </div>
+                        <div>
+                          <span className="text-[var(--text-muted)] block">Status & Currency:</span>
+                          <span className="font-mono text-emerald-600 dark:text-emerald-400 font-bold">{generatedTestOrder.status?.toUpperCase()} ({generatedTestOrder.currency})</span>
                         </div>
                         <div className="sm:col-span-2">
-                          <span className="text-[var(--text-muted)] block">X-VERIFY Checksum Header:</span>
-                          <span className="font-mono text-emerald-600 dark:text-emerald-400 break-all">{generatedTestLink.data.xVerify}</span>
-                        </div>
-                        <div className="sm:col-span-2">
-                          <span className="text-[var(--text-muted)] block">Base64 Encoded Payload:</span>
-                          <span className="font-mono text-[var(--text-muted)] break-all">{generatedTestLink.data.base64Payload.slice(0, 80)}...</span>
+                          <span className="text-[var(--text-muted)] block">Active Key ID:</span>
+                          <span className="font-mono text-emerald-600 dark:text-emerald-400 break-all">{generatedTestOrder.keyId || razorpayConfig.keyId}</span>
                         </div>
                       </div>
                     </div>

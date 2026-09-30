@@ -82,6 +82,36 @@ export interface Product {
   upsellReason?: string;
 }
 
+export interface FeatureFlags {
+  PREPAID_DISCOUNT_ENABLED: boolean; // 5% discount on UPI
+  UPI_ONLY_MODE: boolean; // Restrict checkout channels strictly to UPI
+}
+
+export const DEFAULT_FEATURE_FLAGS: FeatureFlags = {
+  PREPAID_DISCOUNT_ENABLED: false, // Disabled per user request
+  UPI_ONLY_MODE: true, // Only UPI enabled per user request
+};
+
+export function getFeatureFlags(): FeatureFlags {
+  if (typeof window !== 'undefined') {
+    try {
+      const saved = localStorage.getItem('aviora_feature_flags');
+      if (saved) return { ...DEFAULT_FEATURE_FLAGS, ...JSON.parse(saved) };
+    } catch {}
+  }
+  return DEFAULT_FEATURE_FLAGS;
+}
+
+export function saveFeatureFlags(flags: Partial<FeatureFlags>): void {
+  if (typeof window !== 'undefined') {
+    try {
+      const current = getFeatureFlags();
+      const updated = { ...current, ...flags };
+      localStorage.setItem('aviora_feature_flags', JSON.stringify(updated));
+    } catch {}
+  }
+}
+
 export const STORE_CONFIG = {
   brand: {
     name: 'AVIORA',
@@ -429,7 +459,7 @@ export interface OrderItemRecord {
   hallmark?: string;
 }
 
-export type PaymentMethod = 'PHONEPE' | 'UPI' | 'CARD' | 'NETBANKING' | 'COD';
+export type PaymentMethod = 'RAZORPAY' | 'PHONEPE' | 'UPI' | 'CARD' | 'NETBANKING' | 'COD';
 
 export interface OrderRecord {
   id: string;
@@ -459,7 +489,12 @@ export interface OrderRecord {
   paymentTransactionId?: string;
   paymentSignature?: string;
   whatsappNotifications?: WhatsAppNotificationRecord[];
-  // PhonePe Payment Gateway & Payment Links metadata
+  // Razorpay Gateway metadata
+  razorpayOrderId?: string;
+  razorpayPaymentId?: string;
+  razorpaySignature?: string;
+  razorpayAmountInPaise?: number;
+  // PhonePe Payment Gateway & Payment Links metadata (legacy compatibility)
   phonepeTransactionId?: string;
   phonepeMerchantTransactionId?: string;
   phonepePaymentLinkId?: string;
