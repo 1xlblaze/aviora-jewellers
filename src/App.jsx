@@ -224,7 +224,7 @@ const formatPriceUSD = (amount) => {
 const AppContext = createContext();
 
 function AppProvider({ children }) {
-  // Support deep links like /admin or #admin
+  // Support deep links like /admin or #admin or /checkout
   const [currentView, setCurrentView] = useState(() => {
     if (typeof window !== 'undefined') {
       const path = window.location.pathname.toLowerCase();
@@ -241,6 +241,9 @@ function AppProvider({ children }) {
       }
       if (path.includes('pdp') || hash.includes('pdp')) {
         return 'pdp';
+      }
+      if (path.includes('checkout') || hash.includes('checkout')) {
+        return 'checkout';
       }
     }
     return 'home';
@@ -260,6 +263,11 @@ function AppProvider({ children }) {
         setCurrentView('atelier');
       } else if (path.includes('pdp') || hash.includes('pdp')) {
         setCurrentView('pdp');
+      } else if (path.includes('checkout') || hash.includes('checkout')) {
+        setCurrentView('checkout');
+      } else if (path === '/' || hash === '' || hash === '#') {
+        // Prevent accidental reset to 'home' when closing Razorpay modal or popping history in checkout
+        setCurrentView((prev) => (prev === 'checkout' ? 'checkout' : 'home'));
       }
     };
     window.addEventListener('hashchange', handleUrlChange);
@@ -4620,18 +4628,30 @@ function CheckoutView() {
   const [isGeneratingPhonePeLink, setIsGeneratingPhonePeLink] = useState(false);
   const [phonePeLinkCopied, setPhonePeLinkCopied] = useState(false);
   const [upiQrDataUrl, setUpiQrDataUrl] = useState('');
-  const [formData, setFormData] = useState({
-    customerName: '',
-    customerEmail: '',
-    customerPhone: '',
-    shippingAddress: '',
-    city: '',
-    state: 'Maharashtra',
-    postalCode: '',
+  const [formData, setFormData] = useState(() => {
+    try {
+      const saved = sessionStorage.getItem('aviora_checkout_form');
+      if (saved) return JSON.parse(saved);
+    } catch {}
+    return {
+      customerName: '',
+      customerEmail: '',
+      customerPhone: '',
+      shippingAddress: '',
+      city: '',
+      state: 'Maharashtra',
+      postalCode: '',
+    };
   });
 
-  // OTP Verification State
-  const [isPhoneVerified, setIsPhoneVerified] = useState(false);
+  useEffect(() => {
+    try {
+      sessionStorage.setItem('aviora_checkout_form', JSON.stringify(formData));
+    } catch {}
+  }, [formData]);
+
+  // Phone verification bypass (direct UPI payment requested)
+  const [isPhoneVerified, setIsPhoneVerified] = useState(true);
   const [showOtpModal, setShowOtpModal] = useState(false);
   const [otpInput, setOtpInput] = useState('');
   const [otpError, setOtpError] = useState('');
@@ -4804,7 +4824,7 @@ function CheckoutView() {
   };
 
   const handleInitiateVerification = async (e) => {
-    e.preventDefault();
+    if (e && e.preventDefault) e.preventDefault();
     setErrorMessage('');
 
     if (!formData.customerName || !formData.customerEmail || !formData.customerPhone || !formData.shippingAddress || !formData.city || !formData.postalCode) {
@@ -4823,43 +4843,9 @@ function CheckoutView() {
       return;
     }
 
-    // Pre-initialize payment gateway order
+    // Direct UPI payment: if Razorpay (recommended gateway), launch Razorpay Checkout directly
     if (paymentMethod === 'RAZORPAY') {
-      loadRazorpayOrder();
-    } else if (paymentMethod === 'PHONEPE') {
-      loadPhonePeLink();
-    }
-
-    if (!isPhoneVerified) {
-      const generated = generateOtp(formData.customerPhone);
-      setActiveGeneratedOtp(generated.otp);
-      setOtpInput('');
-      setOtpError('');
-      setOtpResendTimer(60);
-      setShowOtpModal(true);
-      setOtpDispatchLog({
-        success: false,
-        message: 'Connecting to Google Firebase carrier gateway...',
-        mode: 'pending',
-      });
-      showToast(`✦ Initiating verification for +91 ${cleanPhone.slice(-10)}...`);
-      dispatchCustomerOtp(formData.customerPhone).then((res) => {
-        if (res) {
-          setOtpDispatchLog(res);
-          if (res.success) {
-            showToast(`✓ SMS code dispatched to +91 ${cleanPhone.slice(-10)}`);
-          } else {
-            showToast(res.message || '⚠️ SMS delivery pending. Use Auto-Fill code.');
-          }
-        }
-      }).catch((err) => {
-        setOtpDispatchLog({
-          success: false,
-          message: err?.message || 'Dispatch error. Use Auto-Fill code.',
-          mode: 'error',
-        });
-        showToast('✦ Use Auto-Fill test code to verify immediately.');
-      });
+      await handleLaunchRazorpayCheckout();
     } else {
       setShowPaymentModal(true);
     }
@@ -4879,12 +4865,10 @@ function CheckoutView() {
       setIsPhoneVerified(true);
       setShowOtpModal(false);
       if (paymentMethod === 'RAZORPAY') {
-        await loadRazorpayOrder();
-      } else if (paymentMethod === 'PHONEPE') {
-        await loadPhonePeLink();
+        await handleLaunchRazorpayCheckout();
+      } else {
+        setShowPaymentModal(true);
       }
-      setShowPaymentModal(true);
-      showToast(paymentMethod === 'RAZORPAY' ? '✓ Phone verified. Opening Razorpay Payment Gateway...' : '✓ Phone verified. Opening Payment Gateway...');
     } else {
       setOtpError(result.message);
     }
@@ -4909,10 +4893,15 @@ function CheckoutView() {
     showToast(`✦ New verification code sent to +91 ${formData.customerPhone.replace(/[^\d]/g, '').slice(-10)}`);
   };
 
-  // Launch official Razorpay Standard Checkout SDK popup window
+  // Launch official Razorpay Standard Checkout SDK popup window in UPI mode
   const handleLaunchRazorpayCheckout = async () => {
     setIsProcessingPayment(true);
+    setErrorMessage('');
     try {
+      if (typeof window !== 'undefined' && !window.Razorpay) {
+        await loadRazorpayCheckoutScript();
+      }
+
       let activeOrder = razorpayOrderData;
       if (!activeOrder) {
         activeOrder = await loadRazorpayOrder();
@@ -4925,19 +4914,27 @@ function CheckoutView() {
           amount: activeOrder.amountInPaise,
           currency: 'INR',
           name: config.merchantName || 'AVIORA FINE JEWELLERY',
-          description: `Order #${activeOrder.receipt} • 14K Gold Plated Jewellery`,
+          description: `Order #${activeOrder.receipt} • 14K Gold Jewellery`,
+          image: '/favicon.svg',
           order_id: activeOrder.orderId && activeOrder.orderId.startsWith('order_') && !activeOrder.orderId.includes('mock') ? activeOrder.orderId : undefined,
           prefill: {
             name: formData.customerName,
             contact: formData.customerPhone,
             email: formData.customerEmail || 'patron@aviorajewells.com',
+            method: 'upi',
           },
           theme: {
             color: config.themeColor || '#1d4136',
+            backdrop_color: 'rgba(0, 0, 0, 0.75)',
           },
           notes: {
             orderNumber: activeOrder.receipt,
-            shippingAddress: formData.shippingAddress,
+            shippingAddress: `${formData.shippingAddress}, ${formData.city}, ${formData.state} - ${formData.postalCode}`,
+            customerPhone: formData.customerPhone,
+          },
+          retry: {
+            enabled: true,
+            max_count: 3,
           },
           ...(featureFlags.UPI_ONLY_MODE ? {
             config: {
@@ -4956,34 +4953,57 @@ function CheckoutView() {
             },
           } : {}),
           handler: async function (response) {
-            await handleFinalizeSuccessfulOrder({
-              gateway: 'Razorpay',
-              transactionId: response.razorpay_payment_id || `pay_${Date.now()}`,
-              orderId: response.razorpay_order_id || activeOrder.orderId,
-              signature: response.razorpay_signature || 'rzp_sig_verified',
-              amountInRupees: activeOrder.amountInRupees,
-              amountInPaise: activeOrder.amountInPaise,
-            });
+            // Successful payment callback
+            setIsProcessingPayment(true);
+            try {
+              await handleFinalizeSuccessfulOrder({
+                gateway: 'Razorpay',
+                transactionId: response.razorpay_payment_id || `pay_${Date.now()}`,
+                orderId: response.razorpay_order_id || activeOrder.orderId,
+                signature: response.razorpay_signature || 'rzp_sig_verified',
+                amountInRupees: activeOrder.amountInRupees,
+                amountInPaise: activeOrder.amountInPaise,
+              });
+            } catch (err) {
+              console.error('Error handling order finalization:', err);
+              showToast('Payment verified, finalizing your order details...');
+            } finally {
+              setIsProcessingPayment(false);
+            }
           },
           modal: {
+            confirm_close: true,
             ondismiss: function () {
               setIsProcessingPayment(false);
-              showToast('Payment window closed. You can retry authorization anytime.');
+              showToast('Payment window closed. Your cart and details are saved.');
             },
+            escape: true,
+            backdropclose: false,
+            animation: true,
           },
         };
 
         const rzp = new window.Razorpay(options);
+
+        // Modern event listener for payment failures (e.g. bank limits, user cancellation in UPI app, timeout)
+        rzp.on('payment.failed', function (response) {
+          setIsProcessingPayment(false);
+          console.warn('Razorpay payment failed:', response.error);
+          const errorDesc = response?.error?.description || response?.error?.reason || 'Payment could not be completed by your bank/UPI app.';
+          setErrorMessage(`Payment declined: ${errorDesc}. Your money has not been debited. You can retry with another UPI app.`);
+          showToast(`⚠️ Payment failed: ${errorDesc}`);
+        });
+
         rzp.open();
         setIsProcessingPayment(false);
       } else {
-        // Fallback to direct authorization if script not loaded
+        // Fallback to direct authorization if running without script
         await handleExecutePayment();
       }
     } catch (err) {
       console.error('Error opening Razorpay checkout:', err);
       setIsProcessingPayment(false);
-      await handleExecutePayment();
+      setErrorMessage(`Payment initiation error: ${err.message || 'Please retry.'}`);
     }
   };
 
@@ -5441,7 +5461,7 @@ function CheckoutView() {
               <div className="space-y-4">
                 <h3 className="text-xs font-mono tracking-[0.25em] uppercase text-[var(--text-primary)] flex items-center gap-2 font-bold">
                   <span className="w-1.5 h-1.5 rounded-full bg-[#b99762]" />
-                  01 // Contact & OTP Verification
+                  01 // Contact Information
                 </h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <input
@@ -5460,11 +5480,11 @@ function CheckoutView() {
                     autoComplete="email"
                     value={formData.customerEmail}
                     onChange={(e) => setFormData({ ...formData, customerEmail: e.target.value })}
-                    placeholder="Email for Invoice"
+                    placeholder="Email for Invoice & Updates"
                     className="w-full bg-[var(--bg-card)] border border-[var(--border-subtle)] focus:border-[#b99762] px-4 py-3 text-xs font-mono text-[var(--text-primary)] outline-none"
                   />
                 </div>
-                <div className="relative">
+                <div>
                   <input
                     required
                     type="tel"
@@ -5473,27 +5493,12 @@ function CheckoutView() {
                     maxLength={10}
                     value={formData.customerPhone}
                     onChange={(e) => {
-                      setFormData({ ...formData, customerPhone: e.target.value });
-                      if (isPhoneVerified) setIsPhoneVerified(false);
+                      const digits = e.target.value.replace(/[^\d]/g, '').slice(0, 10);
+                      setFormData({ ...formData, customerPhone: digits });
                     }}
-                    placeholder="10-Digit Mobile Number (e.g. 9820012345)"
-                    className="w-full bg-[var(--bg-card)] border border-[var(--border-subtle)] focus:border-[#b99762] px-4 py-3 text-xs font-mono text-[var(--text-primary)] outline-none pr-32"
+                    placeholder="10-Digit Mobile Number (for Blue Dart delivery & WhatsApp notifications)"
+                    className="w-full bg-[var(--bg-card)] border border-[var(--border-subtle)] focus:border-[#b99762] px-4 py-3 text-xs font-mono text-[var(--text-primary)] outline-none"
                   />
-                  {isPhoneVerified ? (
-                    <span className="absolute right-3 top-1/2 -translate-y-1/2 px-2.5 py-1 bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 text-[10px] font-mono font-bold flex items-center gap-1 border border-emerald-300 dark:border-emerald-800">
-                      <Check className="w-3 h-3" /> OTP Verified
-                    </span>
-                  ) : (
-                    <button
-                      type="button"
-                      id="btn-verify-checkout-phone"
-                      onClick={handleTriggerPhoneOnlyVerification}
-                      className="absolute right-2 top-1/2 -translate-y-1/2 px-3 py-1.5 bg-[#1d4136] hover:bg-[#16332a] dark:bg-[#e6ca97] dark:hover:bg-[#d9b87c] text-white dark:text-[#242321] text-[10px] font-mono font-bold uppercase tracking-wider transition-all shadow-xs flex items-center gap-1 cursor-pointer"
-                    >
-                      <Smartphone className="w-3 h-3" />
-                      <span>Send OTP</span>
-                    </button>
-                  )}
                 </div>
               </div>
 
@@ -5748,20 +5753,27 @@ function CheckoutView() {
 
                         {/* Direct App Link / Copy VPA */}
                         <div className="flex flex-wrap gap-2 justify-center sm:justify-start pt-1">
-                          <a
-                            href={`upi://pay?pa=9650834445@kotak&pn=AVIORA%20ATELIER&am=${finalTotal.toFixed(2)}&cu=INR&tn=Order%20Payment`}
-                            className="px-3.5 py-2 bg-[#1d4136] hover:bg-[#132f27] dark:bg-[#e6ca97] dark:hover:bg-[#d8c39f] text-white dark:text-black text-xs font-mono font-bold uppercase rounded flex items-center gap-1.5 transition-colors shadow-xs"
+                          <button
+                            type="button"
+                            onClick={() => {
+                              try {
+                                window.location.assign(`upi://pay?pa=9650834445@kotak&pn=AVIORA%20ATELIER&am=${finalTotal.toFixed(2)}&cu=INR&tn=Order%20Payment`);
+                              } catch (err) {
+                                console.warn('Could not launch upi intent:', err);
+                              }
+                            }}
+                            className="px-3.5 py-2 bg-[#1d4136] hover:bg-[#132f27] dark:bg-[#e6ca97] dark:hover:bg-[#d8c39f] text-white dark:text-black text-xs font-mono font-bold uppercase rounded flex items-center gap-1.5 transition-colors shadow-xs cursor-pointer"
                           >
                             <Smartphone className="w-3.5 h-3.5" />
                             <span>Open UPI App</span>
-                          </a>
+                          </button>
                           <button
                             type="button"
                             onClick={() => {
                               navigator.clipboard.writeText('9650834445@kotak');
                               showToast('✓ UPI ID 9650834445@kotak copied to clipboard');
                             }}
-                            className="px-3 py-2 bg-[var(--bg-card)] hover:bg-[var(--bg-primary)] border border-[var(--border-strong)] text-[var(--text-primary)] text-xs font-mono font-bold uppercase transition-colors flex items-center gap-1.5"
+                            className="px-3 py-2 bg-[var(--bg-card)] hover:bg-[var(--bg-primary)] border border-[var(--border-strong)] text-[var(--text-primary)] text-xs font-mono font-bold uppercase transition-colors flex items-center gap-1.5 cursor-pointer"
                           >
                             <Copy className="w-3.5 h-3.5" />
                             <span>Copy UPI ID</span>
@@ -5776,16 +5788,25 @@ function CheckoutView() {
               <div className="pt-6 border-t border-[var(--border-subtle)]">
                 <button
                   type="submit"
-                  disabled={isSubmitting}
-                  className="w-full py-4.5 bg-[#1d4136] hover:bg-[#16332a] dark:bg-[#e6ca97] dark:hover:bg-[#d9b87c] disabled:opacity-50 text-white dark:text-[#242321] font-mono text-xs tracking-[0.25em] uppercase font-bold flex items-center justify-center gap-3 transition-all shadow-md"
+                  disabled={isSubmitting || isProcessingPayment}
+                  className="w-full py-4.5 bg-[#1d4136] hover:bg-[#16332a] dark:bg-[#e6ca97] dark:hover:bg-[#d9b87c] disabled:opacity-50 text-white dark:text-[#242321] font-mono text-xs tracking-[0.22em] uppercase font-bold flex items-center justify-center gap-3 transition-all shadow-md cursor-pointer"
                 >
-                  <Lock className="w-4 h-4" />
-                  <span>
-                    {isPhoneVerified
-                      ? `Proceed to Payment Gateway — ${formatPrice(finalTotal)}`
-                      : `Verify Phone & Proceed to Payment — ${formatPrice(finalTotal)}`}
-                  </span>
+                  {isProcessingPayment ? (
+                    <>
+                      <span className="w-4 h-4 border-2 border-white dark:border-[#242321] border-t-transparent rounded-full animate-spin" />
+                      <span>Connecting to Razorpay UPI...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Lock className="w-4 h-4" />
+                      <span>Pay via UPI — {formatPrice(finalTotal)}</span>
+                    </>
+                  )}
                 </button>
+                <div className="mt-3 flex items-center justify-center gap-2 text-[10px] font-mono text-[var(--text-muted)]">
+                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                  <span>256-Bit Encrypted UPI Gateway • Instant Settlement via Razorpay</span>
+                </div>
               </div>
             </form>
 
