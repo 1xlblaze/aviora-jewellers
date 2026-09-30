@@ -4936,22 +4936,22 @@ function CheckoutView() {
             enabled: true,
             max_count: 3,
           },
-          ...(featureFlags.UPI_ONLY_MODE ? {
-            config: {
-              display: {
-                blocks: {
-                  upi: {
-                    name: 'Pay via UPI',
-                    instruments: [{ method: 'upi' }],
-                  },
-                },
-                sequence: ['block.upi'],
-                preferences: {
-                  show_default_blocks: false,
+          config: {
+            display: {
+              blocks: {
+                upi: {
+                  name: 'Pay via UPI',
+                  instruments: [
+                    { method: 'upi', flows: ['intent', 'qr', 'collect'] },
+                  ],
                 },
               },
+              sequence: ['block.upi', 'block.other'],
+              preferences: {
+                show_default_blocks: true,
+              },
             },
-          } : {}),
+          },
           handler: async function (response) {
             // Successful payment callback
             setIsProcessingPayment(true);
