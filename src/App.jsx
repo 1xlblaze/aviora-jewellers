@@ -299,6 +299,27 @@ function AppProvider({ children }) {
               const isStaleDesc = p.id === 'prod-007' && (!p.description || p.description.includes('sparkling double-chain') || !p.description.includes('Celestia'));
               const description = isStaleDesc ? canonical.description : (p.description || canonical.description);
               const name = p.id === 'prod-007' && !p.name?.includes('Celestia') ? canonical.name : (p.name || canonical.name);
+              const finalCollections = Array.isArray(p.collections) ? p.collections : (canonical.collections || []);
+              const isExplicitMin =
+                (p.category === 'minimalist' || finalCollections.includes('minimalist')) &&
+                !finalCollections.includes('statement') &&
+                p.category !== 'statement';
+              const isExplicitStmt =
+                (p.category === 'statement' || finalCollections.includes('statement')) &&
+                !finalCollections.includes('minimalist') &&
+                p.category !== 'minimalist';
+
+              let finalTags = Array.isArray(p.tags) ? p.tags : (canonical.tags || []);
+              let finalOccasionVibe = p.occasionVibe || canonical.occasionVibe;
+
+              if (isExplicitMin) {
+                finalTags = finalTags.filter((t) => t !== 'statement');
+                if (finalOccasionVibe === 'Statement') finalOccasionVibe = 'Everyday Wear';
+              } else if (isExplicitStmt) {
+                finalTags = finalTags.filter((t) => t !== 'minimalist');
+                finalOccasionVibe = 'Statement';
+              }
+
               return {
                 ...canonical,
                 ...p,
@@ -309,10 +330,11 @@ function AppProvider({ children }) {
                 subcategory: p.subcategory !== undefined ? p.subcategory : canonical.subcategory,
                 colorTone: p.colorTone || canonical.colorTone,
                 colour: p.colour || canonical.colour,
+                occasionVibe: finalOccasionVibe,
                 images: hasCustomImages ? p.images : (canonical.images || []),
                 modelImage: p.modelImage || (hasCustomImages ? p.images[0] : canonical.modelImage),
-                collections: Array.isArray(p.collections) ? p.collections : (canonical.collections || []),
-                tags: Array.isArray(p.tags) ? p.tags : (canonical.tags || []),
+                collections: finalCollections,
+                tags: finalTags,
                 isNew: p.isNew !== undefined ? p.isNew : canonical.isNew,
               };
             }
@@ -578,6 +600,27 @@ function AppProvider({ children }) {
               const isStaleDesc = p.id === 'prod-007' && (!p.description || p.description.includes('sparkling double-chain') || !p.description.includes('Celestia'));
               const description = isStaleDesc ? canonical.description : (p.description || canonical.description);
               const name = p.id === 'prod-007' && !p.name?.includes('Celestia') ? canonical.name : (p.name || canonical.name);
+              const finalCollections = Array.isArray(p.collections) ? p.collections : (canonical.collections || []);
+              const isExplicitMin =
+                (p.category === 'minimalist' || finalCollections.includes('minimalist')) &&
+                !finalCollections.includes('statement') &&
+                p.category !== 'statement';
+              const isExplicitStmt =
+                (p.category === 'statement' || finalCollections.includes('statement')) &&
+                !finalCollections.includes('minimalist') &&
+                p.category !== 'minimalist';
+
+              let finalTags = Array.isArray(p.tags) ? p.tags : (canonical.tags || []);
+              let finalOccasionVibe = p.occasionVibe || canonical.occasionVibe;
+
+              if (isExplicitMin) {
+                finalTags = finalTags.filter((t) => t !== 'statement');
+                if (finalOccasionVibe === 'Statement') finalOccasionVibe = 'Everyday Wear';
+              } else if (isExplicitStmt) {
+                finalTags = finalTags.filter((t) => t !== 'minimalist');
+                finalOccasionVibe = 'Statement';
+              }
+
               return {
                 ...canonical,
                 ...p,
@@ -588,8 +631,9 @@ function AppProvider({ children }) {
                 category: p.category || canonical.category,
                 categorySlug: p.categorySlug || canonical.categorySlug,
                 subcategory: p.subcategory !== undefined ? p.subcategory : canonical.subcategory,
-                collections: Array.isArray(p.collections) ? p.collections : (canonical.collections || []),
-                tags: Array.isArray(p.tags) ? p.tags : (canonical.tags || []),
+                occasionVibe: finalOccasionVibe,
+                collections: finalCollections,
+                tags: finalTags,
                 isNew: p.isNew !== undefined ? p.isNew : canonical.isNew,
               };
             }
@@ -3286,23 +3330,35 @@ function ShopView() {
             (Array.isArray(p.tags) && (p.tags.includes('new') || p.tags.includes('new-arrivals') || p.tags.includes('new-arrival')))
         );
       } else if (selectedCategory === 'minimalist') {
-        list = list.filter(
-          (p) =>
+        list = list.filter((p) => {
+          const isStmt =
+            (p.category === 'statement' || p.categorySlug === 'statement' || (Array.isArray(p.collections) && p.collections.includes('statement'))) &&
+            !(Array.isArray(p.collections) && p.collections.includes('minimalist')) &&
+            p.category !== 'minimalist';
+          if (isStmt) return false;
+
+          return (
             p.category === 'minimalist' ||
             p.categorySlug === 'minimalist' ||
             (Array.isArray(p.collections) && p.collections.includes('minimalist')) ||
-            (Array.isArray(p.tags) && p.tags.includes('minimalist')) ||
-            p.occasionVibe === 'Minimalist'
-        );
+            (Array.isArray(p.tags) && p.tags.includes('minimalist'))
+          );
+        });
       } else if (selectedCategory === 'statement') {
-        list = list.filter(
-          (p) =>
+        list = list.filter((p) => {
+          const isMin =
+            (p.category === 'minimalist' || p.categorySlug === 'minimalist' || (Array.isArray(p.collections) && p.collections.includes('minimalist'))) &&
+            !(Array.isArray(p.collections) && p.collections.includes('statement')) &&
+            p.category !== 'statement';
+          if (isMin) return false;
+
+          return (
             p.category === 'statement' ||
             p.categorySlug === 'statement' ||
             (Array.isArray(p.collections) && p.collections.includes('statement')) ||
-            (Array.isArray(p.tags) && p.tags.includes('statement')) ||
-            p.occasionVibe === 'Statement'
-        );
+            (Array.isArray(p.tags) && p.tags.includes('statement'))
+          );
+        });
       } else if (selectedCategory === 'moissanite') {
         list = list.filter(
           (p) =>
@@ -3369,23 +3425,35 @@ function ShopView() {
             (Array.isArray(p.tags) && (p.tags.includes('new') || p.tags.includes('new-arrivals') || p.tags.includes('new-arrival')))
         );
       } else if (selectedCollection === 'minimalist') {
-        list = list.filter(
-          (p) =>
+        list = list.filter((p) => {
+          const isStmt =
+            (p.category === 'statement' || p.categorySlug === 'statement' || (Array.isArray(p.collections) && p.collections.includes('statement'))) &&
+            !(Array.isArray(p.collections) && p.collections.includes('minimalist')) &&
+            p.category !== 'minimalist';
+          if (isStmt) return false;
+
+          return (
             p.category === 'minimalist' ||
             p.categorySlug === 'minimalist' ||
             (Array.isArray(p.collections) && p.collections.includes('minimalist')) ||
-            (Array.isArray(p.tags) && p.tags.includes('minimalist')) ||
-            p.occasionVibe === 'Minimalist'
-        );
+            (Array.isArray(p.tags) && p.tags.includes('minimalist'))
+          );
+        });
       } else if (selectedCollection === 'statement') {
-        list = list.filter(
-          (p) =>
+        list = list.filter((p) => {
+          const isMin =
+            (p.category === 'minimalist' || p.categorySlug === 'minimalist' || (Array.isArray(p.collections) && p.collections.includes('minimalist'))) &&
+            !(Array.isArray(p.collections) && p.collections.includes('statement')) &&
+            p.category !== 'statement';
+          if (isMin) return false;
+
+          return (
             p.category === 'statement' ||
             p.categorySlug === 'statement' ||
             (Array.isArray(p.collections) && p.collections.includes('statement')) ||
-            (Array.isArray(p.tags) && p.tags.includes('statement')) ||
-            p.occasionVibe === 'Statement'
-        );
+            (Array.isArray(p.tags) && p.tags.includes('statement'))
+          );
+        });
       } else if (selectedCollection === 'moissanite') {
         list = list.filter(
           (p) =>
@@ -7646,6 +7714,7 @@ function AdminView() {
       subcategory: editingProduct.subcategory,
       collections,
       tags,
+      occasionVibe: editingProduct.occasionVibe || (editingProduct.category === 'statement' ? 'Statement' : 'Everyday Wear'),
       isNew: isNewFlag,
       hallmark: editingProduct.hallmark || 'Fine 925 Sterling Silver',
     });
@@ -7669,20 +7738,32 @@ function AdminView() {
       list = list.filter((p) => {
         if (p.category === filterCategory) return true;
         if (p.categorySlug === filterCategory) return true;
-        if (filterCategory === 'statement' && (
-          p.category === 'statement' ||
-          p.categorySlug === 'statement' ||
-          (Array.isArray(p.collections) && p.collections.includes('statement')) ||
-          (Array.isArray(p.tags) && p.tags.includes('statement')) ||
-          p.occasionVibe === 'Statement'
-        )) return true;
-        if (filterCategory === 'minimalist' && (
-          p.category === 'minimalist' ||
-          p.categorySlug === 'minimalist' ||
-          (Array.isArray(p.collections) && p.collections.includes('minimalist')) ||
-          (Array.isArray(p.tags) && p.tags.includes('minimalist')) ||
-          p.occasionVibe === 'Minimalist'
-        )) return true;
+        if (filterCategory === 'statement') {
+          const isMin =
+            (p.category === 'minimalist' || p.categorySlug === 'minimalist' || (Array.isArray(p.collections) && p.collections.includes('minimalist'))) &&
+            !(Array.isArray(p.collections) && p.collections.includes('statement')) &&
+            p.category !== 'statement';
+          if (isMin) return false;
+          if (
+            p.category === 'statement' ||
+            p.categorySlug === 'statement' ||
+            (Array.isArray(p.collections) && p.collections.includes('statement')) ||
+            (Array.isArray(p.tags) && p.tags.includes('statement'))
+          ) return true;
+        }
+        if (filterCategory === 'minimalist') {
+          const isStmt =
+            (p.category === 'statement' || p.categorySlug === 'statement' || (Array.isArray(p.collections) && p.collections.includes('statement'))) &&
+            !(Array.isArray(p.collections) && p.collections.includes('minimalist')) &&
+            p.category !== 'minimalist';
+          if (isStmt) return false;
+          if (
+            p.category === 'minimalist' ||
+            p.categorySlug === 'minimalist' ||
+            (Array.isArray(p.collections) && p.collections.includes('minimalist')) ||
+            (Array.isArray(p.tags) && p.tags.includes('minimalist'))
+          ) return true;
+        }
         if (filterCategory === 'moissanite' && (
           p.category === 'moissanite' ||
           p.categorySlug === 'moissanite' ||
@@ -8251,11 +8332,13 @@ function AdminView() {
                             if (!nextCols.includes(newCat)) nextCols = [...nextCols, newCat];
                             if (!nextTags.includes(newCat)) nextTags = [...nextTags, newCat];
 
+                            const vibeUpdate = newCat === 'statement' ? 'Statement' : (newCat === 'minimalist' ? 'Everyday Wear' : undefined);
                             adminUpdateProduct(product.id, {
                               category: newCat,
                               categorySlug: slugMap[newCat] || newCat,
                               collections: nextCols,
                               tags: nextTags,
+                              ...(vibeUpdate ? { occasionVibe: vibeUpdate } : {}),
                               ...(newCat === 'new-arrivals' ? { isNew: true } : {}),
                             });
                           }}
@@ -8340,11 +8423,13 @@ function AdminView() {
                                   }
 
                                   const isNewUpdate = colKey === 'new-arrivals' ? !isTagged : undefined;
+                                  const vibeUpdate = newCat === 'statement' ? 'Statement' : (newCat === 'minimalist' ? 'Everyday Wear' : undefined);
                                   adminUpdateProduct(product.id, {
                                     category: newCat,
                                     categorySlug: newCatSlug,
                                     collections: nextCols,
                                     tags: nextTags,
+                                    ...(vibeUpdate ? { occasionVibe: vibeUpdate } : {}),
                                     ...(isNewUpdate !== undefined ? { isNew: isNewUpdate } : {}),
                                   });
                                 }}
@@ -10088,12 +10173,14 @@ function AdminView() {
                     if (!nextCols.includes(newCat)) nextCols = [...nextCols, newCat];
                     if (!nextTags.includes(newCat)) nextTags = [...nextTags, newCat];
 
+                    const vibeUpdate = newCat === 'statement' ? 'Statement' : (newCat === 'minimalist' ? 'Everyday Wear' : undefined);
                     setEditingProduct({
                       ...editingProduct,
                       category: newCat,
                       categorySlug: slugMap[newCat] || newCat,
                       collections: nextCols,
                       tags: nextTags,
+                      ...(vibeUpdate ? { occasionVibe: vibeUpdate } : {}),
                       ...(newCat === 'new-arrivals' ? { isNew: true } : {}),
                     });
                   }}
@@ -10183,12 +10270,14 @@ function AdminView() {
                             }
                           }
 
+                          const vibeUpdate = newCat === 'statement' ? 'Statement' : (newCat === 'minimalist' ? 'Everyday Wear' : undefined);
                           setEditingProduct({
                             ...editingProduct,
                             category: newCat,
                             categorySlug: newCatSlug,
                             collections: nextCols,
                             tags: nextTags,
+                            ...(vibeUpdate ? { occasionVibe: vibeUpdate } : {}),
                             ...(col.id === 'new-arrivals' ? { isNew: !isTagged } : {}),
                           });
                         }}

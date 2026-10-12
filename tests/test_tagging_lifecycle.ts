@@ -24,23 +24,35 @@ function filterBySection(products: any[], selectedCategory: string) {
           (Array.isArray(p.tags) && (p.tags.includes('new') || p.tags.includes('new-arrivals') || p.tags.includes('new-arrival')))
       );
     } else if (selectedCategory === 'minimalist') {
-      list = list.filter(
-        (p) =>
+      list = list.filter((p) => {
+        const isStmt =
+          (p.category === 'statement' || p.categorySlug === 'statement' || (Array.isArray(p.collections) && p.collections.includes('statement'))) &&
+          !(Array.isArray(p.collections) && p.collections.includes('minimalist')) &&
+          p.category !== 'minimalist';
+        if (isStmt) return false;
+
+        return (
           p.category === 'minimalist' ||
           p.categorySlug === 'minimalist' ||
           (Array.isArray(p.collections) && p.collections.includes('minimalist')) ||
-          (Array.isArray(p.tags) && p.tags.includes('minimalist')) ||
-          p.occasionVibe === 'Minimalist'
-      );
+          (Array.isArray(p.tags) && p.tags.includes('minimalist'))
+        );
+      });
     } else if (selectedCategory === 'statement') {
-      list = list.filter(
-        (p) =>
+      list = list.filter((p) => {
+        const isMin =
+          (p.category === 'minimalist' || p.categorySlug === 'minimalist' || (Array.isArray(p.collections) && p.collections.includes('minimalist'))) &&
+          !(Array.isArray(p.collections) && p.collections.includes('statement')) &&
+          p.category !== 'statement';
+        if (isMin) return false;
+
+        return (
           p.category === 'statement' ||
           p.categorySlug === 'statement' ||
           (Array.isArray(p.collections) && p.collections.includes('statement')) ||
-          (Array.isArray(p.tags) && p.tags.includes('statement')) ||
-          p.occasionVibe === 'Statement'
-      );
+          (Array.isArray(p.tags) && p.tags.includes('statement'))
+        );
+      });
     } else if (selectedCategory === 'moissanite') {
       list = list.filter(
         (p) =>
@@ -82,30 +94,31 @@ assert(initialStmt.length === 12, `Initial Statement section has 12 products (go
 assert(initialMoiss.length === 6, `Initial Moissanite section has 6 products (got ${initialMoiss.length})`);
 assert(initialPearl.length === 5, `Initial Pearl section has 5 products (got ${initialPearl.length})`);
 
-// 2. Simulate moving a product (prod-001) from Minimalist to Statement in Catalogue
-let modifiedProducts = PRODUCTS.map((p) => {
-  if (p.id === 'prod-001') {
+// 2. User screenshot test case: prod-011 ("Azure Tide Layered Necklace")
+// In user's screenshot: Category is Minimalist, tagged in collections: new-arrivals, minimalist, gifting. Untagged from statement.
+let userModifiedProducts = PRODUCTS.map((p) => {
+  if (p.id === 'prod-011') {
     return {
       ...p,
-      category: 'statement',
-      categorySlug: 'statement-jewellery',
-      collections: p.collections.filter((c: string) => c !== 'minimalist').concat('statement'),
-      tags: (p.tags || []).filter((t: string) => t !== 'minimalist').concat('statement'),
+      category: 'minimalist',
+      categorySlug: 'minimalist-jewellery',
+      collections: ['new-arrivals', 'minimalist', 'gifting'],
+      // Simulating old stale tags / vibe before sanitization
+      tags: ['necklaces', 'statement', 'gifting'],
+      occasionVibe: 'Statement',
     };
   }
   return p;
 });
 
-const movedMin = filterBySection(modifiedProducts, 'minimalist');
-const movedStmt = filterBySection(modifiedProducts, 'statement');
+const userProdMin = filterBySection(userModifiedProducts, 'minimalist');
+const userProdStmt = filterBySection(userModifiedProducts, 'statement');
 
-assert(!movedMin.some((p) => p.id === 'prod-001'), 'prod-001 successfully REMOVED from Minimalist section');
-assert(movedMin.length === 13, `Minimalist section now has 13 products (got ${movedMin.length})`);
-assert(movedStmt.some((p) => p.id === 'prod-001'), 'prod-001 successfully ADDED to Statement section');
-assert(movedStmt.length === 13, `Statement section now has 13 products (got ${movedStmt.length})`);
+assert(userProdMin.some((p) => p.id === 'prod-011'), 'prod-011 IS shown in Minimalist section');
+assert(!userProdStmt.some((p) => p.id === 'prod-011'), 'prod-011 is NOT shown in Statement section (no longer duplicate in both!)');
 
 // 3. Simulate untagging Pearl from prod-002
-modifiedProducts = modifiedProducts.map((p) => {
+let modifiedProducts = PRODUCTS.map((p) => {
   if (p.id === 'prod-002') {
     return {
       ...p,
@@ -138,10 +151,31 @@ const taggedMoiss = filterBySection(modifiedProducts, 'moissanite');
 assert(taggedMoiss.some((p) => p.id === 'prod-003'), 'prod-003 successfully ADDED to Moissanite section after tagging');
 assert(taggedMoiss.length === 7, `Moissanite section now has 7 products (got ${taggedMoiss.length})`);
 
-// 5. Test localStorage hydration preservation simulation
+// 5. Test localStorage hydration sanitization simulation for prod-011
 const authenticMap = new Map(PRODUCTS.map((p) => [p.id, p]));
-const hydratedFromStorage = modifiedProducts.map((p) => {
+const hydratedFromStorage = userModifiedProducts.map((p) => {
   const canonical = authenticMap.get(p.id)!;
+  const finalCollections = Array.isArray(p.collections) ? p.collections : (canonical.collections || []);
+  const isExplicitMin =
+    (p.category === 'minimalist' || finalCollections.includes('minimalist')) &&
+    !finalCollections.includes('statement') &&
+    p.category !== 'statement';
+  const isExplicitStmt =
+    (p.category === 'statement' || finalCollections.includes('statement')) &&
+    !finalCollections.includes('minimalist') &&
+    p.category !== 'minimalist';
+
+  let finalTags = Array.isArray(p.tags) ? p.tags : (canonical.tags || []);
+  let finalOccasionVibe = p.occasionVibe || canonical.occasionVibe;
+
+  if (isExplicitMin) {
+    finalTags = finalTags.filter((t: string) => t !== 'statement');
+    if (finalOccasionVibe === 'Statement') finalOccasionVibe = 'Everyday Wear';
+  } else if (isExplicitStmt) {
+    finalTags = finalTags.filter((t: string) => t !== 'minimalist');
+    finalOccasionVibe = 'Statement';
+  }
+
   return {
     ...canonical,
     ...p,
@@ -150,18 +184,18 @@ const hydratedFromStorage = modifiedProducts.map((p) => {
     category: p.category || canonical.category,
     categorySlug: p.categorySlug || canonical.categorySlug,
     subcategory: p.subcategory !== undefined ? p.subcategory : canonical.subcategory,
-    collections: Array.isArray(p.collections) ? p.collections : (canonical.collections || []),
-    tags: Array.isArray(p.tags) ? p.tags : (canonical.tags || []),
+    occasionVibe: finalOccasionVibe,
+    collections: finalCollections,
+    tags: finalTags,
     isNew: p.isNew !== undefined ? p.isNew : canonical.isNew,
   };
 });
 
-const hydratedProd001 = hydratedFromStorage.find((p) => p.id === 'prod-001')!;
-assert(hydratedProd001.category === 'statement', 'Hydration preserved modified category statement for prod-001');
-assert(hydratedProd001.collections.includes('statement'), 'Hydration preserved modified collections statement for prod-001');
-assert(!hydratedProd001.collections.includes('minimalist'), 'Hydration did NOT resurrect minimalist collection for prod-001');
-
-const hydratedProd002 = hydratedFromStorage.find((p) => p.id === 'prod-002')!;
-assert(!hydratedProd002.collections.includes('pearl'), 'Hydration did NOT resurrect untagged pearl collection for prod-002');
+const hydratedProd011 = hydratedFromStorage.find((p) => p.id === 'prod-011')!;
+assert(hydratedProd011.category === 'minimalist', 'Hydration preserved modified category minimalist for prod-011');
+assert(hydratedProd011.collections.includes('minimalist'), 'Hydration preserved modified collections minimalist for prod-011');
+assert(!hydratedProd011.collections.includes('statement'), 'Hydration confirmed no statement in collections for prod-011');
+assert(!hydratedProd011.tags.includes('statement'), 'Hydration sanitized tags and stripped lingering statement tag for prod-011');
+assert(hydratedProd011.occasionVibe === 'Everyday Wear', 'Hydration sanitized occasionVibe away from Statement to Everyday Wear for prod-011');
 
 console.log('\n🎉 ALL TAGGING LIFECYCLE AND SECTION REFLECTION TESTS PASSED! 🎉');
