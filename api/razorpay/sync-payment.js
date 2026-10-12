@@ -37,7 +37,7 @@ export default async function handler(req, res) {
 
     const keyId = process.env.RAZORPAY_KEY_ID || process.env.VITE_RAZORPAY_KEY_ID || '';
     const keySecret = process.env.RAZORPAY_KEY_SECRET || '';
-    const authHeader = 'Basic ' + Buffer.from(`${keyId}:${keySecret}`).toString('base64');
+    const authHeader = (keyId && keySecret) ? 'Basic ' + Buffer.from(`${keyId}:${keySecret}`).toString('base64') : '';
 
     let paymentData = null;
     let linkData = null;

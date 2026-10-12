@@ -140,17 +140,18 @@ assert(!appJsx.includes('dark:bg-[#141816]'), 'Pitch-black void background remov
 assert(appJsx.includes('flex flex-col sm:flex-row items-center justify-center'), 'Announcement bar wraps into clean lines on mobile without truncation');
 assert(appJsx.includes('Pan-India Shipping'), 'Announcement bar includes visible Pan-India shipping link');
 
-// 9. Check Statement Jewellery Filter Integrity
+// 9. Check Statement Jewellery Filter Integrity (without silhouette dependency)
 const stmtProducts = PRODUCTS.filter((p) =>
   p.category === 'statement' ||
   p.categorySlug === 'statement' ||
   (Array.isArray(p.collections) && p.collections.includes('statement')) ||
   (Array.isArray(p.tags) && p.tags.includes('statement')) ||
-  p.occasionVibe === 'Statement' ||
-  p.silhouette === 'heavy'
+  p.occasionVibe === 'Statement'
 );
-assert(stmtProducts.length >= 10, `Statement Jewellery filter returns at least 10 pieces (got ${stmtProducts.length})`);
-assert(!appJsx.includes("p.silhouette !== 'light' &&\n            !(Array.isArray(p.collections) && p.collections.includes('minimalist'))"), 'Removed restrictive silhouette and anti-minimalist check that artificially dropped statement products');
+assert(stmtProducts.length === 12, `Statement Jewellery filter returns all 12 pieces without silhouette (got ${stmtProducts.length})`);
+assert(!appJsx.includes("filterSilhouette"), 'Silhouette filter state completely removed from App.jsx');
+assert(!appJsx.includes("selectedSilhouette"), 'Storefront selectedSilhouette state completely removed from App.jsx');
+assert(!appJsx.includes("Silhouette Curation"), 'Silhouette curation dropdowns completely removed from App.jsx');
 
 console.log('\n🎉 ALL USER REQUIREMENTS FULLY VERIFIED AND PASSING! 🎉');
 

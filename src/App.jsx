@@ -306,7 +306,6 @@ function AppProvider({ children }) {
                 description,
                 category: canonical.category,
                 subcategory: canonical.subcategory,
-                silhouette: canonical.silhouette,
                 colorTone: canonical.colorTone || p.colorTone,
                 colour: canonical.colour || p.colour,
                 images: hasCustomImages ? p.images : (canonical.images || []),
@@ -553,7 +552,6 @@ function AppProvider({ children }) {
   const [categoryFilter, setCategoryFilter] = useState('');
   const [materialFilter, setMaterialFilter] = useState('');
   const [collectionFilter, setCollectionFilter] = useState('');
-  const [silhouetteFilter, setSilhouetteFilter] = useState(''); // 'light' | 'heavy' (silhouette curation, no weight)
   const [policyModalOpen, setPolicyModalOpen] = useState(false);
   const [activePolicyTab, setActivePolicyTab] = useState('our-story');
 
@@ -697,8 +695,6 @@ function AppProvider({ children }) {
       if (data.category !== undefined) setCategoryFilter(data.category);
       if (data.material !== undefined) setMaterialFilter(data.material);
       if (data.collection !== undefined) setCollectionFilter(data.collection);
-      if (data.silhouetteFilter !== undefined) setSilhouetteFilter(data.silhouetteFilter);
-      if (data.weightFilter !== undefined) setSilhouetteFilter(data.weightFilter);
     }
     if (typeof window !== 'undefined') {
       let url = view === 'home' ? '/' : `/${view}`;
@@ -718,13 +714,8 @@ function AppProvider({ children }) {
     }
   };
 
-  const scrollToSpectrum = (silhouette = null) => {
-    if (silhouette) {
-      setSilhouetteFilter(silhouette);
-      navigate('atelier', { silhouetteFilter: silhouette });
-    } else {
-      navigate('atelier');
-    }
+  const scrollToSpectrum = () => {
+    navigate('atelier');
   };
 
   const showToast = (message) => {
@@ -967,7 +958,6 @@ function AppProvider({ children }) {
       goldPurity: productData.goldPurity || '14K Gold Vermeil',
       colorTone: productData.colorTone || '14K Gold',
       metalColorHex: productData.metalColorHex || '#EDE7DC',
-      silhouette: productData.silhouette || 'light',
       occasionVibe: productData.occasionVibe || 'Everyday Wear',
       dimensions: productData.dimensions || 'Universal luxury fit',
       weight: productData.weight || 'Fine 925 Silver Core',
@@ -1142,9 +1132,6 @@ function AppProvider({ children }) {
         setCategoryFilter,
         materialFilter,
         setMaterialFilter,
-        silhouetteFilter,
-        setSilhouetteFilter,
-        weightFilter: silhouetteFilter,
         // Patron Customer Authentication & Sync
         patronUser,
         loginPatron,
@@ -2373,17 +2360,10 @@ const ATELIER_CHAPTERS = [
 // 6. VIEW: HOMEPAGE (REFERENCE EDITORIAL ALIGNMENT)
 // ==========================================
 function HomeView() {
-  const { navigate, products, showToast, formatPrice, openPolicyModal, silhouetteFilter, scrollToSpectrum } = useContext(AppContext);
+  const { navigate, products, showToast, formatPrice, openPolicyModal, scrollToSpectrum } = useContext(AppContext);
   const [newsletterEmail, setNewsletterEmail] = useState('');
   const [newsletterName, setNewsletterName] = useState('');
-  const [weightTab, setWeightTab] = useState(() => (silhouetteFilter === 'heavy' ? 'heavy' : 'light'));
   const [activeStoryChapter, setActiveStoryChapter] = useState('our-story');
-
-  useEffect(() => {
-    if (silhouetteFilter === 'heavy' || silhouetteFilter === 'light') {
-      setWeightTab(silhouetteFilter);
-    }
-  }, [silhouetteFilter]);
 
   const newArrivals = useMemo(() => {
     const arr = products.filter((p) => 
@@ -2399,16 +2379,6 @@ function HomeView() {
     return [...products]
       .sort((a, b) => (a.featuredRank || 99) - (b.featuredRank || 99))
       .slice(0, 4);
-  }, [products]);
-
-  const lightJewellery = useMemo(() => {
-    const list = products.filter((p) => p.silhouette === 'light' || p.category === 'minimalist');
-    return (list.length >= 4 ? list : products).slice(0, 4);
-  }, [products]);
-
-  const heavyJewellery = useMemo(() => {
-    const list = products.filter((p) => p.silhouette === 'heavy' || p.category === 'statement');
-    return (list.length >= 4 ? list : products).slice(0, 4);
   }, [products]);
 
   const handleNewsletterSubmit = (e) => {
@@ -3189,10 +3159,6 @@ function ShopView() {
     setMaterialFilter,
     collectionFilter,
     setCollectionFilter,
-    silhouetteFilter,
-    setSilhouetteFilter,
-    weightFilter,
-    setWeightFilter,
     scrollToSpectrum,
   } = useContext(AppContext);
 
@@ -3200,7 +3166,6 @@ function ShopView() {
   const [selectedCategory, setSelectedCategory] = useState(() => categoryFilter || 'all');
   const [selectedMaterial, setSelectedMaterial] = useState(() => materialFilter || 'all');
   const [selectedCollection, setSelectedCollection] = useState(() => collectionFilter || 'all');
-  const [selectedSilhouette, setSelectedSilhouette] = useState(() => silhouetteFilter || weightFilter || 'all');
   const [selectedColour, setSelectedColour] = useState('all');
   const [selectedFinish, setSelectedFinish] = useState('all');
   const [selectedAvailability, setSelectedAvailability] = useState('all');
@@ -3288,11 +3253,6 @@ function ShopView() {
     if (collectionFilter) setSelectedCollection(collectionFilter);
   }, [collectionFilter]);
 
-  useEffect(() => {
-    if (silhouetteFilter) setSelectedSilhouette(silhouetteFilter);
-    else if (weightFilter) setSelectedSilhouette(weightFilter);
-  }, [silhouetteFilter, weightFilter]);
-
   // Unique attribute options from products
   const uniqueColours = useMemo(() => {
     const list = products.map((p) => p.colour || p.colorTone).filter(Boolean);
@@ -3327,7 +3287,7 @@ function ShopView() {
             (Array.isArray(p.collections) && p.collections.includes('minimalist')) ||
             (Array.isArray(p.tags) && p.tags.includes('minimalist')) ||
             p.occasionVibe === 'Minimalist' ||
-            (p.silhouette === 'light' && !(Array.isArray(p.collections) && p.collections.includes('statement')) && p.occasionVibe !== 'Statement')
+            (p.occasionVibe === 'Everyday Wear' && !(Array.isArray(p.collections) && p.collections.includes('statement')))
         );
       } else if (selectedCategory === 'statement') {
         list = list.filter(
@@ -3336,8 +3296,7 @@ function ShopView() {
             p.categorySlug === 'statement' ||
             (Array.isArray(p.collections) && p.collections.includes('statement')) ||
             (Array.isArray(p.tags) && p.tags.includes('statement')) ||
-            p.occasionVibe === 'Statement' ||
-            p.silhouette === 'heavy'
+            p.occasionVibe === 'Statement'
         );
       } else if (selectedCategory === 'moissanite') {
         list = list.filter(
@@ -3414,7 +3373,7 @@ function ShopView() {
             (Array.isArray(p.collections) && p.collections.includes('minimalist')) ||
             (Array.isArray(p.tags) && p.tags.includes('minimalist')) ||
             p.occasionVibe === 'Minimalist' ||
-            (p.silhouette === 'light' && !(Array.isArray(p.collections) && p.collections.includes('statement')) && p.occasionVibe !== 'Statement')
+            (p.occasionVibe === 'Everyday Wear' && !(Array.isArray(p.collections) && p.collections.includes('statement')))
         );
       } else if (selectedCollection === 'statement') {
         list = list.filter(
@@ -3423,8 +3382,7 @@ function ShopView() {
             p.categorySlug === 'statement' ||
             (Array.isArray(p.collections) && p.collections.includes('statement')) ||
             (Array.isArray(p.tags) && p.tags.includes('statement')) ||
-            p.occasionVibe === 'Statement' ||
-            p.silhouette === 'heavy'
+            p.occasionVibe === 'Statement'
         );
       } else if (selectedCollection === 'moissanite') {
         list = list.filter((p) => p.collections?.includes('moissanite') || p.category === 'moissanite' || p.materials?.includes('moissanite') || p.name.toLowerCase().includes('moissanite'));
@@ -3465,11 +3423,6 @@ function ShopView() {
       list = list.filter((p) => p.price >= 3000 && p.price <= 5000);
     } else if (selectedPrice === 'over-5000') {
       list = list.filter((p) => p.price > 5000);
-    }
-
-    // Silhouette Presence (Delicate & Light vs Bold & Heavy - Aesthetic styling curation, no weight)
-    if (selectedSilhouette !== 'all') {
-      list = list.filter((p) => p.silhouette === selectedSilhouette);
     }
 
     // Subcategory & Taxonomy Tag Filter
@@ -3623,7 +3576,6 @@ function ShopView() {
     selectedCategory,
     selectedMaterial,
     selectedCollection,
-    selectedSilhouette,
     selectedColour,
     selectedFinish,
     selectedAvailability,
@@ -3638,7 +3590,6 @@ function ShopView() {
     if (selectedCategory !== 'all') count++;
     if (selectedMaterial !== 'all') count++;
     if (selectedCollection !== 'all') count++;
-    if (selectedSilhouette !== 'all') count++;
     if (selectedColour !== 'all') count++;
     if (selectedFinish !== 'all') count++;
     if (selectedAvailability !== 'all') count++;
@@ -3650,7 +3601,6 @@ function ShopView() {
     selectedCategory,
     selectedMaterial,
     selectedCollection,
-    selectedSilhouette,
     selectedColour,
     selectedFinish,
     selectedAvailability,
@@ -3663,7 +3613,6 @@ function ShopView() {
     setSelectedCategory('all');
     setSelectedMaterial('all');
     setSelectedCollection('all');
-    setSelectedSilhouette('all');
     setSelectedColour('all');
     setSelectedFinish('all');
     setSelectedAvailability('all');
@@ -3673,8 +3622,6 @@ function ShopView() {
     setCategoryFilter('');
     setMaterialFilter('');
     setCollectionFilter('');
-    setSilhouetteFilter('');
-    setWeightFilter('');
   };
 
   // Header Title and Eyebrow
@@ -3850,18 +3797,6 @@ function ShopView() {
                   </button>
                 </span>
               )}
-              {selectedSilhouette !== 'all' && (
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 bg-[#14171a]/10 dark:bg-[#e6ca97]/15 text-[#14171a] dark:text-[#e6ca97] border border-[#14171a]/30 dark:border-[#e6ca97]/40 rounded-full font-sans text-[11px]">
-                  Silhouette: {selectedSilhouette}
-                  <button
-                    type="button"
-                    onClick={() => setSelectedSilhouette('all')}
-                    className="hover:opacity-75 font-bold cursor-pointer ml-1"
-                  >
-                    ✕
-                  </button>
-                </span>
-              )}
               {selectedPrice !== 'all' && (
                 <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 bg-[#14171a]/10 dark:bg-[#e6ca97]/15 text-[#14171a] dark:text-[#e6ca97] border border-[#14171a]/30 dark:border-[#e6ca97]/40 rounded-full font-sans text-[11px]">
                   Price: {selectedPrice}
@@ -3983,22 +3918,6 @@ function ShopView() {
                         );
                       })}
                     </div>
-                  </div>
-
-                  {/* Silhouette Curation */}
-                  <div>
-                    <label className="block text-[11px] font-bold tracking-[0.14em] uppercase text-[#14171a] dark:text-[#e6ca97] font-semibold mb-2">
-                      ✦ Silhouette & Presence
-                    </label>
-                    <select
-                      value={selectedSilhouette}
-                      onChange={(e) => setSelectedSilhouette(e.target.value)}
-                      className="w-full h-11 px-3 bg-[var(--bg-primary)] border border-[var(--border-strong)] text-[var(--text-primary)] outline-none text-xs cursor-pointer"
-                    >
-                      <option value="all">All Silhouettes</option>
-                      <option value="light">Delicate & Light (Everyday Minimalist)</option>
-                      <option value="heavy">Bold & Heavy (Statement Sculptures)</option>
-                    </select>
                   </div>
 
                   {/* Material & Finish Grid */}
@@ -4695,7 +4614,6 @@ function ProductView() {
                 {activeAccordion === 'materiality' && (
                   <div className="text-[var(--text-secondary)] pt-3 space-y-2 leading-relaxed">
                     <p><strong className="text-[var(--text-primary)]">Alloy:</strong> {product.material}</p>
-                    <p><strong className="text-[var(--text-primary)]">Silhouette & Presence:</strong> {product.silhouette === 'heavy' ? 'Bold & Sculptural Statement' : 'Delicate & Minimalist Everyday'}</p>
                     <p><strong className="text-[var(--text-primary)]">Purity:</strong> {product.goldPurity}</p>
                     <p><strong className="text-[var(--text-primary)]">Material Assurance:</strong> Fine 925 Sterling Silver</p>
                   </div>
@@ -7298,7 +7216,6 @@ function AdminView() {
   const [activeTab, setActiveTab] = useState('catalog'); // 'catalog' | 'add' | 'orders' | 'razorpay' | 'phonepe' | 'bookkeeping'
   const [searchCatalog, setSearchCatalog] = useState('');
   const [filterCategory, setFilterCategory] = useState('all');
-  const [filterSilhouette, setFilterSilhouette] = useState('all'); // 'all' | 'light' | 'heavy'
   const [filterCollection, setFilterCollection] = useState('all'); // 'all' | 'new-arrivals' | 'minimalist' | 'statement' | 'moissanite' | 'pearl' | 'gifting'
   const [filterStock, setFilterStock] = useState('all'); // 'all' | 'initial_low' | 'in_stock' | 'out_of_stock'
   const [customTagInputs, setCustomTagInputs] = useState({}); // productId -> custom tag input string
@@ -7535,7 +7452,6 @@ function AdminView() {
     collection: 'minimalist',
     collections: ['minimalist', 'new-arrivals'],
     tags: ['bracelets'],
-    silhouette: 'light',
     price: 3299,
     originalPrice: 3299,
     inventory: 8,
@@ -7647,7 +7563,6 @@ function AdminView() {
       name: newProductForm.name,
       category: newProductForm.category,
       categorySlug: newProductForm.categorySlug,
-      silhouette: newProductForm.silhouette || 'light',
       collections: newProductForm.collections && newProductForm.collections.length > 0
         ? newProductForm.collections
         : [newProductForm.collection || newProductForm.category],
@@ -7710,7 +7625,6 @@ function AdminView() {
       category: editingProduct.category,
       categorySlug: editingProduct.categorySlug,
       subcategory: editingProduct.subcategory,
-      silhouette: editingProduct.silhouette || 'light',
       collections,
       tags,
       isNew: isNewFlag,
@@ -7741,8 +7655,7 @@ function AdminView() {
           p.categorySlug === 'statement' ||
           (Array.isArray(p.collections) && p.collections.includes('statement')) ||
           (Array.isArray(p.tags) && p.tags.includes('statement')) ||
-          p.occasionVibe === 'Statement' ||
-          p.silhouette === 'heavy'
+          p.occasionVibe === 'Statement'
         )) return true;
         if (filterCategory === 'minimalist' && (
           p.category === 'minimalist' ||
@@ -7760,12 +7673,7 @@ function AdminView() {
       });
     }
 
-    // 2. Silhouette filter (light vs heavy)
-    if (filterSilhouette !== 'all') {
-      list = list.filter((p) => p.silhouette === filterSilhouette);
-    }
-
-    // 3. Collection filter
+    // 2. Collection filter
     if (filterCollection !== 'all') {
       list = list.filter((p) => {
         if (Array.isArray(p.collections) && p.collections.includes(filterCollection)) return true;
@@ -7775,7 +7683,7 @@ function AdminView() {
       });
     }
 
-    // 4. Stock Status filter
+    // 3. Stock Status filter
     if (filterStock === 'initial_low') {
       // Show newly added pieces or low stock items (inventory <= 2)
       list = list.filter((p) => Number(p.inventory) <= 2 && Number(p.inventory) > 0);
@@ -7785,7 +7693,7 @@ function AdminView() {
       list = list.filter((p) => Number(p.inventory) === 0);
     }
 
-    // 5. Search query
+    // 4. Search query
     if (searchCatalog.trim()) {
       const q = searchCatalog.toLowerCase();
       list = list.filter(
@@ -7800,7 +7708,7 @@ function AdminView() {
     }
 
     return list;
-  }, [products, filterCategory, filterSilhouette, filterCollection, filterStock, searchCatalog]);
+  }, [products, filterCategory, filterCollection, filterStock, searchCatalog]);
 
   // If locked, render security portal
   if (!isAuthenticated) {
@@ -8083,7 +7991,7 @@ function AdminView() {
               </div>
 
               {/* Filter Controls Row */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-1 border-t border-[var(--border-subtle)] text-xs font-sans">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-1 border-t border-[var(--border-subtle)] text-xs font-sans">
                 {/* 1. Category Filter */}
                 <div>
                   <label className="block text-[9px] font-mono uppercase tracking-wider text-[var(--text-muted)] mb-1 font-bold">
@@ -8109,23 +8017,7 @@ function AdminView() {
                   </select>
                 </div>
 
-                {/* 2. Silhouette Filter */}
-                <div>
-                  <label className="block text-[9px] font-mono uppercase tracking-wider text-[var(--text-muted)] mb-1 font-bold">
-                    Silhouette Curation
-                  </label>
-                  <select
-                    value={filterSilhouette}
-                    onChange={(e) => setFilterSilhouette(e.target.value)}
-                    className="w-full h-9 px-2.5 bg-[var(--bg-primary)] border border-[var(--border-strong)] text-xs font-sans text-[var(--text-primary)] outline-none"
-                  >
-                    <option value="all">All Silhouettes</option>
-                    <option value="light">Light (Everyday Wear)</option>
-                    <option value="heavy">Heavy (Statement Presence)</option>
-                  </select>
-                </div>
-
-                {/* 3. Collection Tag Filter */}
+                {/* 2. Collection Tag Filter */}
                 <div>
                   <label className="block text-[9px] font-mono uppercase tracking-wider text-[var(--text-muted)] mb-1 font-bold">
                     Collection / Tag
@@ -8145,7 +8037,7 @@ function AdminView() {
                   </select>
                 </div>
 
-                {/* 4. Stock Filter */}
+                {/* 3. Stock Filter */}
                 <div>
                   <label className="block text-[9px] font-mono uppercase tracking-wider text-[var(--text-muted)] mb-1 font-bold">
                     Stock Status
@@ -8170,11 +8062,10 @@ function AdminView() {
                     Showing <strong className="text-[var(--text-primary)]">{filteredCatalog.length}</strong> of{' '}
                     <strong>{products.length}</strong> creations
                   </span>
-                  {(filterCategory !== 'all' || filterSilhouette !== 'all' || filterCollection !== 'all' || filterStock !== 'all' || searchCatalog) && (
+                  {(filterCategory !== 'all' || filterCollection !== 'all' || filterStock !== 'all' || searchCatalog) && (
                     <button
                       onClick={() => {
                         setFilterCategory('all');
-                        setFilterSilhouette('all');
                         setFilterCollection('all');
                         setFilterStock('all');
                         setSearchCatalog('');
@@ -8187,7 +8078,7 @@ function AdminView() {
                 </div>
 
                 <div className="text-[10px] text-[var(--text-muted)] hidden sm:block">
-                  Tag pieces below to place into collections & silhouettes in real-time
+                  Tag pieces below to place into collections in real-time
                 </div>
               </div>
             </div>
@@ -8313,38 +8204,7 @@ function AdminView() {
                         </select>
                       </div>
 
-                      {/* Row 2: Silhouette Toggle */}
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="text-[9px] font-mono tracking-wider uppercase text-[var(--text-muted)] shrink-0 font-bold">
-                          Silhouette:
-                        </span>
-                        <div className="inline-flex rounded border border-[var(--border-subtle)] p-0.5 bg-[var(--bg-primary)]">
-                          <button
-                            type="button"
-                            onClick={() => adminUpdateProduct(product.id, { silhouette: 'light' })}
-                            className={`px-2 py-0.5 text-[8.5px] font-mono uppercase tracking-wider rounded transition-colors ${
-                              product.silhouette === 'light'
-                                ? 'bg-[#14171a] dark:bg-[#e6ca97] text-white dark:text-black font-bold shadow-xs'
-                                : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
-                            }`}
-                          >
-                            Light
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => adminUpdateProduct(product.id, { silhouette: 'heavy' })}
-                            className={`px-2 py-0.5 text-[8.5px] font-mono uppercase tracking-wider rounded transition-colors ${
-                              product.silhouette === 'heavy'
-                                ? 'bg-[#14171a] dark:bg-[#e6ca97] text-white dark:text-black font-bold shadow-xs'
-                                : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
-                            }`}
-                          >
-                            Heavy
-                          </button>
-                        </div>
-                      </div>
-
-                      {/* Row 3: Collection Tag Pills */}
+                      {/* Row 2: Collection Tag Pills */}
                       <div className="space-y-1.5 pt-1 border-t border-[var(--border-subtle)]">
                         <span className="text-[9px] font-mono tracking-wider uppercase text-[var(--text-muted)] block font-bold">
                           Tag in Collections:
@@ -8580,7 +8440,7 @@ function AdminView() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block font-bold tracking-[0.14em] uppercase text-[var(--text-muted)] mb-1">
                     Price in INR (₹) *
@@ -8592,20 +8452,6 @@ function AdminView() {
                     onChange={(e) => setNewProductForm({ ...newProductForm, price: e.target.value })}
                     className="w-full h-10 px-3 bg-[var(--bg-primary)] border border-[var(--border-strong)] text-[var(--text-primary)] outline-none"
                   />
-                </div>
-
-                <div>
-                  <label className="block font-bold tracking-[0.14em] uppercase text-[var(--text-muted)] mb-1">
-                    Silhouette & Presence *
-                  </label>
-                  <select
-                    value={newProductForm.silhouette || 'light'}
-                    onChange={(e) => setNewProductForm({ ...newProductForm, silhouette: e.target.value })}
-                    className="w-full h-10 px-3 bg-[var(--bg-primary)] border border-[var(--border-strong)] text-[var(--text-primary)] outline-none"
-                  >
-                    <option value="light">Delicate & Light (Minimalist & Everyday)</option>
-                    <option value="heavy">Bold & Heavy (Statement Sculptures)</option>
-                  </select>
                 </div>
 
                 <div>
@@ -10080,52 +9926,37 @@ function AdminView() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block font-bold tracking-wider uppercase text-[var(--text-muted)] mb-1">
-                    Category
-                  </label>
-                  <select
-                    value={editingProduct.category || 'minimalist'}
-                    onChange={(e) => {
-                      const newCat = e.target.value;
-                      const slugMap = {
-                        'minimalist': 'minimalist-jewellery',
-                        'statement': 'statement-jewellery',
-                        'moissanite': 'moissanite-collection',
-                        'pearl': 'freshwater-pearl-jewellery',
-                        'new-arrivals': 'latest-launches',
-                        'gifting': 'occasions-gifting',
-                      };
-                      setEditingProduct({
-                        ...editingProduct,
-                        category: newCat,
-                        categorySlug: slugMap[newCat] || newCat,
-                      });
-                    }}
-                    className="w-full h-10 px-3 bg-[var(--bg-primary)] border border-[var(--border-strong)] text-[var(--text-primary)] outline-none cursor-pointer"
-                  >
-                    <option value="minimalist">Minimalist Jewellery</option>
-                    <option value="statement">Statement Jewellery</option>
-                    <option value="moissanite">Moissanite Collection</option>
-                    <option value="pearl">Pearl Collection</option>
-                    <option value="new-arrivals">New Arrivals</option>
-                    <option value="gifting">Gifting Occasions</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block font-bold tracking-wider uppercase text-[var(--text-muted)] mb-1">
-                    Silhouette Curation
-                  </label>
-                  <select
-                    value={editingProduct.silhouette || 'light'}
-                    onChange={(e) => setEditingProduct({ ...editingProduct, silhouette: e.target.value })}
-                    className="w-full h-10 px-3 bg-[var(--bg-primary)] border border-[var(--border-strong)] text-[var(--text-primary)] outline-none cursor-pointer"
-                  >
-                    <option value="light">Light (Everyday Wear)</option>
-                    <option value="heavy">Heavy (Statement Presence)</option>
-                  </select>
-                </div>
+              <div>
+                <label className="block font-bold tracking-wider uppercase text-[var(--text-muted)] mb-1">
+                  Category
+                </label>
+                <select
+                  value={editingProduct.category || 'minimalist'}
+                  onChange={(e) => {
+                    const newCat = e.target.value;
+                    const slugMap = {
+                      'minimalist': 'minimalist-jewellery',
+                      'statement': 'statement-jewellery',
+                      'moissanite': 'moissanite-collection',
+                      'pearl': 'freshwater-pearl-jewellery',
+                      'new-arrivals': 'latest-launches',
+                      'gifting': 'occasions-gifting',
+                    };
+                    setEditingProduct({
+                      ...editingProduct,
+                      category: newCat,
+                      categorySlug: slugMap[newCat] || newCat,
+                    });
+                  }}
+                  className="w-full h-10 px-3 bg-[var(--bg-primary)] border border-[var(--border-strong)] text-[var(--text-primary)] outline-none cursor-pointer"
+                >
+                  <option value="minimalist">Minimalist Jewellery</option>
+                  <option value="statement">Statement Jewellery</option>
+                  <option value="moissanite">Moissanite Collection</option>
+                  <option value="pearl">Pearl Collection</option>
+                  <option value="new-arrivals">New Arrivals</option>
+                  <option value="gifting">Gifting Occasions</option>
+                </select>
               </div>
 
               {/* Tag in Collections */}

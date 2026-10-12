@@ -51,7 +51,7 @@ export interface Product {
   occasionVibe: OccasionVibe;
   category: string; // 'new-arrivals' | 'minimalist' | 'statement' | 'moissanite' | 'pearl' | 'gifting'
   subcategory?: string;
-  silhouette: 'light' | 'heavy'; // Aesthetic styling curation (NO weight/gram bifurcation)
+  silhouette?: string; // Optional legacy field - removed from filters and tagging
   materials?: string[];
   collections?: string[];
   finish?: string;
@@ -756,7 +756,6 @@ export const PRODUCTS: Product[] = [
     "occasionVibe": "Everyday Wear",
     "category": "necklaces",
     "subcategory": "necklaces",
-    "silhouette": "light",
     "materials": [
       "gold-plated-14k",
       "sterling-silver-925"
@@ -803,7 +802,6 @@ export const PRODUCTS: Product[] = [
     "occasionVibe": "Everyday Wear",
     "category": "pearl",
     "subcategory": "necklaces",
-    "silhouette": "light",
     "materials": [
       "freshwater-pearl",
       "gold-plated-14k",
@@ -853,7 +851,6 @@ export const PRODUCTS: Product[] = [
     "occasionVibe": "Minimalist",
     "category": "necklaces",
     "subcategory": "necklaces",
-    "silhouette": "light",
     "materials": [
       "gold-plated-14k",
       "sterling-silver-925"
@@ -899,7 +896,6 @@ export const PRODUCTS: Product[] = [
     "occasionVibe": "Statement",
     "category": "necklaces",
     "subcategory": "necklaces",
-    "silhouette": "light",
     "materials": [
       "gold-plated-14k",
       "sterling-silver-925"
@@ -949,7 +945,6 @@ export const PRODUCTS: Product[] = [
     "occasionVibe": "Everyday Wear",
     "category": "necklaces",
     "subcategory": "necklaces",
-    "silhouette": "light",
     "materials": [
       "gold-plated-14k",
       "sterling-silver-925"
@@ -996,7 +991,6 @@ export const PRODUCTS: Product[] = [
     "occasionVibe": "Bridal",
     "category": "rings",
     "subcategory": "rings",
-    "silhouette": "heavy",
     "materials": [
       "moissanite",
       "gold-plated-14k",
@@ -1053,7 +1047,6 @@ export const PRODUCTS: Product[] = [
     "occasionVibe": "Everyday Wear",
     "category": "necklaces",
     "subcategory": "necklaces",
-    "silhouette": "light",
     "materials": [
       "cubic-zirconia",
       "gold-plated-14k",
@@ -1102,7 +1095,6 @@ export const PRODUCTS: Product[] = [
     "occasionVibe": "Statement",
     "category": "moissanite",
     "subcategory": "bracelets",
-    "silhouette": "light",
     "materials": [
       "moissanite",
       "sterling-silver-925",
@@ -1157,7 +1149,6 @@ export const PRODUCTS: Product[] = [
     "occasionVibe": "Everyday Wear",
     "category": "pearl",
     "subcategory": "necklaces",
-    "silhouette": "light",
     "materials": [
       "freshwater-pearl",
       "apatite",
@@ -1208,7 +1199,6 @@ export const PRODUCTS: Product[] = [
     "occasionVibe": "Statement",
     "category": "pearl",
     "subcategory": "necklaces",
-    "silhouette": "light",
     "materials": [
       "freshwater-pearl",
       "cubic-zirconia",
@@ -1263,7 +1253,6 @@ export const PRODUCTS: Product[] = [
     "occasionVibe": "Statement",
     "category": "necklaces",
     "subcategory": "necklaces",
-    "silhouette": "light",
     "materials": [
       "turquoise",
       "sterling-silver-925"
@@ -1316,7 +1305,6 @@ export const PRODUCTS: Product[] = [
     "occasionVibe": "Statement",
     "category": "bracelets",
     "subcategory": "bracelets",
-    "silhouette": "light",
     "materials": [
       "cubic-zirconia",
       "sterling-silver-925"
@@ -1367,7 +1355,6 @@ export const PRODUCTS: Product[] = [
     "occasionVibe": "Statement",
     "category": "moissanite",
     "subcategory": "bracelets",
-    "silhouette": "heavy",
     "materials": [
       "moissanite",
       "sterling-silver-925",
@@ -1423,7 +1410,6 @@ export const PRODUCTS: Product[] = [
     "occasionVibe": "Everyday Wear",
     "category": "pearl",
     "subcategory": "bracelets",
-    "silhouette": "light",
     "materials": [
       "freshwater-pearl",
       "freshwater-pearls",
@@ -1479,7 +1465,6 @@ export const PRODUCTS: Product[] = [
     "occasionVibe": "Statement",
     "category": "earrings",
     "subcategory": "earrings",
-    "silhouette": "light",
     "materials": [
       "cubic-zirconia",
       "sterling-silver-925"
@@ -1531,7 +1516,6 @@ export const PRODUCTS: Product[] = [
     "occasionVibe": "Statement",
     "category": "earrings",
     "subcategory": "earrings",
-    "silhouette": "light",
     "materials": [
       "cubic-zirconia",
       "sterling-silver-925"
@@ -1583,7 +1567,6 @@ export const PRODUCTS: Product[] = [
     "occasionVibe": "Minimalist",
     "category": "bracelets",
     "subcategory": "bracelets",
-    "silhouette": "light",
     "materials": [
       "cubic-zirconia",
       "sterling-silver-925"
@@ -1629,7 +1612,6 @@ export const PRODUCTS: Product[] = [
     "occasionVibe": "Everyday Wear",
     "category": "pearl",
     "subcategory": "necklaces",
-    "silhouette": "light",
     "materials": [
       "freshwater-pearl",
       "sterling-silver-925"
@@ -1675,7 +1657,6 @@ export const PRODUCTS: Product[] = [
     "occasionVibe": "Minimalist",
     "category": "necklaces",
     "subcategory": "necklaces",
-    "silhouette": "light",
     "materials": [
       "cubic-zirconia",
       "sterling-silver-925"
@@ -1722,7 +1703,6 @@ export const PRODUCTS: Product[] = [
     "occasionVibe": "Statement",
     "category": "earrings",
     "subcategory": "earrings",
-    "silhouette": "heavy",
     "materials": [
       "cubic-zirconia",
       "sterling-silver-925"
@@ -1775,7 +1755,6 @@ export const PRODUCTS: Product[] = [
     "occasionVibe": "Statement",
     "category": "earrings",
     "subcategory": "earrings",
-    "silhouette": "heavy",
     "materials": [
       "cubic-zirconia",
       "sterling-silver-925"
@@ -1828,7 +1807,6 @@ export const PRODUCTS: Product[] = [
     "occasionVibe": "Everyday Wear",
     "category": "earrings",
     "subcategory": "earrings",
-    "silhouette": "light",
     "materials": [
       "cubic-zirconia",
       "sterling-silver-925"
@@ -1874,7 +1852,6 @@ export const PRODUCTS: Product[] = [
     "occasionVibe": "Everyday Wear",
     "category": "moissanite",
     "subcategory": "rings",
-    "silhouette": "light",
     "materials": [
       "moissanite",
       "gold-plated-14k",
@@ -1930,7 +1907,6 @@ export const PRODUCTS: Product[] = [
     "occasionVibe": "Everyday Wear",
     "category": "moissanite",
     "subcategory": "earrings",
-    "silhouette": "light",
     "materials": [
       "moissanite",
       "gold-plated-14k",
@@ -1979,7 +1955,6 @@ export const PRODUCTS: Product[] = [
     "occasionVibe": "Minimalist",
     "category": "moissanite",
     "subcategory": "necklaces",
-    "silhouette": "light",
     "materials": [
       "moissanite",
       "gold-plated-14k",
@@ -2028,7 +2003,6 @@ export const PRODUCTS: Product[] = [
     "occasionVibe": "Statement",
     "category": "necklaces",
     "subcategory": "necklaces",
-    "silhouette": "light",
     "materials": [
       "cubic-zirconia",
       "gold-plated-14k",

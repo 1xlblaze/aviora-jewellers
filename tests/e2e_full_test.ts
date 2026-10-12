@@ -140,7 +140,7 @@ async function runFullE2ETest() {
   let prohibitedHallmarkCount = 0;
   let prohibitedWaterproofCount = 0;
   let validWarrantyCount = 0;
-  let validSilhouetteCount = 0;
+  let explicitSilhouetteCount = 0;
   let gold14kCount = 0;
   let prohibitedWhitishCount = 0;
   let champagneGoldCount = 0;
@@ -162,8 +162,8 @@ async function runFullE2ETest() {
     if (product.warranty.includes('30-Day Manufacturing Warranty')) {
       validWarrantyCount++;
     }
-    if (product.silhouette === 'light' || product.silhouette === 'heavy') {
-      validSilhouetteCount++;
+    if (product.silhouette) {
+      explicitSilhouetteCount++;
     }
     if (product.colorTone === '14K Gold') {
       if (product.metalColorHex === '#EDE7DC') {
@@ -177,7 +177,7 @@ async function runFullE2ETest() {
   assert(prohibitedWhitishCount === 0, 'Zero occurrences of deprecated word "whitish" across all products (migrated to 14K Gold)', '0 found');
   assert(champagneGoldCount === 0, 'Zero occurrences of deprecated Champagne Gold (all migrated to 14K Gold)', '0 found');
   assert(validWarrantyCount === PRODUCTS.length, 'All pieces carry authentic 30-Day Manufacturing Warranty');
-  assert(validSilhouetteCount === PRODUCTS.length, 'All pieces categorized into Light/Heavy aesthetic silhouettes without gram weights');
+  assert(explicitSilhouetteCount === 0, 'Silhouette completely removed from product tagging and schemas', '0 found');
   assert(gold14kCount >= 8, `All ${gold14kCount} gold creations feature 14K Gold tone (#EDE7DC)`, `${gold14kCount} verified`);
 
   assert(PRODUCTS.length === 26, `Catalog contains exactly 26 genuine fine jewellery artworks from PDFs`, `26/26 verified`);
