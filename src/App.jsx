@@ -4650,68 +4650,6 @@ function ProductView() {
                 </div>
               </div>
             </div>
-
-            {/* Accordions */}
-            <div className="border-t border-[var(--border-subtle)] divide-y divide-[var(--border-subtle)] pt-2 text-xs font-mono">
-              {/* PRD MANDATORY ACCORDION: Why We Cast in 14K Gold */}
-              <div className="py-4">
-                <button
-                  onClick={() => toggleAccordion('why-14k')}
-                  className="w-full flex justify-between items-center text-left text-[var(--text-primary)] hover:text-[#b99762] dark:hover:text-[#e6ca97] transition-colors"
-                >
-                  <span className="tracking-[0.2em] uppercase font-bold text-[#b99762] dark:text-[#e6ca97] flex items-center gap-2">
-                    <Sparkles className="w-3.5 h-3.5" />
-                    Why We Cast in 14K Gold
-                  </span>
-                  <ChevronDown
-                    className={`w-4 h-4 transition-transform duration-300 ${
-                      activeAccordion === 'why-14k' ? 'rotate-180 text-[#b99762] dark:text-[#e6ca97]' : ''
-                    }`}
-                  />
-                </button>
-                {activeAccordion === 'why-14k' && (
-                  <div className="text-[var(--text-secondary)] pt-3 space-y-3 leading-relaxed">
-                    <p className="font-serif italic text-sm text-[var(--text-primary)] border-l-2 border-[#b99762] pl-3 py-1">
-                      &ldquo;{WHY_14K_GOLD_COPY.body}&rdquo;
-                    </p>
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-1">
-                      {WHY_14K_GOLD_COPY.pillars.map((pil) => (
-                        <div key={pil.label} className="p-2.5 bg-[var(--bg-secondary)] border border-[var(--border-subtle)]">
-                          <span className="text-[10px] font-mono text-[#b99762] dark:text-[#e6ca97] block font-bold">
-                            {pil.label}
-                          </span>
-                          <span className="text-[9px] font-mono text-[var(--text-secondary)] block mt-0.5">
-                            {pil.desc}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Materiality */}
-              <div className="py-4">
-                <button
-                  onClick={() => toggleAccordion('materiality')}
-                  className="w-full flex justify-between items-center text-left text-[var(--text-primary)] hover:text-[#b99762] dark:hover:text-[#e6ca97] transition-colors"
-                >
-                  <span className="tracking-[0.2em] uppercase">Materiality & Specifications</span>
-                  <ChevronDown
-                    className={`w-4 h-4 transition-transform duration-300 ${
-                      activeAccordion === 'materiality' ? 'rotate-180 text-[#b99762] dark:text-[#e6ca97]' : ''
-                    }`}
-                  />
-                </button>
-                {activeAccordion === 'materiality' && (
-                  <div className="text-[var(--text-secondary)] pt-3 space-y-2 leading-relaxed">
-                    <p><strong className="text-[var(--text-primary)]">Alloy:</strong> {product.material}</p>
-                    <p><strong className="text-[var(--text-primary)]">Purity:</strong> {product.goldPurity}</p>
-                    <p><strong className="text-[var(--text-primary)]">Material Assurance:</strong> Fine 925 Sterling Silver</p>
-                  </div>
-                )}
-              </div>
-            </div>
           </div>
         </div>
       </div>
