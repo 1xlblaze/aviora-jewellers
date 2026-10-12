@@ -304,14 +304,16 @@ function AppProvider({ children }) {
                 ...p,
                 name,
                 description,
-                category: canonical.category,
-                subcategory: canonical.subcategory,
-                colorTone: canonical.colorTone || p.colorTone,
-                colour: canonical.colour || p.colour,
+                category: p.category || canonical.category,
+                categorySlug: p.categorySlug || canonical.categorySlug,
+                subcategory: p.subcategory !== undefined ? p.subcategory : canonical.subcategory,
+                colorTone: p.colorTone || canonical.colorTone,
+                colour: p.colour || canonical.colour,
                 images: hasCustomImages ? p.images : (canonical.images || []),
                 modelImage: p.modelImage || (hasCustomImages ? p.images[0] : canonical.modelImage),
-                collections: canonical.collections,
-                tags: canonical.tags,
+                collections: Array.isArray(p.collections) ? p.collections : (canonical.collections || []),
+                tags: Array.isArray(p.tags) ? p.tags : (canonical.tags || []),
+                isNew: p.isNew !== undefined ? p.isNew : canonical.isNew,
               };
             }
             // Retain newly added custom products
@@ -583,8 +585,12 @@ function AppProvider({ children }) {
                 description,
                 images: hasRemoteImages ? p.images : (canonical.images || []),
                 modelImage: p.modelImage || (hasRemoteImages ? p.images[0] : canonical.modelImage),
-                collections: Array.isArray(p.collections) && p.collections.length > 0 ? Array.from(new Set([...p.collections, ...(canonical.collections || [])])) : (canonical.collections || []),
-                tags: Array.isArray(p.tags) && p.tags.length > 0 ? Array.from(new Set([...p.tags, ...(canonical.tags || [])])) : (canonical.tags || []),
+                category: p.category || canonical.category,
+                categorySlug: p.categorySlug || canonical.categorySlug,
+                subcategory: p.subcategory !== undefined ? p.subcategory : canonical.subcategory,
+                collections: Array.isArray(p.collections) ? p.collections : (canonical.collections || []),
+                tags: Array.isArray(p.tags) ? p.tags : (canonical.tags || []),
+                isNew: p.isNew !== undefined ? p.isNew : canonical.isNew,
               };
             }
             return p;
@@ -3286,8 +3292,7 @@ function ShopView() {
             p.categorySlug === 'minimalist' ||
             (Array.isArray(p.collections) && p.collections.includes('minimalist')) ||
             (Array.isArray(p.tags) && p.tags.includes('minimalist')) ||
-            p.occasionVibe === 'Minimalist' ||
-            (p.occasionVibe === 'Everyday Wear' && !(Array.isArray(p.collections) && p.collections.includes('statement')))
+            p.occasionVibe === 'Minimalist'
         );
       } else if (selectedCategory === 'statement') {
         list = list.filter(
@@ -3303,18 +3308,16 @@ function ShopView() {
           (p) =>
             p.category === 'moissanite' ||
             p.categorySlug === 'moissanite' ||
-            p.materials?.includes('moissanite') ||
-            p.collections?.includes('moissanite') ||
-            p.name.toLowerCase().includes('moissanite')
+            (Array.isArray(p.collections) && p.collections.includes('moissanite')) ||
+            (Array.isArray(p.tags) && p.tags.includes('moissanite'))
         );
       } else if (selectedCategory === 'pearl') {
         list = list.filter(
           (p) =>
             p.category === 'pearl' ||
             p.categorySlug === 'pearl' ||
-            p.materials?.includes('freshwater-pearls') ||
-            p.collections?.includes('pearl') ||
-            p.name.toLowerCase().includes('pearl')
+            (Array.isArray(p.collections) && p.collections.includes('pearl')) ||
+            (Array.isArray(p.tags) && (p.tags.includes('pearl') || p.tags.includes('freshwater-pearls')))
         );
       } else if (selectedCategory === 'gifting') {
         list = list.filter(
@@ -3322,7 +3325,7 @@ function ShopView() {
             p.category === 'gifting' ||
             p.categorySlug === 'gifting' ||
             (Array.isArray(p.collections) && p.collections.includes('gifting')) ||
-            (Array.isArray(p.tags) && p.tags.includes('gifting')) ||
+            (Array.isArray(p.tags) && (p.tags.includes('gifting') || p.tags.includes('rakhi') || p.tags.includes('birthday') || p.tags.includes('anniversary') || p.tags.includes('bridesmaid'))) ||
             p.occasionVibe === 'Gifting'
         );
       } else {
@@ -3372,8 +3375,7 @@ function ShopView() {
             p.categorySlug === 'minimalist' ||
             (Array.isArray(p.collections) && p.collections.includes('minimalist')) ||
             (Array.isArray(p.tags) && p.tags.includes('minimalist')) ||
-            p.occasionVibe === 'Minimalist' ||
-            (p.occasionVibe === 'Everyday Wear' && !(Array.isArray(p.collections) && p.collections.includes('statement')))
+            p.occasionVibe === 'Minimalist'
         );
       } else if (selectedCollection === 'statement') {
         list = list.filter(
@@ -3385,11 +3387,28 @@ function ShopView() {
             p.occasionVibe === 'Statement'
         );
       } else if (selectedCollection === 'moissanite') {
-        list = list.filter((p) => p.collections?.includes('moissanite') || p.category === 'moissanite' || p.materials?.includes('moissanite') || p.name.toLowerCase().includes('moissanite'));
+        list = list.filter(
+          (p) =>
+            p.category === 'moissanite' ||
+            p.categorySlug === 'moissanite' ||
+            (Array.isArray(p.collections) && p.collections.includes('moissanite')) ||
+            (Array.isArray(p.tags) && p.tags.includes('moissanite'))
+        );
       } else if (selectedCollection === 'pearl') {
-        list = list.filter((p) => p.collections?.includes('pearl') || p.category === 'pearl' || p.materials?.includes('freshwater-pearls') || p.name.toLowerCase().includes('pearl'));
+        list = list.filter(
+          (p) =>
+            p.category === 'pearl' ||
+            p.categorySlug === 'pearl' ||
+            (Array.isArray(p.collections) && p.collections.includes('pearl')) ||
+            (Array.isArray(p.tags) && (p.tags.includes('pearl') || p.tags.includes('freshwater-pearls')))
+        );
       } else {
-        list = list.filter((p) => p.collections?.includes(selectedCollection));
+        list = list.filter(
+          (p) =>
+            (Array.isArray(p.collections) && p.collections.includes(selectedCollection)) ||
+            (Array.isArray(p.tags) && p.tags.includes(selectedCollection)) ||
+            p.category === selectedCollection
+        );
       }
     }
 
@@ -7664,6 +7683,32 @@ function AdminView() {
           (Array.isArray(p.tags) && p.tags.includes('minimalist')) ||
           p.occasionVibe === 'Minimalist'
         )) return true;
+        if (filterCategory === 'moissanite' && (
+          p.category === 'moissanite' ||
+          p.categorySlug === 'moissanite' ||
+          (Array.isArray(p.collections) && p.collections.includes('moissanite')) ||
+          (Array.isArray(p.tags) && p.tags.includes('moissanite'))
+        )) return true;
+        if (filterCategory === 'pearl' && (
+          p.category === 'pearl' ||
+          p.categorySlug === 'pearl' ||
+          (Array.isArray(p.collections) && p.collections.includes('pearl')) ||
+          (Array.isArray(p.tags) && (p.tags.includes('pearl') || p.tags.includes('freshwater-pearls')))
+        )) return true;
+        if (filterCategory === 'new-arrivals' && (
+          p.isNew ||
+          p.category === 'new-arrivals' ||
+          p.categorySlug === 'new-arrivals' ||
+          (Array.isArray(p.collections) && (p.collections.includes('new-arrivals') || p.collections.includes('new'))) ||
+          (Array.isArray(p.tags) && (p.tags.includes('new') || p.tags.includes('new-arrivals')))
+        )) return true;
+        if (filterCategory === 'gifting' && (
+          p.category === 'gifting' ||
+          p.categorySlug === 'gifting' ||
+          (Array.isArray(p.collections) && p.collections.includes('gifting')) ||
+          (Array.isArray(p.tags) && p.tags.includes('gifting')) ||
+          p.occasionVibe === 'Gifting'
+        )) return true;
         if (filterCategory === 'earrings' && (p.subcategory === 'earrings' || p.categorySlug?.includes('ear') || p.name?.toLowerCase().includes('earring'))) return true;
         if (filterCategory === 'necklaces' && (p.subcategory === 'necklaces' || p.categorySlug?.includes('choker') || p.categorySlug?.includes('hasli') || p.name?.toLowerCase().includes('necklace') || p.name?.toLowerCase().includes('chain') || p.name?.toLowerCase().includes('pendant'))) return true;
         if (filterCategory === 'bracelets' && (p.subcategory === 'bracelets' || p.categorySlug?.includes('kada') || p.categorySlug?.includes('bangle') || p.name?.toLowerCase().includes('bracelet') || p.name?.toLowerCase().includes('kada'))) return true;
@@ -7677,6 +7722,7 @@ function AdminView() {
     if (filterCollection !== 'all') {
       list = list.filter((p) => {
         if (Array.isArray(p.collections) && p.collections.includes(filterCollection)) return true;
+        if (Array.isArray(p.tags) && p.tags.includes(filterCollection)) return true;
         if (p.category === filterCollection) return true;
         if (filterCollection === 'new-arrivals' && p.isNew) return true;
         return false;
@@ -8177,7 +8223,7 @@ function AdminView() {
                           Category:
                         </span>
                         <select
-                          value={product.category || 'minimalist'}
+                          value={product.category || (Array.isArray(product.collections) && product.collections.includes('statement') ? 'statement' : 'minimalist')}
                           onChange={(e) => {
                             const newCat = e.target.value;
                             const slugMap = {
@@ -8188,9 +8234,29 @@ function AdminView() {
                               'new-arrivals': 'latest-launches',
                               'gifting': 'occasions-gifting',
                             };
+                            const curCols = Array.isArray(product.collections) ? [...product.collections] : [];
+                            const curTags = Array.isArray(product.tags) ? [...product.tags] : [];
+
+                            let nextCols = curCols;
+                            let nextTags = curTags;
+
+                            if (newCat === 'statement') {
+                              nextCols = nextCols.filter((c) => c !== 'minimalist');
+                              nextTags = nextTags.filter((t) => t !== 'minimalist');
+                            } else if (newCat === 'minimalist') {
+                              nextCols = nextCols.filter((c) => c !== 'statement');
+                              nextTags = nextTags.filter((t) => t !== 'statement');
+                            }
+
+                            if (!nextCols.includes(newCat)) nextCols = [...nextCols, newCat];
+                            if (!nextTags.includes(newCat)) nextTags = [...nextTags, newCat];
+
                             adminUpdateProduct(product.id, {
                               category: newCat,
                               categorySlug: slugMap[newCat] || newCat,
+                              collections: nextCols,
+                              tags: nextTags,
+                              ...(newCat === 'new-arrivals' ? { isNew: true } : {}),
                             });
                           }}
                           className="h-6 px-2 bg-[var(--bg-primary)] border border-[var(--border-strong)] text-[10px] font-sans text-[var(--text-primary)] outline-none flex-1 max-w-[180px]"
@@ -8217,11 +8283,68 @@ function AdminView() {
                                 key={colKey}
                                 type="button"
                                 onClick={() => {
-                                  const cur = Array.isArray(product.collections) ? [...product.collections] : [];
-                                  const next = isTagged ? cur.filter((c) => c !== colKey) : [...cur, colKey];
+                                  const curCols = Array.isArray(product.collections) ? [...product.collections] : [];
+                                  const curTags = Array.isArray(product.tags) ? [...product.tags] : [];
+
+                                  let nextCols;
+                                  let nextTags;
+                                  let newCat = product.category;
+                                  let newCatSlug = product.categorySlug;
+
+                                  const slugMap = {
+                                    'minimalist': 'minimalist-jewellery',
+                                    'statement': 'statement-jewellery',
+                                    'moissanite': 'moissanite-collection',
+                                    'pearl': 'freshwater-pearl-jewellery',
+                                    'new-arrivals': 'latest-launches',
+                                    'gifting': 'occasions-gifting',
+                                  };
+
+                                  if (isTagged) {
+                                    nextCols = curCols.filter((c) => c !== colKey);
+                                    nextTags = curTags.filter((t) => t !== colKey);
+
+                                    // If untagged the currently assigned category, update category so it doesn't linger
+                                    if (product.category === colKey) {
+                                      if (colKey === 'statement') {
+                                        newCat = 'minimalist';
+                                        newCatSlug = 'minimalist-jewellery';
+                                        if (!nextCols.includes('minimalist')) nextCols.push('minimalist');
+                                        if (!nextTags.includes('minimalist')) nextTags.push('minimalist');
+                                      } else if (colKey === 'minimalist') {
+                                        newCat = 'statement';
+                                        newCatSlug = 'statement-jewellery';
+                                        if (!nextCols.includes('statement')) nextCols.push('statement');
+                                        if (!nextTags.includes('statement')) nextTags.push('statement');
+                                      } else {
+                                        const remainingPrimary = nextCols.find((c) => ['minimalist', 'statement', 'moissanite', 'pearl', 'gifting', 'new-arrivals'].includes(c));
+                                        newCat = remainingPrimary || product.subcategory || 'minimalist';
+                                        newCatSlug = slugMap[newCat] || newCat;
+                                      }
+                                    }
+                                  } else {
+                                    nextCols = [...curCols, colKey];
+                                    nextTags = [...curTags, colKey];
+
+                                    if (colKey === 'statement') {
+                                      nextCols = nextCols.filter((c) => c !== 'minimalist');
+                                      nextTags = nextTags.filter((t) => t !== 'minimalist');
+                                      newCat = 'statement';
+                                      newCatSlug = 'statement-jewellery';
+                                    } else if (colKey === 'minimalist') {
+                                      nextCols = nextCols.filter((c) => c !== 'statement');
+                                      nextTags = nextTags.filter((t) => t !== 'statement');
+                                      newCat = 'minimalist';
+                                      newCatSlug = 'minimalist-jewellery';
+                                    }
+                                  }
+
                                   const isNewUpdate = colKey === 'new-arrivals' ? !isTagged : undefined;
                                   adminUpdateProduct(product.id, {
-                                    collections: next,
+                                    category: newCat,
+                                    categorySlug: newCatSlug,
+                                    collections: nextCols,
+                                    tags: nextTags,
                                     ...(isNewUpdate !== undefined ? { isNew: isNewUpdate } : {}),
                                   });
                                 }}
@@ -8251,10 +8374,12 @@ function AdminView() {
                                   <button
                                     type="button"
                                     onClick={() => {
-                                      const next = product.collections.filter((c) => c !== customTag);
+                                      const nextCols = (product.collections || []).filter((c) => c !== customTag);
+                                      const nextTags = (product.tags || []).filter((t) => t !== customTag);
                                       const isNewVal = (customTag === 'new' || customTag === 'new-arrivals') ? false : undefined;
                                       adminUpdateProduct(product.id, {
-                                        collections: next,
+                                        collections: nextCols,
+                                        tags: nextTags,
                                         ...(isNewVal !== undefined ? { isNew: isNewVal } : {}),
                                       });
                                     }}
@@ -8278,15 +8403,17 @@ function AdminView() {
                                 e.preventDefault();
                                 const rawTag = (customTagInputs[product.id] || '').trim().toLowerCase().replace(/\s+/g, '-');
                                 if (rawTag) {
-                                  const cur = Array.isArray(product.collections) ? [...product.collections] : [];
-                                  if (!cur.includes(rawTag)) {
-                                    const isNewVal = (rawTag === 'new' || rawTag === 'new-arrivals' || rawTag === 'new-arrival') ? true : undefined;
-                                    adminUpdateProduct(product.id, {
-                                      collections: [...cur, rawTag],
-                                      ...(isNewVal !== undefined ? { isNew: isNewVal } : {}),
-                                    });
-                                    showToast(`✓ Tagged with #${rawTag}`);
-                                  }
+                                  const curCols = Array.isArray(product.collections) ? [...product.collections] : [];
+                                  const curTags = Array.isArray(product.tags) ? [...product.tags] : [];
+                                  const nextCols = curCols.includes(rawTag) ? curCols : [...curCols, rawTag];
+                                  const nextTags = curTags.includes(rawTag) ? curTags : [...curTags, rawTag];
+                                  const isNewVal = (rawTag === 'new' || rawTag === 'new-arrivals' || rawTag === 'new-arrival') ? true : undefined;
+                                  adminUpdateProduct(product.id, {
+                                    collections: nextCols,
+                                    tags: nextTags,
+                                    ...(isNewVal !== undefined ? { isNew: isNewVal } : {}),
+                                  });
+                                  showToast(`✓ Tagged with #${rawTag}`);
                                   setCustomTagInputs({ ...customTagInputs, [product.id]: '' });
                                 }
                               }
@@ -8298,15 +8425,17 @@ function AdminView() {
                             onClick={() => {
                               const rawTag = (customTagInputs[product.id] || '').trim().toLowerCase().replace(/\s+/g, '-');
                               if (rawTag) {
-                                const cur = Array.isArray(product.collections) ? [...product.collections] : [];
-                                if (!cur.includes(rawTag)) {
-                                  const isNewVal = (rawTag === 'new' || rawTag === 'new-arrivals' || rawTag === 'new-arrival') ? true : undefined;
-                                  adminUpdateProduct(product.id, {
-                                    collections: [...cur, rawTag],
-                                    ...(isNewVal !== undefined ? { isNew: isNewVal } : {}),
-                                  });
-                                  showToast(`✓ Tagged with #${rawTag}`);
-                                }
+                                const curCols = Array.isArray(product.collections) ? [...product.collections] : [];
+                                const curTags = Array.isArray(product.tags) ? [...product.tags] : [];
+                                const nextCols = curCols.includes(rawTag) ? curCols : [...curCols, rawTag];
+                                const nextTags = curTags.includes(rawTag) ? curTags : [...curTags, rawTag];
+                                const isNewVal = (rawTag === 'new' || rawTag === 'new-arrivals' || rawTag === 'new-arrival') ? true : undefined;
+                                adminUpdateProduct(product.id, {
+                                  collections: nextCols,
+                                  tags: nextTags,
+                                  ...(isNewVal !== undefined ? { isNew: isNewVal } : {}),
+                                });
+                                showToast(`✓ Tagged with #${rawTag}`);
                                 setCustomTagInputs({ ...customTagInputs, [product.id]: '' });
                               }
                             }}
@@ -9931,7 +10060,7 @@ function AdminView() {
                   Category
                 </label>
                 <select
-                  value={editingProduct.category || 'minimalist'}
+                  value={editingProduct.category || (Array.isArray(editingProduct.collections) && editingProduct.collections.includes('statement') ? 'statement' : 'minimalist')}
                   onChange={(e) => {
                     const newCat = e.target.value;
                     const slugMap = {
@@ -9942,10 +10071,30 @@ function AdminView() {
                       'new-arrivals': 'latest-launches',
                       'gifting': 'occasions-gifting',
                     };
+                    const curCols = Array.isArray(editingProduct.collections) ? [...editingProduct.collections] : [];
+                    const curTags = Array.isArray(editingProduct.tags) ? [...editingProduct.tags] : [];
+
+                    let nextCols = curCols;
+                    let nextTags = curTags;
+
+                    if (newCat === 'statement') {
+                      nextCols = nextCols.filter((c) => c !== 'minimalist');
+                      nextTags = nextTags.filter((t) => t !== 'minimalist');
+                    } else if (newCat === 'minimalist') {
+                      nextCols = nextCols.filter((c) => c !== 'statement');
+                      nextTags = nextTags.filter((t) => t !== 'statement');
+                    }
+
+                    if (!nextCols.includes(newCat)) nextCols = [...nextCols, newCat];
+                    if (!nextTags.includes(newCat)) nextTags = [...nextTags, newCat];
+
                     setEditingProduct({
                       ...editingProduct,
                       category: newCat,
                       categorySlug: slugMap[newCat] || newCat,
+                      collections: nextCols,
+                      tags: nextTags,
+                      ...(newCat === 'new-arrivals' ? { isNew: true } : {}),
                     });
                   }}
                   className="w-full h-10 px-3 bg-[var(--bg-primary)] border border-[var(--border-strong)] text-[var(--text-primary)] outline-none cursor-pointer"
@@ -9979,11 +10128,67 @@ function AdminView() {
                         key={col.id}
                         type="button"
                         onClick={() => {
-                          const cur = Array.isArray(editingProduct.collections) ? [...editingProduct.collections] : [];
-                          const next = isTagged ? cur.filter((c) => c !== col.id) : [...cur, col.id];
+                          const curCols = Array.isArray(editingProduct.collections) ? [...editingProduct.collections] : [];
+                          const curTags = Array.isArray(editingProduct.tags) ? [...editingProduct.tags] : [];
+
+                          let nextCols;
+                          let nextTags;
+                          let newCat = editingProduct.category;
+                          let newCatSlug = editingProduct.categorySlug;
+
+                          const slugMap = {
+                            'minimalist': 'minimalist-jewellery',
+                            'statement': 'statement-jewellery',
+                            'moissanite': 'moissanite-collection',
+                            'pearl': 'freshwater-pearl-jewellery',
+                            'new-arrivals': 'latest-launches',
+                            'gifting': 'occasions-gifting',
+                          };
+
+                          if (isTagged) {
+                            nextCols = curCols.filter((c) => c !== col.id);
+                            nextTags = curTags.filter((t) => t !== col.id);
+
+                            if (editingProduct.category === col.id) {
+                              if (col.id === 'statement') {
+                                newCat = 'minimalist';
+                                newCatSlug = 'minimalist-jewellery';
+                                if (!nextCols.includes('minimalist')) nextCols.push('minimalist');
+                                if (!nextTags.includes('minimalist')) nextTags.push('minimalist');
+                              } else if (col.id === 'minimalist') {
+                                newCat = 'statement';
+                                newCatSlug = 'statement-jewellery';
+                                if (!nextCols.includes('statement')) nextCols.push('statement');
+                                if (!nextTags.includes('statement')) nextTags.push('statement');
+                              } else {
+                                const remainingPrimary = nextCols.find((c) => ['minimalist', 'statement', 'moissanite', 'pearl', 'gifting', 'new-arrivals'].includes(c));
+                                newCat = remainingPrimary || editingProduct.subcategory || 'minimalist';
+                                newCatSlug = slugMap[newCat] || newCat;
+                              }
+                            }
+                          } else {
+                            nextCols = [...curCols, col.id];
+                            nextTags = [...curTags, col.id];
+
+                            if (col.id === 'statement') {
+                              nextCols = nextCols.filter((c) => c !== 'minimalist');
+                              nextTags = nextTags.filter((t) => t !== 'minimalist');
+                              newCat = 'statement';
+                              newCatSlug = 'statement-jewellery';
+                            } else if (col.id === 'minimalist') {
+                              nextCols = nextCols.filter((c) => c !== 'statement');
+                              nextTags = nextTags.filter((t) => t !== 'statement');
+                              newCat = 'minimalist';
+                              newCatSlug = 'minimalist-jewellery';
+                            }
+                          }
+
                           setEditingProduct({
                             ...editingProduct,
-                            collections: next,
+                            category: newCat,
+                            categorySlug: newCatSlug,
+                            collections: nextCols,
+                            tags: nextTags,
                             ...(col.id === 'new-arrivals' ? { isNew: !isTagged } : {}),
                           });
                         }}
@@ -10027,15 +10232,29 @@ function AdminView() {
                         key={tag.id}
                         type="button"
                         onClick={() => {
-                          const cur = Array.isArray(editingProduct.tags) ? [...editingProduct.tags] : [];
-                          const next = isTagged ? cur.filter((t) => t !== tag.id) : [...cur, tag.id];
+                          const curTags = Array.isArray(editingProduct.tags) ? [...editingProduct.tags] : [];
+                          const curCols = Array.isArray(editingProduct.collections) ? [...editingProduct.collections] : [];
+                          const nextTags = isTagged ? curTags.filter((t) => t !== tag.id) : [...curTags, tag.id];
+                          const nextCols = isTagged ? curCols.filter((c) => c !== tag.id) : curCols;
+
+                          const typeTags = ['necklaces', 'earrings', 'rings', 'bracelets', 'anklets'];
+                          let newSub = editingProduct.subcategory;
+                          if (isTagged) {
+                            if (editingProduct.subcategory === tag.id) {
+                              newSub = nextTags.find((t) => typeTags.includes(t)) || '';
+                            }
+                          } else {
+                            if (typeTags.includes(tag.id)) {
+                              newSub = tag.id;
+                            }
+                          }
+
                           setEditingProduct({
                             ...editingProduct,
-                            tags: next,
+                            tags: nextTags,
+                            collections: nextCols,
+                            subcategory: newSub,
                             ...(tag.id === 'new' ? { isNew: !isTagged } : {}),
-                            subcategory: ['necklaces', 'earrings', 'rings', 'bracelets', 'anklets'].includes(tag.id) && !isTagged
-                              ? tag.id
-                              : editingProduct.subcategory,
                           });
                         }}
                         className={`px-2.5 py-1 text-[10.5px] font-mono uppercase rounded transition-colors cursor-pointer ${
