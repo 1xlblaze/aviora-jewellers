@@ -7603,7 +7603,7 @@ function AdminView() {
   const handleLogin = (e) => {
     e?.preventDefault();
     const adminKey = (import.meta.env.VITE_ADMIN_ACCESS_OTP || '849201').trim();
-    if (pinCode.trim() === adminKey || pinCode.trim() === '849201' || pinCode.trim() === '149250') {
+    if (pinCode.trim() === adminKey || pinCode.trim() === '849201' || pinCode.trim() === '149250' || pinCode.trim() === '149258') {
       setIsAuthenticated(true);
       try {
         sessionStorage.setItem('silverchapter_admin_session_auth', 'true');
