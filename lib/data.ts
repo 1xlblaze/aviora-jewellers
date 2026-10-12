@@ -114,11 +114,11 @@ export function saveFeatureFlags(flags: Partial<FeatureFlags>): void {
 
 export const STORE_CONFIG = {
   brand: {
-    name: 'AVIORA',
-    tagline: 'TIMELESS ELEGANCE, MADE FOR YOU',
-    instagram: '@aviora_jewells',
-    instagramUrl: 'https://www.instagram.com/aviora_jewells/',
-    email: 'support@aviorajewells.com',
+    name: 'A SILVER CHAPTER',
+    tagline: 'TIMELESS ELEGANCE IN EVERY CHAPTER',
+    instagram: '@asilverchapter',
+    instagramUrl: 'https://www.instagram.com/asilverchapter/',
+    email: 'asilverchaptersupport@gmail.com',
     whatsapp: '+91 8796841184',
     hours: 'Monday – Saturday, 10:00 AM – 7:00 PM (IST)',
   },
@@ -127,25 +127,25 @@ export const STORE_CONFIG = {
     label: 'INR (₹)',
     locale: 'en-IN',
   },
-  announcement: '✦ TIMELESS JEWELLERY, MADE FOR YOU • FINE 925 STERLING SILVER & 14K/18K GOLD • PAN-INDIA DELIVERY ✦',
+  announcement: '✦ TIMELESS JEWELLERY IN EVERY CHAPTER • FINE 925 STERLING SILVER & 14K/18K GOLD • PAN-INDIA DELIVERY ✦',
   hero: {
-    eyebrow: 'THE AVIORA EDIT',
-    title: 'Timeless elegance, made for you.',
+    eyebrow: 'THE SILVER CHAPTER EDIT',
+    title: 'Timeless elegance in every chapter.',
     body: 'Delicate jewellery designed to be worn and treasured every day. Crafted in Fine 925 Sterling Silver, 14K/18K Gold-Plated Vermeil, Brilliant Moissanite, and Freshwater Pearls.',
-    image: '/products/14k-gold-plated-double-layer-necklace-4200-1.jpg',
-    alt: 'Aviora luxury fine jewellery editorial photography',
+    image: '/products/moissanite-rhodium-tennis-bracelet-11690-1.jpg',
+    alt: 'A Silver Chapter fine jewellery mastercraft tennis bracelet',
   },
   editorial: {
     title: 'Made to become yours.',
     body: 'Discover pieces that bring effortless elegance to everyday moments and meaningful occasions.',
-    image: '/products/14k-gold-plated-heart-petal-floral-necklace-1.jpg',
-    alt: 'Aviora fine jewellery on neutral stone backdrop',
+    image: '/customer/customer-tennis-wrist.jpg',
+    alt: 'A Silver Chapter handcrafted 925 silver tennis bracelets',
   },
   categories: [
-    { id: 'new-arrivals', label: 'New Arrivals', image: '/products/14k-gold-plated-double-layer-necklace-3828-2.jpg', alt: 'New arrivals latest launches' },
-    { id: 'minimalist', label: 'Minimalist Jewellery', image: '/products/14k-gold-plated-heart-petal-floral-necklace-1.jpg', alt: 'Minimalist delicate jewellery' },
-    { id: 'statement', label: 'Statement Jewellery', image: '/products/ruby-cluster-drop-earrings-1.jpg', alt: 'Bold statement jewellery' },
-    { id: 'moissanite', label: 'Moissanite Collection', image: '/products/14k-gold-plated-vvs-moissanite-ring-5300-1.jpg', alt: 'Brilliant moissanite jewellery' },
+    { id: 'new-arrivals', label: 'New Arrivals', image: '/customer/customer-pear-bracelet.jpg', alt: 'New arrivals fine jewellery' },
+    { id: 'minimalist', label: 'Minimalist Jewellery', image: '/customer/customer-heart-set.jpg', alt: 'Minimalist delicate jewellery' },
+    { id: 'statement', label: 'Statement Jewellery', image: '/customer/customer-ruby-earrings.jpg', alt: 'Bold statement jewellery' },
+    { id: 'moissanite', label: 'Moissanite Collection', image: '/customer/customer-rings-stack.jpg', alt: 'Brilliant moissanite jewellery' },
     { id: 'pearl', label: 'Pearl Collection', image: '/products/14k-gold-double-layer-freshwater-pearl-necklace-1.jpg', alt: 'Freshwater pearl jewellery' },
     { id: 'gifting', label: 'Gifting Occasions', image: '/products/mop-freshwater-pearl-clover-bracelet-1.jpg', alt: 'Gifting jewellery heirlooms' },
   ],
@@ -160,7 +160,7 @@ export const STORE_CONFIG = {
   gifting: {
     title: 'Handcrafted with devotion. Made to be cherished.',
     image: '/products/emerald-green-white-cz-tennis-bracelet-1.jpg',
-    alt: 'Aviora Atelier fine jewellery craftsmanship',
+    alt: 'A Silver Chapter Atelier fine jewellery craftsmanship',
   },
   materials: [
     { id: 'sterling-silver-925', label: '925 Sterling Silver', desc: 'Solid 925 sterling silver crafted for timeless durability and lustrous finish.', image: '/products/moissanite-rhodium-tennis-bracelet-11690-1.jpg' },
@@ -182,26 +182,26 @@ export const STORE_CONFIG = {
 export const OUR_STORY = {
   title: 'Our Story',
   subtitle: 'The Atelier Manifesto • A Philosophy of Enduring Beauty',
-  body: 'AVIORA was created with one vision — to bring timeless, elegant jewellery that feels luxurious yet wearable every day. Our collections feature carefully selected pieces crafted from 925 Sterling Silver, 14K Gold-Plated Sterling Silver, Moissanite, Freshwater Pearls, and other premium materials mentioned on individual product pages. Every design is chosen for elegance, craftsmanship, and comfort.',
+  body: 'A SILVER CHAPTER was created with one vision — to bring timeless, elegant jewellery that feels luxurious yet wearable every day. Our collections feature carefully selected pieces crafted from 925 Sterling Silver, 14K Gold-Plated Sterling Silver, Moissanite, Freshwater Pearls, and other premium materials mentioned on individual product pages. Every design is chosen for elegance, craftsmanship, and comfort.',
   proclamation: 'We believe fine jewellery should never be imprisoned inside bank lockers or saved solely for distant galas. True luxury is designed to be lived in — catching morning light on your skin, stacking effortlessly across every ambition, and gathering the quiet poetry of personal memories.',
   manifestoChapters: [
     {
       numeral: 'I',
       title: 'The Founding Vision & Transparent Valuation',
       subtitle: 'Disrupting 10x Retail Markups',
-      text: 'For generations, traditional jewellery houses imposed 800% to 1000% retail markups on consumers to finance lavish high-street storefronts, legacy overhead, and celebrity campaigns. Aviora was established in 2024 to dismantle this paradigm. By operating directly from our artisan atelier in Delhi straight to our patrons, we deliver certified noble metals and stones with complete price transparency and honest metallurgical integrity.',
+      text: 'For generations, traditional jewellery houses imposed 800% to 1000% retail markups on consumers to finance lavish high-street storefronts, legacy overhead, and celebrity campaigns. A Silver Chapter was established in 2024 to dismantle this paradigm. By operating directly from our artisan atelier in Delhi straight to our customers, we deliver certified noble metals and stones with complete price transparency and honest metallurgical integrity.',
     },
     {
       numeral: 'II',
       title: 'The Noble Metallurgy & 14K Gold Vermeil Standard',
       subtitle: 'Fine 925 Silver & 14K Gold Vermeil',
-      text: 'Every Aviora creation begins with a solid foundation of Fine 925 Sterling Silver, renowned for its enduring strength and purity. For our gold creations, we developed our 14K Gold Vermeil (#EDE7DC) — a refined European tone crafted without yellow brass tints, nickel, or cheap copper alloys. It is 100% hypoallergenic, gentle against sensitive skin, and built for permanent beauty.',
+      text: 'Every A Silver Chapter creation begins with a solid foundation of Fine 925 Sterling Silver, renowned for its enduring strength and purity. For our gold creations, we developed our 14K Gold Vermeil (#EDE7DC) — a refined European tone crafted without yellow brass tints, nickel, or cheap copper alloys. It is 100% hypoallergenic, gentle against sensitive skin, and built for permanent beauty.',
     },
     {
       numeral: 'III',
       title: 'The Made-to-Order Atelier Rhythm',
       subtitle: '15–20 Days Dedicated Handcrafting',
-      text: 'We reject industrial assembly lines and mass plastic injection casting. When you commission a piece at Aviora, our master bench jewelers cast, file, bezel-set, and polish your jewellery individually over 15–20 business days. This slow, intentional craft ensures structural perfection, zero porosity, and stones that remain securely anchored for a lifetime.',
+      text: 'We reject industrial assembly lines and mass plastic injection casting. When you commission a piece at A Silver Chapter, our master bench jewelers cast, file, bezel-set, and polish your jewellery individually over 15–20 business days. This slow, intentional craft ensures structural perfection, zero porosity, and stones that remain securely anchored for a lifetime.',
     },
     {
       numeral: 'IV',
@@ -211,7 +211,7 @@ export const OUR_STORY = {
     },
     {
       numeral: 'V',
-      title: 'The Patron Covenant & Security',
+      title: 'The Customer Assurance & Security',
       subtitle: '30-Day Manufacturing Warranty & Wax-Sealed Transit',
       text: 'We stand 100% behind our creations with an authentic 30-Day Manufacturing Warranty against bench defects. Every commission is dispatched in tamper-evident wax-sealed packaging via Blue Dart Air Express with comprehensive transit insurance, backed by a dedicated 48-hour unboxing resolution protocol through our verified WhatsApp concierge.',
     },
@@ -234,7 +234,7 @@ export const BRAND_POLICIES = [
     sections: [
       {
         heading: 'Acceptance of Terms',
-        text: 'By accessing or purchasing from AVIORA, you agree to these Terms and Conditions.',
+        text: 'By accessing or purchasing from A SILVER CHAPTER, you agree to these Terms and Conditions.',
       },
       {
         heading: 'Product Information',
@@ -242,17 +242,17 @@ export const BRAND_POLICIES = [
       },
       {
         heading: 'Pricing',
-        text: 'Prices are displayed in INR. Prices include applicable taxes unless stated otherwise. AVIORA reserves the right to change prices without notice.',
+        text: 'Prices are displayed in INR. Prices include applicable taxes unless stated otherwise. A SILVER CHAPTER reserves the right to change prices without notice.',
       },
       {
         heading: 'Intellectual Property',
-        text: 'All photographs, videos, product descriptions, graphics, logos, and branding belong to AVIORA and may not be copied or reproduced without written permission.',
+        text: 'All photographs, videos, product descriptions, graphics, logos, and branding belong to A SILVER CHAPTER and may not be copied or reproduced without written permission.',
       },
     ],
   },
   {
     id: 'privacy-policy',
-    badge: 'Patron Discretion',
+    badge: 'Customer Privacy',
     title: 'Privacy Policy',
     sections: [
       {
@@ -276,7 +276,7 @@ export const BRAND_POLICIES = [
     sections: [
       {
         heading: 'Order Preparation (Made to Order)',
-        text: 'All AVIORA pieces are customised and made to order especially for you. Order preparation and production takes 15–20 business days from the date of successful payment confirmation. During festive seasons, launches, or high-demand periods, preparation time may be slightly longer. If there is a significant delay, we will inform you proactively.',
+        text: 'All A SILVER CHAPTER pieces are customised and made to order especially for you. Order preparation and production takes 15–20 business days from the date of successful payment confirmation. During festive seasons, launches, or high-demand periods, preparation time may be slightly longer. If there is a significant delay, we will inform you proactively.',
       },
       {
         heading: 'Shipping & Delivery',
@@ -288,7 +288,7 @@ export const BRAND_POLICIES = [
       },
       {
         heading: 'Made-To-Order Notice for Product Pages',
-        text: 'Every AVIORA piece is made especially for you. Kindly allow 15–20 business days for crafting and preparation, followed by 1–5 business days for insured shipping.',
+        text: 'Every A SILVER CHAPTER piece is made especially for you. Kindly allow 15–20 business days for crafting and preparation, followed by 1–5 business days for insured shipping.',
       },
     ],
   },
@@ -299,7 +299,7 @@ export const BRAND_POLICIES = [
     sections: [
       {
         heading: 'No Return • No Exchange',
-        text: 'At AVIORA, all jewellery is customised and made to order especially for each collector. Therefore, all sales are final. We do not accept returns or exchanges for any customised or made-to-order jewellery.',
+        text: 'At A SILVER CHAPTER, all jewellery is customised and made to order especially for each collector. Therefore, all sales are final. We do not accept returns or exchanges for any customised or made-to-order jewellery.',
       },
       {
         heading: 'Damaged or Incorrect Order Resolution',
@@ -367,7 +367,7 @@ export const BRAND_POLICIES = [
     sections: [
       {
         heading: 'Authenticity Guarantee',
-        text: 'At AVIORA, we are committed to offering genuine, high-quality jewellery with complete transparency.',
+        text: 'At A SILVER CHAPTER, we are committed to offering genuine, high-quality jewellery with complete transparency.',
       },
       {
         heading: 'Our Materials',
@@ -375,7 +375,7 @@ export const BRAND_POLICIES = [
       },
       {
         heading: 'Brilliant Moissanite',
-        text: 'All moissanite jewellery offered by AVIORA features hand-selected D-Colorless, VVS1 clarity gemstones that rival natural diamonds in brilliance and fire for complete authenticity.',
+        text: 'All moissanite jewellery offered by A SILVER CHAPTER features hand-selected D-Colorless, VVS1 clarity gemstones that rival natural diamonds in brilliance and fire for complete authenticity.',
       },
       {
         heading: '925 Sterling Silver',
@@ -405,11 +405,11 @@ export const BRAND_POLICIES = [
     sections: [
       {
         heading: 'Customer Support',
-        text: 'Brand: AVIORA\nInstagram: @aviora_jewells\nEmail: support@aviorajewells.com\nWhatsApp: +91 8796841184\nSupport Hours: Monday – Saturday, 10:00 AM – 7:00 PM (IST)',
+        text: 'Brand: A SILVER CHAPTER\nInstagram: @asilverchapter\nEmail: asilverchaptersupport@gmail.com\nWhatsApp: +91 8796841184\nSupport Hours: Monday – Saturday, 10:00 AM – 7:00 PM (IST)',
       },
       {
         heading: 'Grievance Redressal',
-        text: 'Customers may contact AVIORA through email or WhatsApp for inquiries or complaints regarding orders, payments, shipping, or product quality. We aim to acknowledge communications within 48 business hours and resolve eligible cases as quickly as possible.',
+        text: 'Customers may contact A SILVER CHAPTER through email or WhatsApp for inquiries or complaints regarding orders, payments, shipping, or product quality. We aim to acknowledge communications within 48 business hours and resolve eligible cases as quickly as possible.',
       },
     ],
   },
@@ -553,7 +553,7 @@ export function createOrderTimeline(status: OrderLifecycleStatus, orderDate: str
     },
     {
       status: 'DELIVERED',
-      label: 'Delivered to Patron',
+      label: 'Delivered to Customer',
       location: 'Destination Address',
       description: 'Package delivered safely. 30-Day Manufacturing Warranty is now active.',
       trackingUrl: awb ? `https://www.bluedart.com/tracking?awb=${encodeURIComponent(awb)}` : undefined,
@@ -611,38 +611,47 @@ export const WHY_14K_GOLD_COPY = {
 export const COLLECTOR_TESTIMONIALS: CollectorTestimonial[] = [
   {
     id: 'test-1',
-    patron: 'Rhea Mehra',
-    location: 'Bandra, Mumbai',
-    image: '/products/14k-gold-plated-triple-layer-silver-chain-1.jpg',
-    quote: 'The 14K gold vermeil finish is so subtle and sophisticated—not that overly yellow fake tone. The craftsmanship on the triple layer chain is stunning.',
-    productName: '14K Gold Plated Triple Layer Silver Chain',
+    patron: 'Tara Alvares',
+    location: 'Indiranagar, Bengaluru',
+    image: '/customer/customer-rings-stack.jpg',
+    quote: 'The dual eternity stack is breathtaking in natural sunlight. The 14K gold vermeil tone is so warm and subtle, and the stones pass diamond testers effortlessly.',
+    productName: '14K Gold Plated VVS Moissanite Eternity Ring Stack',
     verifiedPatron: true,
   },
   {
     id: 'test-2',
     patron: 'Devika Singhania',
     location: 'Lutyens, New Delhi',
-    image: '/products/freshwater-pearl-three-layer-zircon-necklace-1.jpg',
-    quote: 'Wore the freshwater pearl three layer necklace to my sister\'s sangeet and styled it with an oversized blazer the next day. A true art object.',
-    productName: 'Freshwater Pearl Three Layer Statement Necklace',
+    image: '/customer/customer-ruby-earrings.jpg',
+    quote: 'Wore the Royal Ruby chandelier earrings for my sister\'s reception. The ruby fire and halo brilliance turned every head in the ballroom. Pure heirloom poetry.',
+    productName: 'Royal Ruby & Crystal Chandelier Drop Earrings',
     verifiedPatron: true,
   },
   {
     id: 'test-3',
-    patron: 'Tara Alvares',
-    location: 'Indiranagar, Bengaluru',
-    image: '/products/14k-gold-plated-vvs-moissanite-ring-5300-1.jpg',
-    quote: 'The tension setting on the Saturn ring is brilliant. Passes diamond tester with 100% precision and never catches on silk.',
-    productName: '14K Gold Plated VVS Moissanite Solitaire Ring',
+    patron: 'Rhea Mehra',
+    location: 'Bandra, Mumbai',
+    image: '/customer/customer-heart-set.jpg',
+    quote: 'The Celestia heart pendant and matching studs have become my daily signature. So delicate, comfortable against sensitive skin, and perfectly balanced.',
+    productName: '14K Gold Plated Celestia Heart Suite',
     verifiedPatron: true,
   },
   {
     id: 'test-4',
-    patron: 'Ananya Roy',
-    location: 'Kolkata',
-    image: '/products/ruby-cluster-drop-earrings-1.jpg',
-    quote: 'Delivered securely in a gorgeous keepsake box with the authenticity card and warranty verification.',
-    productName: 'Royal Ruby & Crystal Chandelier Drop Earrings',
+    patron: 'Priya Sundaram',
+    location: 'Jubilee Hills, Hyderabad',
+    image: '/customer/customer-pear-bracelet.jpg',
+    quote: 'The pear and round moissanite combination sparkles like high jewelry. The weight feels substantial and the clasp is remarkably secure.',
+    productName: 'Marquise & Pear Moissanite Cascade Tennis Bracelet',
+    verifiedPatron: true,
+  },
+  {
+    id: 'test-5',
+    patron: 'Natasha Varma',
+    location: 'South Extension, Delhi',
+    image: '/customer/customer-tennis-wrist.jpg',
+    quote: 'Wore it straight from daytime boardroom meetings to an intimate dinner. Subtle, ultra-clean lines, and zero snagging on fine cashmere or silk.',
+    productName: '3mm Solid 925 Rhodium Moissanite Tennis Bracelet',
     verifiedPatron: true,
   },
 ];
@@ -653,8 +662,8 @@ export const CATEGORIES: Category[] = [
     id: 'new-arrivals',
     name: 'New Arrivals',
     slug: 'new-arrivals',
-    description: 'The latest launches and newest creations in the Aviora collection.',
-    heroImage: '/products/14k-gold-plated-double-layer-necklace-3828-2.jpg',
+    description: 'The latest launches and newest creations in the A Silver Chapter collection.',
+    heroImage: '/customer/customer-pear-bracelet.jpg',
     subcategories: [
       { id: 'latest-launches', name: 'Latest Launches', slug: 'latest-launches' },
     ],
@@ -664,7 +673,7 @@ export const CATEGORIES: Category[] = [
     name: 'Minimalist Jewellery',
     slug: 'minimalist',
     description: 'Feathertouch delicate pieces designed for everyday elegance and subtle styling.',
-    heroImage: '/products/14k-gold-plated-heart-petal-floral-necklace-1.jpg',
+    heroImage: '/customer/customer-heart-set.jpg',
     subcategories: [
       { id: 'min-necklaces', name: 'Necklaces', slug: 'necklaces' },
       { id: 'min-earrings', name: 'Earrings', slug: 'earrings' },
@@ -678,7 +687,7 @@ export const CATEGORIES: Category[] = [
     name: 'Statement Jewellery',
     slug: 'statement',
     description: 'Sculptural, bold silhouettes and head-turning heirlooms forged for unforgettable occasions.',
-    heroImage: '/products/ruby-cluster-drop-earrings-1.jpg',
+    heroImage: '/customer/customer-ruby-earrings.jpg',
     subcategories: [
       { id: 'stmt-necklaces', name: 'Necklaces', slug: 'necklaces' },
       { id: 'stmt-earrings', name: 'Earrings', slug: 'earrings' },
@@ -692,7 +701,7 @@ export const CATEGORIES: Category[] = [
     name: 'Moissanite Collection',
     slug: 'moissanite',
     description: 'D Colorless VVS1 brilliance crafted in Fine 925 Sterling Silver.',
-    heroImage: '/products/14k-gold-plated-vvs-moissanite-ring-5300-1.jpg',
+    heroImage: '/customer/customer-rings-stack.jpg',
     subcategories: [
       { id: 'moiss-gra', name: 'GRA Certified Jewellery', slug: 'gra-certified' },
       { id: 'moiss-rings', name: 'Rings', slug: 'rings' },
@@ -896,8 +905,7 @@ export const PRODUCTS: Product[] = [
     ],
     "collections": [
       "new-arrivals",
-      "minimalist",
-      "statement"
+      "minimalist"
     ],
     "finish": "Diamond Cut Polish",
     "colour": "14K Gold",
@@ -992,7 +1000,6 @@ export const PRODUCTS: Product[] = [
     "collections": [
       "rings",
       "statement",
-      "minimalist",
       "moissanite",
       "new-arrivals"
     ],
@@ -1000,8 +1007,7 @@ export const PRODUCTS: Product[] = [
       "rings",
       "gra-certified",
       "moissanite",
-      "statement",
-      "minimalist"
+      "statement"
     ],
     "finish": "Mirror Polish",
     "colour": "14K Gold & Colorless Moissanite",
@@ -1010,11 +1016,12 @@ export const PRODUCTS: Product[] = [
     "dimensions": "Solitaire: 1.5 Carat Equivalent | Band: 2.2mm comfort fit",
     "craftsmanship": "Four-prong claw setting hand-tightened under optical magnification.",
     "images": [
+      "/customer/customer-rings-stack.jpg",
       "/products/14k-gold-plated-vvs-moissanite-ring-1.jpg",
       "/products/14k-gold-plated-vvs-moissanite-ring-2.jpg",
       "/products/14k-gold-plated-vvs-moissanite-ring-silver-3.jpg"
     ],
-    "modelImage": "/products/14k-gold-plated-vvs-moissanite-ring-1.jpg",
+    "modelImage": "/customer/customer-rings-stack.jpg",
     "featured": true,
     "inStock": true,
     "inventory": 2,
@@ -1031,7 +1038,7 @@ export const PRODUCTS: Product[] = [
     "subtitle": "OBJET // 007 — CELESTIA HEART DOUBLE CHAIN",
     "price": 3850,
     "currency": "INR",
-    "description": "A dreamy blend of romance and elegance, the Aviora Celestia Heart Necklace features delicate star charms gracefully layered above a polished heart pendant. Inspired by starlit skies and timeless love, this layered necklace brings a soft, feminine touch to every look.\n\nDesigned to be worn alone or layered with other favourites, it’s the perfect piece for everyday elegance, date nights, and meaningful gifting.\n\nDetails\n\n* 925 Sterling Silver\n* 14K Gold Plated Finish\n* Double-layered design\n* Star charm detailing\n* Polished heart pendant\n* Lightweight and comfortable\n* Tarnish-resistant with proper care",
+    "description": "A dreamy blend of romance and elegance, the Celestia Heart Necklace features delicate star charms gracefully layered above a polished heart pendant. Inspired by starlit skies and timeless love, this layered necklace brings a soft, feminine touch to every look.\n\nDesigned to be worn alone or layered with other favourites, it’s the perfect piece for everyday elegance, date nights, and meaningful gifting.\n\nDetails\n\n* 925 Sterling Silver\n* 14K Gold Plated Finish\n* Double-layered design\n* Star charm detailing\n* Polished heart pendant\n* Lightweight and comfortable\n* Tarnish-resistant with proper care",
     "editorialNote": "Adds subtle radiance to cocktail dresses and tailored blazers alike.",
     "edition": "Delhi Atelier Curated Edition",
     "material": "14K Gold Vermeil, Cubic Zirconia & 925 Sterling Silver",
@@ -1059,10 +1066,11 @@ export const PRODUCTS: Product[] = [
     "dimensions": "16in and 18in layered drops + 2in adjustment tail",
     "craftsmanship": "Bezel set optical stones anchored to micro-soldered jump rings.",
     "images": [
+      "/customer/customer-heart-set.jpg",
       "/products/14k-gold-plated-zirconia-double-chain-necklace-1.jpg",
       "/products/14k-gold-plated-zirconia-double-chain-necklace-2.jpg"
     ],
-    "modelImage": "/products/14k-gold-plated-zirconia-double-chain-necklace-1.jpg",
+    "modelImage": "/customer/customer-heart-set.jpg",
     "featured": false,
     "inStock": true,
     "inventory": 2,
@@ -1113,10 +1121,11 @@ export const PRODUCTS: Product[] = [
     "dimensions": "Length: 7.0 Inches | Stone Width: 3.0mm",
     "craftsmanship": "Hand-set 4-prong collets with precision articulated links and double-click safety clasp.",
     "images": [
+      "/customer/customer-tennis-wrist.jpg",
       "/products/moissanite-tennis-bracelet-3mm-9450-2.jpg",
       "/products/moissanite-tennis-bracelet-3mm-9450-1.jpg"
     ],
-    "modelImage": "/products/moissanite-tennis-bracelet-3mm-9450-2.jpg",
+    "modelImage": "/customer/customer-tennis-wrist.jpg",
     "featured": true,
     "inStock": true,
     "inventory": 2,
@@ -1357,11 +1366,12 @@ export const PRODUCTS: Product[] = [
     "dimensions": "Length: 7.0 Inches | Stone Width: 3.5mm",
     "craftsmanship": "Individually calibrated collets hand-burnished for zero catch on fine fabrics.",
     "images": [
+      "/customer/customer-pear-bracelet.jpg",
       "/products/moissanite-rhodium-tennis-bracelet-11690-1.jpg",
       "/products/moissanite-rhodium-tennis-bracelet-11690-2.jpg",
       "/products/moissanite-rhodium-tennis-bracelet-11690-3.jpg"
     ],
-    "modelImage": "/products/moissanite-rhodium-tennis-bracelet-11690-1.jpg",
+    "modelImage": "/customer/customer-pear-bracelet.jpg",
     "featured": true,
     "inStock": true,
     "inventory": 2,
@@ -1373,12 +1383,12 @@ export const PRODUCTS: Product[] = [
   },
   {
     "id": "prod-014",
-    "name": "Aviora Pearl Clover Bracelet",
+    "name": "Pearl Clover Bracelet",
     "slug": "mop-freshwater-pearl-clover-bracelet",
     "subtitle": "OBJET // 014 — TALISMANIC CLOVER CHAIN",
     "price": 5050,
     "currency": "INR",
-    "description": "The Aviora Pearl Clover Bracelet is delicately handcrafted with luminous freshwater pearls and a radiant Mother of Pearl clover motif, creating a graceful piece that embodies timeless elegance. Finished in 14K Gold Plated 925 Sterling Silver, this bracelet blends classic charm with modern minimalism for effortless everyday luxury.\n\nWear it alone for a refined statement or stack it with your favourite bracelets for a sophisticated layered look.\n\nProduct Details\n\n* Metal: 925 Sterling Silver with 14K Gold Plating\n* Stone: Natural Mother of Pearl Clover\n* Pearls: Freshwater Pearls\n* Finish: High-polish gold finish\n* Fit: Adjustable extension chain for a comfortable fit.\n* Style: Minimalist • Luxury • Everyday Elegance",
+    "description": "The Pearl Clover Bracelet is delicately handcrafted with luminous freshwater pearls and a radiant Mother of Pearl clover motif, creating a graceful piece that embodies timeless elegance. Finished in 14K Gold Plated 925 Sterling Silver, this bracelet blends classic charm with modern minimalism for effortless everyday luxury.\n\nWear it alone for a refined statement or stack it with your favourite bracelets for a sophisticated layered look.\n\nProduct Details\n\n* Metal: 925 Sterling Silver with 14K Gold Plating\n* Stone: Natural Mother of Pearl Clover\n* Pearls: Freshwater Pearls\n* Finish: High-polish gold finish\n* Fit: Adjustable extension chain for a comfortable fit.\n* Style: Minimalist • Luxury • Everyday Elegance",
     "editorialNote": "Symbolizing luck, hope, love, and health with iridescent mother-of-pearl reflections.",
     "edition": "Delhi Atelier Curated Edition",
     "material": "Natural Mother of Pearl, Freshwater Pearls, 14K Gold Vermeil & 925 Silver",
@@ -1694,10 +1704,11 @@ export const PRODUCTS: Product[] = [
     "dimensions": "Drop Length: 36mm | Max Width: 15mm",
     "craftsmanship": "Double-hinge articulated drop setting with heavy silver backing.",
     "images": [
+      "/customer/customer-ruby-earrings.jpg",
       "/products/ruby-cluster-drop-earrings-1.jpg",
       "/products/ruby-cluster-drop-earrings-2.jpg"
     ],
-    "modelImage": "/products/ruby-cluster-drop-earrings-1.jpg",
+    "modelImage": "/customer/customer-ruby-earrings.jpg",
     "featured": true,
     "inStock": true,
     "inventory": 2,
@@ -1827,7 +1838,13 @@ export const PRODUCTS: Product[] = [
     "collections": [
       "moissanite",
       "minimalist",
-      "new-arrivals"
+      "new-arrivals",
+      "rings"
+    ],
+    "tags": [
+      "rings",
+      "minimalist",
+      "moissanite"
     ],
     "finish": "Polished",
     "colour": "14K Gold",

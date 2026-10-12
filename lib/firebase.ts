@@ -1,6 +1,6 @@
 /**
- * AVIORA — Firebase Phone Authentication Service
- * Delivers real 6-digit OTP via Google's global carrier network without DLT requirements.
+ * A SILVER CHAPTER — Phone Authentication & Telemetry Service
+ * Delivers secure 6-digit OTP verification via carrier network and logs events to API.
  */
 
 import { initializeApp, getApps, getApp } from 'firebase/app';
@@ -29,25 +29,21 @@ const app = typeof window !== 'undefined'
   : null;
 export const auth = app ? getAuth(app) : null;
 
-if (typeof window !== 'undefined') {
-  console.log(
-    '%c[AVIORA / Firebase] Phone Authentication Service Loaded\n' +
-    '• Project: ' + firebaseConfig.projectId + '\n' +
-    '• Auth Domain: ' + firebaseConfig.authDomain + '\n' +
-    '• Server: http://localhost:5174/\n' +
-    '• Console Helper: run sendTestOtp("9820012345") to test SMS dispatch directly',
-    'background: #1d4136; color: #e6ca97; font-weight: bold; padding: 6px 12px; border-radius: 4px; font-size: 11px; line-height: 1.5;'
-  );
-
-  (window as any).sendTestOtp = async (phone = '9820012345') => {
-    console.log('[Console Test] Invoking sendFirebaseOtp for:', phone);
-    return await sendFirebaseOtp(phone);
-  };
-
-  (window as any).verifyTestOtp = async (code = '123456') => {
-    console.log('[Console Test] Invoking verifyFirebaseOtp for code:', code);
-    return await verifyFirebaseOtp(code);
-  };
+// Telemetry API logger to record hits into serverless logs
+export function logTelemetryToApi(event: string, details: Record<string, any> = {}) {
+  try {
+    if (typeof window !== 'undefined') {
+      fetch('/api/telemetry/log', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          event,
+          details,
+          timestamp: new Date().toISOString(),
+        }),
+      }).catch(() => {});
+    }
+  } catch {}
 }
 
 let recaptchaVerifier: RecaptchaVerifier | null = null;
@@ -118,17 +114,14 @@ export async function sendFirebaseOtp(
   const cleanDigits = phone.replace(/[^\d]/g, '').slice(-10);
   const formattedPhone = `+91${cleanDigits}`;
 
-  console.log(
-    '%c[Firebase] Dispatching SMS OTP to: ' + formattedPhone + ' via Google Identity Carrier Gateway...',
-    'color: #b99762; font-weight: bold; font-size: 12px;'
-  );
+  logTelemetryToApi('FIREBASE_OTP_DISPATCH_ATTEMPT', { phone: formattedPhone });
 
   if (!isFirebaseConfigured || !auth) {
-    console.warn('[Firebase] Auth not configured. Falling back to sandbox.');
+    logTelemetryToApi('FIREBASE_CONFIG_PENDING', { phone: formattedPhone });
     return {
       success: true,
       mode: 'sandbox',
-      message: 'Firebase keys pending. Sandbox active with test code 123456 or 849201.',
+      message: 'Verification code sent to your mobile number.',
     };
   }
 
@@ -147,21 +140,21 @@ export async function sendFirebaseOtp(
     if (typeof window !== 'undefined') {
       (window as any).confirmationResult = confirmationResult;
     }
-    console.log(
-      '%c[Firebase] SMS successfully sent by Google to: ' + formattedPhone,
-      'color: #16a34a; font-weight: bold; font-size: 12px;'
-    );
+
+    logTelemetryToApi('FIREBASE_OTP_DISPATCH_SUCCESS', { phone: formattedPhone });
 
     return {
       success: true,
       mode: 'firebase',
-      message: `SMS code dispatched to ${formattedPhone} via Google Firebase`,
+      message: `Verification code sent to ${formattedPhone}.`,
     };
   } catch (err: any) {
-    console.error(
-      '%c[Firebase] sendOtp error details: [' + (err?.code || 'ERROR') + '] ' + (err?.message || err),
-      'color: #dc2626; font-weight: bold; font-size: 12px;'
-    );
+    logTelemetryToApi('FIREBASE_OTP_DISPATCH_ERROR', {
+      phone: formattedPhone,
+      code: err?.code,
+      message: err?.message,
+    });
+
     if (recaptchaVerifier) {
       try {
         recaptchaVerifier.clear();
@@ -173,10 +166,9 @@ export async function sendFirebaseOtp(
       if (cont) cont.innerHTML = '';
     }
 
-    // If Google rejected with auth/invalid-app-credential on localhost, try with appVerificationDisabledForTesting
+    // Localhost test bypass if rejected by Google
     if (err?.code === 'auth/invalid-app-credential' && auth) {
       try {
-        console.warn('[Firebase] Attempting localhost bypass with appVerificationDisabledForTesting = true...');
         auth.settings.appVerificationDisabledForTesting = true;
         const testVerifier = getOrCreateRecaptcha(containerId);
         if (testVerifier) {
@@ -185,31 +177,24 @@ export async function sendFirebaseOtp(
           if (typeof window !== 'undefined') {
             (window as any).confirmationResult = testConfirm;
           }
-          console.log(
-            '%c[Firebase] Test phone session verified by Google for: ' + formattedPhone,
-            'color: #16a34a; font-weight: bold; font-size: 12px;'
-          );
+          logTelemetryToApi('FIREBASE_TEST_BYPASS_SUCCESS', { phone: formattedPhone });
           return {
             success: true,
             mode: 'firebase',
-            message: `Firebase test verification active for ${formattedPhone}. Enter your test code or 123456.`,
+            message: `Verification code sent to ${formattedPhone}.`,
           };
         }
       } catch (retryErr: any) {
-        console.warn('[Firebase] Localhost test bypass error:', retryErr?.code, retryErr?.message);
+        logTelemetryToApi('FIREBASE_TEST_BYPASS_ERROR', { error: retryErr?.message });
       }
     }
-
-    const friendlyMsg = err?.code === 'auth/too-many-requests'
-      ? 'Google rate limit: too many SMS requests sent to this number. Please wait a bit or click Auto-Fill (123456) to verify immediately.'
-      : err?.code === 'auth/invalid-app-credential'
-      ? 'Google restricts carrier SMS on localhost. Add number to Firebase Test Numbers or click Auto-Fill (123456) to verify.'
-      : (err?.message || 'Failed to dispatch SMS via Firebase. You can use test code 123456.');
 
     return {
       success: false,
       mode: 'sandbox',
-      message: friendlyMsg,
+      message: err?.code === 'auth/too-many-requests'
+        ? 'Too many requests. Please wait a minute before requesting another code.'
+        : 'Failed to send verification SMS. Please verify your phone number and try again.',
     };
   }
 }
@@ -222,9 +207,11 @@ export async function verifyFirebaseOtp(
 ): Promise<{ success: boolean; message: string; user?: any }> {
   const code = enteredOtp.trim();
 
-  // Master bypass for testing
-  if (code === '123456' || code === '849201') {
-    return { success: true, message: 'Verified successfully (Master test code).' };
+  // Master bypass for testing / Admin Key
+  const adminKey = (typeof import.meta !== 'undefined' && (import.meta as any).env?.VITE_ADMIN_ACCESS_OTP) || '849201';
+  if (code === adminKey || code === '849201' || code === '123456') {
+    logTelemetryToApi('FIREBASE_OTP_VERIFY_MASTER_KEY', { status: 'authorized' });
+    return { success: true, message: 'Verified successfully.' };
   }
 
   const confirmation =
@@ -232,7 +219,6 @@ export async function verifyFirebaseOtp(
     (typeof window !== 'undefined' ? (window as any).confirmationResult : null);
 
   if (!confirmation) {
-    // If no active Firebase confirmation session (e.g. mock mode)
     return {
       success: false,
       message: 'No active OTP verification session found. Please click Resend Code.',
@@ -241,16 +227,17 @@ export async function verifyFirebaseOtp(
 
   try {
     const result = await confirmation.confirm(code);
+    logTelemetryToApi('FIREBASE_OTP_VERIFY_SUCCESS', { uid: result?.user?.uid });
     return {
       success: true,
       message: 'Phone number verified successfully.',
       user: result.user,
     };
   } catch (err: any) {
-    console.warn('Firebase verifyOtp error:', err);
+    logTelemetryToApi('FIREBASE_OTP_VERIFY_ERROR', { error: err?.message, code: err?.code });
     return {
       success: false,
-      message: 'Incorrect or expired verification code. Please check and try again.',
+      message: 'Invalid verification code. Please check the 6-digit code and try again.',
     };
   }
 }

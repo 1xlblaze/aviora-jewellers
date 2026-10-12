@@ -183,7 +183,7 @@ export async function fetchProductsFromDb() {
         : [];
       return {
         id: p.id,
-        name: p.name,
+        name: (p.name || '').replace(/^Aviora\s+/i, ''),
         slug: p.slug,
         subtitle: p.subtitle || '',
         price: Number(p.price),
@@ -261,22 +261,23 @@ export async function persistOrderToDb(order: any) {
       items: order.items || [],
       timeline: order.timeline || [],
       otp_verified: Boolean(order.otpVerified),
-      payment_transaction_id: order.paymentTransactionId || order.razorpayPaymentId || '',
+      payment_transaction_id: order.paymentTransactionId || order.razorpayPaymentId || order.phonepeTransactionId || '',
       whatsapp_notifications: order.whatsappNotifications || [],
-      // Razorpay payment fields
-      razorpay_order_id: order.razorpayOrderId || '',
-      razorpay_payment_id: order.razorpayPaymentId || '',
-      razorpay_signature: order.razorpaySignature || '',
-      razorpay_amount_in_paise: Number(order.razorpayAmountInPaise) || (grossTotal * 100),
-      // Legacy PhonePe fields for backwards compatibility
       phonepe_transaction_id: order.phonepeTransactionId || order.razorpayPaymentId || '',
       phonepe_merchant_transaction_id: order.phonepeMerchantTransactionId || order.razorpayOrderId || '',
       phonepe_payment_link_id: order.phonepePaymentLinkId || '',
       phonepe_amount_in_paise: Number(order.razorpayAmountInPaise) || Number(order.phonepeAmountInPaise) || (grossTotal * 100),
       phonepe_payment_url: order.phonepePaymentUrl || '',
+      metadata: {
+        ...(order.metadata || {}),
+        razorpay_order_id: order.razorpayOrderId || '',
+        razorpay_payment_id: order.razorpayPaymentId || order.paymentTransactionId || '',
+        razorpay_signature: order.razorpaySignature || '',
+        razorpay_amount_in_paise: Number(order.razorpayAmountInPaise) || (grossTotal * 100),
+      },
     };
 
-    const { data, error } = await supabase.from('aviora_orders').insert([orderRow]);
+    const { data, error } = await supabase.from('aviora_orders').upsert([orderRow], { onConflict: 'order_number' });
     if (error) console.warn('Failed to sync order to Supabase aviora_orders:', error);
 
     // Double-entry record in bookkeeping ledger
@@ -484,17 +485,18 @@ export async function fetchOrdersFromDb() {
       items: o.items || [],
       timeline: o.timeline || [],
       otpVerified: Boolean(o.otp_verified),
-      paymentTransactionId: o.razorpay_payment_id || o.payment_transaction_id || '',
+      paymentTransactionId: o.payment_transaction_id || o.metadata?.razorpay_payment_id || '',
       whatsappNotifications: o.whatsapp_notifications || [],
-      razorpayOrderId: o.razorpay_order_id || '',
-      razorpayPaymentId: o.razorpay_payment_id || o.payment_transaction_id || '',
-      razorpaySignature: o.razorpay_signature || '',
-      razorpayAmountInPaise: Number(o.razorpay_amount_in_paise) || Number(o.phonepe_amount_in_paise) || (Number(o.total) * 100),
-      phonepeTransactionId: o.phonepe_transaction_id || o.razorpay_payment_id || '',
-      phonepeMerchantTransactionId: o.phonepe_merchant_transaction_id || o.razorpay_order_id || '',
+      razorpayOrderId: o.metadata?.razorpay_order_id || o.phonepe_merchant_transaction_id || '',
+      razorpayPaymentId: o.payment_transaction_id || o.metadata?.razorpay_payment_id || '',
+      razorpaySignature: o.metadata?.razorpay_signature || '',
+      razorpayAmountInPaise: Number(o.metadata?.razorpay_amount_in_paise) || Number(o.phonepe_amount_in_paise) || (Number(o.total) * 100),
+      phonepeTransactionId: o.phonepe_transaction_id || o.payment_transaction_id || '',
+      phonepeMerchantTransactionId: o.phonepe_merchant_transaction_id || o.metadata?.razorpay_order_id || '',
       phonepePaymentLinkId: o.phonepe_payment_link_id || '',
-      phonepeAmountInPaise: Number(o.razorpay_amount_in_paise) || Number(o.phonepe_amount_in_paise) || (Number(o.total) * 100),
+      phonepeAmountInPaise: Number(o.metadata?.razorpay_amount_in_paise) || Number(o.phonepe_amount_in_paise) || (Number(o.total) * 100),
       phonepePaymentUrl: o.phonepe_payment_url || '',
+      metadata: o.metadata || {},
     }));
   } catch (err) {
     console.warn('Supabase fetchOrders error:', err);
@@ -542,17 +544,18 @@ export async function fetchOrdersByPhone(phone: string) {
       items: o.items || [],
       timeline: o.timeline || [],
       otpVerified: Boolean(o.otp_verified),
-      paymentTransactionId: o.razorpay_payment_id || o.payment_transaction_id || '',
+      paymentTransactionId: o.payment_transaction_id || o.metadata?.razorpay_payment_id || '',
       whatsappNotifications: o.whatsapp_notifications || [],
-      razorpayOrderId: o.razorpay_order_id || '',
-      razorpayPaymentId: o.razorpay_payment_id || o.payment_transaction_id || '',
-      razorpaySignature: o.razorpay_signature || '',
-      razorpayAmountInPaise: Number(o.razorpay_amount_in_paise) || Number(o.phonepe_amount_in_paise) || (Number(o.total) * 100),
-      phonepeTransactionId: o.phonepe_transaction_id || o.razorpay_payment_id || '',
-      phonepeMerchantTransactionId: o.phonepe_merchant_transaction_id || o.razorpay_order_id || '',
+      razorpayOrderId: o.metadata?.razorpay_order_id || o.phonepe_merchant_transaction_id || '',
+      razorpayPaymentId: o.payment_transaction_id || o.metadata?.razorpay_payment_id || '',
+      razorpaySignature: o.metadata?.razorpay_signature || '',
+      razorpayAmountInPaise: Number(o.metadata?.razorpay_amount_in_paise) || Number(o.phonepe_amount_in_paise) || (Number(o.total) * 100),
+      phonepeTransactionId: o.phonepe_transaction_id || o.payment_transaction_id || '',
+      phonepeMerchantTransactionId: o.phonepe_merchant_transaction_id || o.metadata?.razorpay_order_id || '',
       phonepePaymentLinkId: o.phonepe_payment_link_id || '',
-      phonepeAmountInPaise: Number(o.razorpay_amount_in_paise) || Number(o.phonepe_amount_in_paise) || (Number(o.total) * 100),
+      phonepeAmountInPaise: Number(o.metadata?.razorpay_amount_in_paise) || Number(o.phonepe_amount_in_paise) || (Number(o.total) * 100),
       phonepePaymentUrl: o.phonepe_payment_url || '',
+      metadata: o.metadata || {},
     }));
   } catch (err) {
     console.warn('Supabase fetchOrdersByPhone error:', err);

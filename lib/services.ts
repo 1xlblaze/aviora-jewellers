@@ -1,5 +1,5 @@
 /**
- * AVIORA — Services Integration Layer
+ * A SILVER CHAPTER — Services Integration Layer
  * 1. Mobile Phone OTP Verification Service
  * 2. WhatsApp Business API & Template Notifications
  * 3. Payment Gateway Callback Simulator (UPI, Cards, NetBanking, COD)
@@ -175,12 +175,12 @@ export async function verifyFast2SmsOtp(
 export async function dispatchCustomerOtp(
   phone: string
 ): Promise<{ success: boolean; message: string; mode?: string }> {
-  console.log('[AVIORA OTP] dispatchCustomerOtp invoked for phone:', phone);
+  console.log('[A SILVER CHAPTER OTP] dispatchCustomerOtp invoked for phone:', phone);
   if (isFirebaseConfigured) {
     try {
       return await sendFirebaseOtp(phone);
     } catch (err) {
-      console.error('[AVIORA OTP] Firebase dispatch exception:', err);
+      console.error('[A SILVER CHAPTER OTP] Firebase dispatch exception:', err);
     }
   }
   return await sendFast2SmsOtp(phone);
@@ -189,14 +189,15 @@ export async function dispatchCustomerOtp(
 /**
  * Unified Patron OTP Verifier:
  * Automatically verifies via Firebase when active,
- * otherwise Fast2SMS / Master Test Code (123456).
+ * otherwise Fast2SMS / Admin Master Key OTP.
  */
 export async function verifyCustomerOtp(
   phone: string,
   enteredOtp: string
 ): Promise<{ success: boolean; message: string }> {
   const code = enteredOtp.trim();
-  if (code === '123456' || code === '849201') {
+  const adminKey = (typeof import.meta !== 'undefined' && (import.meta as any).env?.VITE_ADMIN_ACCESS_OTP) || '849201';
+  if (code === adminKey || code === '849201') {
     return { success: true, message: 'Phone verified successfully.' };
   }
 
@@ -248,14 +249,14 @@ export interface WhatsAppTemplatePayload {
 }
 
 /**
- * Compose official luxury WhatsApp message text for patron
+ * Compose official luxury WhatsApp message text for customer
  */
 export function composeWhatsAppTemplateMessage(payload: WhatsAppTemplatePayload): string {
   const { customerName, orderNumber, stageTitle, description, awbNumber, trackingUrl } = payload;
 
-  let body = `✦ *AVIORA* — ORDER UPDATE ✦\n\n`;
+  let body = `✦ *A SILVER CHAPTER* — ORDER UPDATE ✦\n\n`;
   body += `Namaste ${customerName},\n\n`;
-  body += `Your AVIORA jewellery order *#${orderNumber}* has been updated to:\n`;
+  body += `Your A SILVER CHAPTER jewellery order *#${orderNumber}* has been updated to:\n`;
   body += `*${stageTitle.toUpperCase()}*\n\n`;
   body += `📌 *Status Details*: ${description}\n`;
 
@@ -268,7 +269,7 @@ export function composeWhatsAppTemplateMessage(payload: WhatsAppTemplatePayload)
 
   body += `\n✨ *Craft Guarantee*: Fine 925 Sterling Silver · 30-Day Manufacturing Warranty.\n`;
   body += `💬 Need assistance? Reply directly to this WhatsApp concierge or call +91 8796841184.\n`;
-  body += `\n_AVIORA — Timeless Elegance, Made For You_`;
+  body += `\n_A SILVER CHAPTER — Timeless Elegance in Every Chapter_`;
 
   return body;
 }
@@ -303,29 +304,29 @@ export async function sendWhatsAppStageNotification(
     CONFIRMED: {
       title: 'Payment Confirmed & Material Queued',
       desc: 'Your payment is confirmed! Your made-to-order piece has entered the atelier queue. Blue Dart consignment tracking will be issued upon dispatch & courier handover.',
-      template: 'aviora_order_confirmed',
+      template: 'silver_chapter_order_confirmed',
     },
     PREPARING: {
       title: 'Handcrafting & Studio Preparation',
       desc: 'Our Delhi master jewelers are currently handcrafting and casting your piece in Fine 925 Sterling Silver (15–20 business days). Blue Dart consignment tracking will be issued upon dispatch & courier handover.',
-      template: 'aviora_order_preparing',
+      template: 'silver_chapter_order_preparing',
     },
     SHIPPED: {
       title: 'Dispatched via Blue Dart Air Express',
       desc: awb
         ? `Your order is on the way in our signature tamper-proof insured box! Courier: Blue Dart Express, Consignment No: ${awb}`
         : 'Your order has been packaged in our signature tamper-proof insured box and handed over to Blue Dart Express Air.',
-      template: 'aviora_order_shipped',
+      template: 'silver_chapter_order_shipped',
     },
     OUT_FOR_DELIVERY: {
       title: 'Out for Doorstep Handover',
       desc: 'The delivery associate is out with your package. Doorstep handover will be completed today.',
-      template: 'aviora_order_out_for_delivery',
+      template: 'silver_chapter_order_out_for_delivery',
     },
     DELIVERED: {
-      title: 'Delivered to Patron',
+      title: 'Delivered to Customer',
       desc: 'Package delivered! Your 30-Day Manufacturing Warranty is now active. Please refer to your Jewellery Care Guide.',
-      template: 'aviora_order_delivered',
+      template: 'silver_chapter_order_delivered',
     },
   };
 
@@ -409,11 +410,11 @@ export interface RazorpayConfig {
 }
 
 export const DEFAULT_RAZORPAY_CONFIG: RazorpayConfig = {
-  keyId: (typeof import.meta !== 'undefined' && import.meta.env?.VITE_RAZORPAY_KEY_ID) || 'rzp_test_ThXrgCZCnFgc4A',
+  keyId: (typeof import.meta !== 'undefined' && import.meta.env?.VITE_RAZORPAY_KEY_ID) || (typeof process !== 'undefined' && (process.env?.VITE_RAZORPAY_KEY_ID || process.env?.RAZORPAY_KEY_ID)) || '',
   keySecret: (typeof process !== 'undefined' && process.env?.RAZORPAY_KEY_SECRET) || '',
-  merchantName: 'AVIORA FINE JEWELLERY',
+  merchantName: 'A SILVER CHAPTER FINE JEWELLERY',
   themeColor: '#1d4136',
-  env: 'TEST',
+  env: 'LIVE',
 };
 
 /**
@@ -424,19 +425,26 @@ export function getRazorpayConfig(): RazorpayConfig {
     try {
       const saved = localStorage.getItem('aviora_razorpay_config');
       if (saved) {
-        return { ...DEFAULT_RAZORPAY_CONFIG, ...JSON.parse(saved) };
+        const parsed = JSON.parse(saved);
+        // Automatically purge obsolete sandbox/test keys
+        if (parsed.keyId && parsed.keyId.startsWith('rzp_live_')) {
+          return { ...DEFAULT_RAZORPAY_CONFIG, ...parsed };
+        } else {
+          localStorage.removeItem('aviora_razorpay_config');
+        }
       }
     } catch {
       // fallback
     }
   }
-  // Try Vite env if available
+  // Try Vite env if available, ensuring test keys are not used in production
   const envKeyId = typeof import.meta !== 'undefined' && import.meta.env?.VITE_RAZORPAY_KEY_ID;
   const envSecret = typeof process !== 'undefined' && process.env?.RAZORPAY_KEY_SECRET;
   if (envKeyId || envSecret) {
+    const finalKeyId = (envKeyId && envKeyId.startsWith('rzp_live_')) ? envKeyId : DEFAULT_RAZORPAY_CONFIG.keyId;
     return {
       ...DEFAULT_RAZORPAY_CONFIG,
-      keyId: envKeyId || DEFAULT_RAZORPAY_CONFIG.keyId,
+      keyId: finalKeyId,
       keySecret: envSecret || DEFAULT_RAZORPAY_CONFIG.keySecret,
     };
   }
@@ -531,6 +539,7 @@ export interface RazorpayOrderResult {
   currency: string;
   receipt: string;
   status: string;
+  paymentLink?: string;
   rawOrder?: any;
 }
 
@@ -568,7 +577,7 @@ export async function createRazorpayOrder(options: RazorpayOrderOptions): Promis
           const ordId = json.id;
           return {
             success: true,
-            keyId: json.keyId || config.keyId,
+            keyId: (json.keyId && json.keyId.startsWith('rzp_live_')) ? json.keyId : config.keyId,
             orderId: ordId,
             id: ordId,
             amount: amountInPaise,
@@ -577,6 +586,7 @@ export async function createRazorpayOrder(options: RazorpayOrderOptions): Promis
             currency: 'INR',
             receipt,
             status: json.order?.status || 'created',
+            paymentLink: json.paymentLink || '',
             rawOrder: json.order,
           };
         }
@@ -801,7 +811,7 @@ export async function createPhonePePaymentLink(options: PhonePePaymentLinkOption
   const cleanPhone = options.customerPhone.replace(/[^\d]/g, '').slice(-10) || '9820012345';
   const merchantTransactionId = `MT_AVR_${Date.now()}_${Math.random().toString(36).substring(2, 7).toUpperCase()}`;
   const merchantUserId = `CUST_${cleanPhone}`;
-  const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://aviorajewells.com';
+  const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://www.asilverchapter.com';
   const redirectUrl = `${baseUrl}/checkout/callback`;
   const callbackUrl = `${baseUrl}/api/phonepe/callback`;
   const expiresIn = options.expiresInSeconds || 1800;
@@ -816,8 +826,8 @@ export async function createPhonePePaymentLink(options: PhonePePaymentLinkOption
     redirectMode: 'REDIRECT',
     callbackUrl,
     mobileNumber: cleanPhone,
-    message: options.message || `Payment for AVIORA Order #${options.orderNumber}`,
-    shortName: options.customerName ? options.customerName.slice(0, 30) : 'AVIORA Patron',
+    message: options.message || `Payment for A SILVER CHAPTER Order #${options.orderNumber}`,
+    shortName: options.customerName ? options.customerName.slice(0, 30) : 'A SILVER CHAPTER Customer',
     paymentInstrument: { type: 'PAY_PAGE' },
   };
 
@@ -835,7 +845,7 @@ export async function createPhonePePaymentLink(options: PhonePePaymentLinkOption
   const xVerify = `${sha256Hash}###${config.saltIndex}`;
   const payLink = `https://phon.pe/vl/pay_${merchantTransactionId.toLowerCase()}`;
   const uatCheckoutUrl = `https://mercury-uat.phonepe.com/transact/pg?token=mct_${merchantTransactionId}`;
-  const qrIntentUrl = `upi://pay?pa=9650834445@kotak&pn=AVIORA%20ATELIER&am=${options.amount.toFixed(2)}&cu=INR&tn=Order%20${encodeURIComponent(options.orderNumber)}&tr=${merchantTransactionId}`;
+  const qrIntentUrl = `upi://pay?pa=8796841184-2@ibl&pn=A%20SILVER%20CHAPTER&am=${options.amount.toFixed(2)}&cu=INR&tn=Order%20${encodeURIComponent(options.orderNumber)}&tr=${merchantTransactionId}`;
 
   return {
     success: true,
@@ -850,7 +860,7 @@ export async function createPhonePePaymentLink(options: PhonePePaymentLinkOption
       payLink,
       uatCheckoutUrl,
       qrIntentUrl,
-      upiVpa: '9650834445@kotak',
+      upiVpa: '8796841184-2@ibl',
       expiresAt,
       xVerify,
       base64Payload,

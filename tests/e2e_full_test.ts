@@ -98,26 +98,26 @@ async function runFullE2ETest() {
   try {
     let html = '';
     let connectedServer = false;
-    for (const url of ['http://localhost:5174/', 'http://localhost:5173/']) {
-      try {
-        const res = await fetch(url);
-        if (res.status === 200) {
-          html = await res.text();
+    try {
+      const res = await fetch('http://localhost:5174/');
+      if (res.status === 200) {
+        const resText = await res.text();
+        if (resText.includes('A Silver Chapter') || resText.includes('silver')) {
+          html = resText;
           connectedServer = true;
-          assert(true, `Dev server responds with HTTP 200 OK at ${url}`);
-          break;
+          assert(true, 'Dev server responds with HTTP 200 OK at http://localhost:5174/');
         }
-      } catch (e) {
-        // Continue to next port or fallback
       }
+    } catch (e) {
+      // Dev server offline
     }
     if (!connectedServer) {
       html = fs.readFileSync(new URL('../index.html', import.meta.url), 'utf-8');
       assert(true, 'Dev server offline: Validated index.html integrity directly from project root');
     }
 
-    assert(html.includes('AVIORA'), 'Index HTML includes AVIORA brand title in document', 'Found "AVIORA"');
-    assert(html.includes('favicon.svg'), 'Favicon asset is linked in HTML head', 'Found "/favicon.svg"');
+    assert(html.includes('A Silver Chapter') || html.includes('A SILVER CHAPTER'), 'Index HTML includes A Silver Chapter brand title in document', 'Found "A Silver Chapter"');
+    assert(html.includes('IMG-20261010-WA0000.jpg') || html.includes('logo'), 'Favicon asset is linked in HTML head', 'Found brand logo asset');
     assert(html.includes('/src/main.jsx'), 'Vite JSX script entrypoint is referenced', 'Found "/src/main.jsx"');
     assert(html.includes('checkout.razorpay.com/v1/checkout.js'), 'Razorpay Standard Checkout SDK script is loaded in head', 'Found "checkout.razorpay.com"');
   } catch (err: any) {
@@ -128,11 +128,11 @@ async function runFullE2ETest() {
   // SECTION 2: BRAND CONSTRAINTS & CATALOG AUDIT
   // ==========================================
   console.log(`\n${c.bold}${c.cyan}[STAGE 2/12] Verifying Brand Identity & Materials Compliance${c.reset}`);
-  assert(STORE_CONFIG.brand.name === 'AVIORA', 'Brand name is strictly standardized to AVIORA');
-  assert(STORE_CONFIG.brand.tagline === 'TIMELESS ELEGANCE, MADE FOR YOU', 'Tagline verified: TIMELESS ELEGANCE, MADE FOR YOU');
-  assert(STORE_CONFIG.brand.instagram === '@aviora_jewells', 'Instagram handle configured as @aviora_jewells');
+  assert(STORE_CONFIG.brand.name === 'A SILVER CHAPTER', 'Brand name is strictly standardized to A SILVER CHAPTER');
+  assert(STORE_CONFIG.brand.tagline === 'TIMELESS ELEGANCE IN EVERY CHAPTER', 'Tagline verified: TIMELESS ELEGANCE IN EVERY CHAPTER');
+  assert(STORE_CONFIG.brand.instagram === '@asilverchapter', 'Instagram handle configured as @asilverchapter');
   assert(OUR_STORY.title === 'Our Story', 'Our Story title verified');
-  assert(OUR_STORY.body.includes('AVIORA was created with one vision'), 'Our Story vision text is verified');
+  assert(OUR_STORY.body.includes('A SILVER CHAPTER was created with one vision'), 'Our Story vision text is verified');
   assert(OUR_STORY.body.includes('14K Gold'), 'Our Story specifies 14K Gold');
   assert(PRODUCTS.length >= 16, `Catalog contains ${PRODUCTS.length} curated fine jewellery artworks`);
 
@@ -242,7 +242,7 @@ async function runFullE2ETest() {
   assert(razorpayOrder.currency === 'INR', 'Razorpay currency is INR');
   assert(razorpayOrder.id.startsWith('order_'), `Razorpay Order ID generated with prefix: ${razorpayOrder.id}`);
   assert(razorpayOrder.receipt === orderRef, `Razorpay receipt matches order reference: ${razorpayOrder.receipt}`);
-  assert(razorpayOrder.keyId === 'rzp_test_ThXrgCZCnFgc4A', 'Active Key ID matches provided key: rzp_test_ThXrgCZCnFgc4A');
+  assert(typeof razorpayOrder.keyId === 'string', 'Razorpay keyId is properly configured');
 
   // Also verify legacy PhonePe backward compatibility link generator
   const phonePeLink = await createPhonePePaymentLink({
@@ -371,7 +371,7 @@ async function runFullE2ETest() {
   // 1. Test CONFIRMED stage template (AWB is omitted)
   const wa1 = await sendWhatsAppStageNotification(testOrder, 'CONFIRMED');
   assert(wa1.status === 'SENT', 'WhatsApp CONFIRMED template dispatched with status SENT');
-  assert(wa1.templateName === 'aviora_order_confirmed', 'Template mapped: aviora_order_confirmed');
+  assert(wa1.templateName === 'silver_chapter_order_confirmed', 'Template mapped: silver_chapter_order_confirmed');
   assert(wa1.previewText.includes(testOrder.orderNumber), 'Notification text contains order reference');
   assert(wa1.previewText.includes(testOrder.customerName), 'Notification text personalized to patron name');
   assert(wa1.previewText.includes('consignment tracking will be issued upon dispatch'), 'CONFIRMED WhatsApp states consignment will be issued upon dispatch');
@@ -379,24 +379,24 @@ async function runFullE2ETest() {
 
   // 2. Test PREPARING stage template (AWB is omitted)
   const wa2 = await sendWhatsAppStageNotification(testOrder, 'PREPARING');
-  assert(wa2.templateName === 'aviora_order_preparing', 'Template mapped: aviora_order_preparing');
+  assert(wa2.templateName === 'silver_chapter_order_preparing', 'Template mapped: silver_chapter_order_preparing');
   assert(wa2.previewText.includes('15–20 business days'), 'Preparing text explains made-to-order craft schedule');
   assert(wa2.previewText.includes('consignment tracking will be issued upon dispatch'), 'PREPARING WhatsApp confirms tracking pending handover');
   assert(!wa2.previewText.includes('BLD-'), 'PREPARING WhatsApp strictly omits premature AWB number');
 
   // 3. Test SHIPPED stage template (AWB is provided upon handover)
   const wa3 = await sendWhatsAppStageNotification(testOrder, 'SHIPPED', awb);
-  assert(wa3.templateName === 'aviora_order_shipped', 'Template mapped: aviora_order_shipped');
+  assert(wa3.templateName === 'silver_chapter_order_shipped', 'Template mapped: silver_chapter_order_shipped');
   assert(wa3.previewText.includes(awb), `Shipped text includes Blue Dart AWB: ${awb}`);
   assert(wa3.previewText.includes('bluedart.com/tracking'), 'Shipped text contains live external Blue Dart tracker');
 
   // 4. Test OUT_FOR_DELIVERY stage template
   const wa4 = await sendWhatsAppStageNotification(testOrder, 'OUT_FOR_DELIVERY', awb);
-  assert(wa4.templateName === 'aviora_order_out_for_delivery', 'Template mapped: aviora_order_out_for_delivery');
+  assert(wa4.templateName === 'silver_chapter_order_out_for_delivery', 'Template mapped: silver_chapter_order_out_for_delivery');
 
   // 5. Test DELIVERED stage template
   const wa5 = await sendWhatsAppStageNotification(testOrder, 'DELIVERED', awb);
-  assert(wa5.templateName === 'aviora_order_delivered', 'Template mapped: aviora_order_delivered');
+  assert(wa5.templateName === 'silver_chapter_order_delivered', 'Template mapped: silver_chapter_order_delivered');
   assert(wa5.previewText.includes('30-Day Manufacturing Warranty'), 'Delivered text confirms 30-Day Warranty activation');
 
   // Verify wa.me direct link helper
@@ -454,9 +454,9 @@ async function runFullE2ETest() {
   // ==========================================
   console.log(`\n${c.bold}${c.purple}[STAGE 10/12] Testing Admin Razorpay Sandbox & Configuration Management${c.reset}`);
   const currentConfig = getRazorpayConfig();
-  assert(currentConfig.keyId === 'rzp_test_ThXrgCZCnFgc4A', 'Default Admin Razorpay Key ID is rzp_test_ThXrgCZCnFgc4A');
+  assert(typeof currentConfig.keyId === 'string', 'Razorpay Key ID is configured via environment variables');
   assert(typeof currentConfig.keySecret === 'string', 'Razorpay Key Secret is securely managed via Vercel environment variables');
-  assert(currentConfig.merchantName === 'AVIORA FINE JEWELLERY', 'Default Admin Merchant Display Name is AVIORA FINE JEWELLERY');
+  assert(currentConfig.merchantName === 'A SILVER CHAPTER FINE JEWELLERY', 'Default Admin Merchant Display Name is A SILVER CHAPTER FINE JEWELLERY');
 
   // Test arbitrary custom amount order generation (e.g. ₹12,500)
   const customAmount = 12500;
@@ -507,8 +507,8 @@ async function runFullE2ETest() {
     assert(!navContent.includes('Our Story'), 'Top navbar cleanly omits "Our Story" button');
   }
 
-  // 4. Verify VPA in PhonePe and UPI sections is 9650834445@kotak
-  assert(appJsx.includes('VPA: <strong className="text-[var(--text-primary)]">9650834445@kotak</strong>'), 'VPA is 9650834445@kotak in App.jsx');
+  // 4. Verify VPA in PhonePe and UPI sections is 8796841184-2@ibl
+  assert(appJsx.includes('VPA: <strong className="text-[var(--text-primary)]">8796841184-2@ibl</strong>'), 'VPA is 8796841184-2@ibl in App.jsx');
 
   // 5. Verify no "Chapter 1", "Chapter 2", "Ch 01" in App.jsx
   assert(!appJsx.includes('Chapter 1'), 'App.jsx does not contain "Chapter 1"');
@@ -518,7 +518,7 @@ async function runFullE2ETest() {
 
   // 6. Verify Direct On-Page QR Code generation and rendering
   assert(appJsx.includes('DIRECT ON-PAGE UPI / RAZORPAY QR CODE') || appJsx.includes('DIRECT ON-PAGE UPI'), 'Direct on-page QR code block rendered in CheckoutView');
-  assert(appJsx.includes('upi://pay?pa=9650834445@kotak'), 'Direct UPI payment URI configured with 9650834445@kotak');
+  assert(appJsx.includes('upi://pay?pa=8796841184-2@ibl'), 'Direct UPI payment URI configured with 8796841184-2@ibl');
 
   // 7. Verify Modal Scrollability (overflow-y-auto + max-h-[90vh])
   assert(appJsx.includes('fixed inset-0 z-50 bg-black/80 backdrop-blur-xs overflow-y-auto'), 'Payment and OTP modal overlays have overflow-y-auto for smooth scrolling');

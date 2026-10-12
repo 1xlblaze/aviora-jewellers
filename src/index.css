@@ -10,9 +10,9 @@
   --text-primary: #1c1b18;
   --text-secondary: #4a453e;
   --text-muted: #8c8275;
-  --brand-forest: #0d281e;
-  --brand-forest-dark: #081a13;
-  --brand-forest-light: #1b4535;
+  --brand-forest: #14171a;
+  --brand-forest-dark: #0a0c0e;
+  --brand-forest-light: #24292f;
   --brand-gold: #b38f56;
   --brand-gold-soft: #d4bf98;
   --border-subtle: rgba(70, 56, 36, 0.12);
@@ -21,21 +21,21 @@
 }
 
 .dark {
-  --bg-primary: #0d0f0e;
-  --bg-secondary: #131715;
-  --bg-card: #181d1a;
-  --bg-stone: #202622;
+  --bg-primary: #0a0c0e;
+  --bg-secondary: #101317;
+  --bg-card: #15191e;
+  --bg-stone: #1c2128;
   --text-primary: #fbf8f3;
   --text-secondary: #c9ceca;
   --text-muted: #828a86;
-  --brand-forest: #2a5849;
-  --brand-forest-dark: #19382f;
-  --brand-forest-light: #3d7965;
+  --brand-forest: #e2e5eb;
+  --brand-forest-dark: #cbd5e1;
+  --brand-forest-light: #f1f5f9;
   --brand-gold: #e6ca97;
   --brand-gold-soft: #c5a059;
   --border-subtle: rgba(255, 255, 255, 0.12);
   --border-strong: rgba(255, 255, 255, 0.22);
-  --badge-bg: #1e2420;
+  --badge-bg: #15191e;
 }
 
 @layer base {

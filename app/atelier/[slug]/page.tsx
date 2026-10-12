@@ -599,7 +599,7 @@ export default function ProductDetailPage() {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-5">
             {COLLECTOR_TESTIMONIALS.map((test) => (
               <div
                 key={test.id}

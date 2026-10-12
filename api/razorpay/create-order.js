@@ -58,7 +58,7 @@ export default async function handler(req, res) {
           receipt: orderReceipt,
           notes: {
             ...notes,
-            store: 'AVIORA Atelier',
+            store: 'A Silver Chapter',
           },
         }),
       });
@@ -66,6 +66,42 @@ export default async function handler(req, res) {
       const orderData = await upstreamRes.json();
 
       if (upstreamRes.ok && orderData.id) {
+        let paymentLinkUrl = '';
+        try {
+          const plinkRes = await fetch('https://api.razorpay.com/v1/payment_links', {
+            method: 'POST',
+            headers: {
+              'Authorization': authHeader,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              amount: amountInPaise,
+              currency: currency.toUpperCase(),
+              description: `Order #${orderReceipt} • Fine 925 Silver Jewellery`,
+              customer: {
+                name: (notes && notes.customerName) || 'Customer',
+                contact: (notes && notes.customerPhone) ? `+91${String(notes.customerPhone).replace(/[^\d]/g, '').slice(-10)}` : '',
+                email: (notes && notes.customerEmail) || 'asilverchaptersupport@gmail.com',
+              },
+              callback_url: 'https://www.asilverchapter.com/orders',
+              callback_method: 'get',
+              notes: {
+                orderNumber: orderReceipt,
+                customerName: (notes && notes.customerName) || 'Customer',
+                customerPhone: (notes && notes.customerPhone) ? String(notes.customerPhone).replace(/[^\d]/g, '').slice(-10) : '',
+                shippingAddress: (notes && notes.shippingAddress) || '',
+                store: 'A Silver Chapter',
+              },
+            }),
+          });
+          if (plinkRes.ok) {
+            const plinkData = await plinkRes.json();
+            paymentLinkUrl = plinkData.short_url || '';
+          }
+        } catch (linkErr) {
+          console.warn('Payment link creation skipped:', linkErr);
+        }
+
         return res.status(200).json({
           success: true,
           keyId,
@@ -74,6 +110,7 @@ export default async function handler(req, res) {
           amount: orderData.amount,
           currency: orderData.currency,
           receipt: orderData.receipt,
+          paymentLink: paymentLinkUrl,
         });
       }
 
