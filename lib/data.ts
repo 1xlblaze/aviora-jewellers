@@ -145,7 +145,7 @@ export const STORE_CONFIG = {
     { id: 'new-arrivals', label: 'New Arrivals', image: '/products/IMG-20260913-WA0079.jpg', alt: 'New arrivals fine jewellery' },
     { id: 'minimalist', label: 'Minimalist Jewellery', image: '/products/IMG-20260913-WA0092.jpg', alt: 'Minimalist delicate jewellery' },
     { id: 'statement', label: 'Statement Jewellery', image: '/products/IMG-20261013-WA0016.jpg', alt: 'Bold statement jewellery' },
-    { id: 'moissanite', label: 'Moissanite Collection', image: '/products/pear-round-moissanite-tennis-bracelet-silk.jpg', alt: 'Brilliant moissanite jewellery' },
+    { id: 'moissanite', label: 'Moissanite Collection', image: '/products/14k-gold-plated-pendant-d-color-vvs-moissanite-2700-1.jpg', alt: 'Brilliant moissanite jewellery' },
     { id: 'pearl', label: 'Pearl Collection', image: '/products/IMG-20261013-WA0015.jpg', alt: 'Freshwater pearl jewellery' },
     { id: 'gifting', label: 'Gifting Occasions', image: '/products/IMG-20261013-WA0017.jpg', alt: 'Gifting jewellery heirlooms' },
   ],
@@ -701,7 +701,7 @@ export const CATEGORIES: Category[] = [
     name: 'Moissanite Collection',
     slug: 'moissanite',
     description: 'D Colorless VVS1 brilliance crafted in Fine 925 Sterling Silver.',
-    heroImage: '/customer/customer-rings-stack.jpg',
+    heroImage: '/products/14k-gold-plated-pendant-d-color-vvs-moissanite-2700-1.jpg',
     subcategories: [
       { id: 'moiss-gra', name: 'GRA Certified Jewellery', slug: 'gra-certified' },
       { id: 'moiss-rings', name: 'Rings', slug: 'rings' },
