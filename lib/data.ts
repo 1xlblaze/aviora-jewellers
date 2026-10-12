@@ -146,8 +146,8 @@ export const STORE_CONFIG = {
     { id: 'minimalist', label: 'Minimalist Jewellery', image: '/customer/customer-heart-set.jpg', alt: 'Minimalist delicate jewellery' },
     { id: 'statement', label: 'Statement Jewellery', image: '/customer/customer-ruby-earrings.jpg', alt: 'Bold statement jewellery' },
     { id: 'moissanite', label: 'Moissanite Collection', image: '/customer/customer-rings-stack.jpg', alt: 'Brilliant moissanite jewellery' },
-    { id: 'pearl', label: 'Pearl Collection', image: '/products/14k-gold-double-layer-freshwater-pearl-necklace-1.jpg', alt: 'Freshwater pearl jewellery' },
-    { id: 'gifting', label: 'Gifting Occasions', image: '/products/mop-freshwater-pearl-clover-bracelet-1.jpg', alt: 'Gifting jewellery heirlooms' },
+    { id: 'pearl', label: 'Pearl Collection', image: '/products/freshwater-pearl-three-layer-zircon-necklace-2.jpg', alt: 'Freshwater pearl jewellery' },
+    { id: 'gifting', label: 'Gifting Occasions', image: '/products/mop-freshwater-pearl-clover-bracelet-2.jpg', alt: 'Gifting jewellery heirlooms' },
   ],
   collections: [
     { id: 'new-arrivals', label: 'New Arrivals' },
@@ -166,7 +166,7 @@ export const STORE_CONFIG = {
     { id: 'sterling-silver-925', label: '925 Sterling Silver', desc: 'Solid 925 sterling silver crafted for timeless durability and lustrous finish.', image: '/products/moissanite-rhodium-tennis-bracelet-11690-1.jpg' },
     { id: 'gold-plated-14k', label: '14K & 18K Gold-Plated', desc: 'Thick gold vermeil plating over pure 925 silver for enduring lustre.', image: '/products/14k-gold-plated-double-layer-necklace-3828-1.jpg' },
     { id: 'moissanite', label: 'Brilliant Moissanite', desc: 'Each moissanite is chosen for exceptional optical fire and flawless clarity.', image: '/products/14k-gold-plated-vvs-moissanite-ring-5300-1.jpg' },
-    { id: 'freshwater-pearls', label: 'Freshwater Pearls', desc: 'Hand-selected luminous organic pearls with timeless luster.', image: '/products/clover-freshwater-pearl-blue-apatite-necklace-1.jpg' },
+    { id: 'freshwater-pearls', label: 'Freshwater Pearls', desc: 'Hand-selected luminous organic pearls with timeless luster.', image: '/products/freshwater-pearl-three-layer-zircon-necklace-2.jpg' },
   ],
   promises: [
     { title: 'Fine 925 Sterling Silver', desc: 'Crafted from authentic solid 925 sterling silver with enduring purity as our core material.' },
@@ -715,7 +715,7 @@ export const CATEGORIES: Category[] = [
     name: 'Pearl Collection',
     slug: 'pearl',
     description: 'Hand-selected organic Grade-AAA freshwater pearls with luminous, timeless luster.',
-    heroImage: '/products/14k-gold-double-layer-freshwater-pearl-necklace-1.jpg',
+    heroImage: '/products/freshwater-pearl-three-layer-zircon-necklace-2.jpg',
     subcategories: [
       { id: 'pearl-freshwater', name: 'Freshwater Pearl Jewellery', slug: 'freshwater-pearls' },
       { id: 'pearl-bracelets', name: 'Bracelets', slug: 'bracelets' },
@@ -728,7 +728,7 @@ export const CATEGORIES: Category[] = [
     name: 'Gifting Occasions',
     slug: 'gifting',
     description: 'Thoughtfully curated heirlooms for life’s most cherished celebrations.',
-    heroImage: '/products/mop-freshwater-pearl-clover-bracelet-1.jpg',
+    heroImage: '/products/mop-freshwater-pearl-clover-bracelet-2.jpg',
     subcategories: [
       { id: 'gift-rakhi', name: 'Rakhi', slug: 'rakhi' },
       { id: 'gift-birthday', name: 'Birthday', slug: 'birthday' },
@@ -821,9 +821,10 @@ export const PRODUCTS: Product[] = [
     "dimensions": "Choker strand: 15in | Droplet strand: 17in + 2in extender",
     "craftsmanship": "Individual hand-knotting with organic freshwater pearls on reinforced noble wire.",
     "images": [
+      "/products/freshwater-pearl-three-layer-zircon-necklace-2.jpg",
       "/products/14k-gold-double-layer-freshwater-pearl-necklace-1.jpg"
     ],
-    "modelImage": "/products/14k-gold-double-layer-freshwater-pearl-necklace-1.jpg",
+    "modelImage": "/products/freshwater-pearl-three-layer-zircon-necklace-2.jpg",
     "featured": true,
     "inStock": true,
     "inventory": 2,
@@ -1225,7 +1226,7 @@ export const PRODUCTS: Product[] = [
       "/products/freshwater-pearl-three-layer-zircon-necklace-2.jpg",
       "/products/freshwater-pearl-three-layer-zircon-necklace-3.jpg"
     ],
-    "modelImage": "/products/freshwater-pearl-three-layer-zircon-necklace-1.jpg",
+    "modelImage": "/products/freshwater-pearl-three-layer-zircon-necklace-2.jpg",
     "featured": true,
     "inStock": true,
     "inventory": 2,
@@ -1424,10 +1425,10 @@ export const PRODUCTS: Product[] = [
     "dimensions": "Length: 6.5in + 1.5in extender",
     "craftsmanship": "Precision lapidary carving of genuine mother-of-pearl inserts.",
     "images": [
-      "/products/mop-freshwater-pearl-clover-bracelet-1.jpg",
-      "/products/mop-freshwater-pearl-clover-bracelet-2.jpg"
+      "/products/mop-freshwater-pearl-clover-bracelet-2.jpg",
+      "/products/mop-freshwater-pearl-clover-bracelet-1.jpg"
     ],
-    "modelImage": "/products/mop-freshwater-pearl-clover-bracelet-1.jpg",
+    "modelImage": "/products/mop-freshwater-pearl-clover-bracelet-2.jpg",
     "featured": false,
     "inStock": true,
     "inventory": 2,
