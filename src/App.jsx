@@ -3094,7 +3094,12 @@ function HomeView() {
                       <span className="text-[var(--text-muted)]">{test.location}</span>
                     </div>
                     <span className="text-[#b99762] dark:text-[#e6ca97] text-[9px] block mt-0.5 font-medium">
-                      Acquired: {test.productName}
+                      Acquired: {(() => {
+                        const matched = (products || []).find(
+                          (p) => p.images?.includes(test.image) || p.modelImage === test.image
+                        );
+                        return matched ? matched.name : test.productName;
+                      })()}
                     </span>
                   </div>
                 </div>
@@ -4754,7 +4759,12 @@ function ProductView() {
                       <span className="text-[var(--text-muted)]">{test.location}</span>
                     </div>
                     <span className="text-[#b99762] dark:text-[#e6ca97] text-[9px] block mt-0.5 font-medium">
-                      Acquired: {test.productName}
+                      Acquired: {(() => {
+                        const matched = (products || []).find(
+                          (p) => p.images?.includes(test.image) || p.modelImage === test.image
+                        );
+                        return matched ? matched.name : test.productName;
+                      })()}
                     </span>
                   </div>
                 </div>
