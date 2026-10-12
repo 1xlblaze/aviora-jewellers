@@ -906,7 +906,11 @@ export const PRODUCTS: Product[] = [
     ],
     "collections": [
       "new-arrivals",
-      "minimalist"
+      "statement"
+    ],
+    "tags": [
+      "necklaces",
+      "statement"
     ],
     "finish": "Diamond Cut Polish",
     "colour": "14K Gold",
@@ -1215,6 +1219,12 @@ export const PRODUCTS: Product[] = [
       "statement",
       "new-arrivals"
     ],
+    "tags": [
+      "necklaces",
+      "freshwater-pearls",
+      "pearl",
+      "statement"
+    ],
     "finish": "Lustrous & Rhodium Plated",
     "colour": "Ivory Pearl & Silver",
     "isNew": true,
@@ -1263,6 +1273,11 @@ export const PRODUCTS: Product[] = [
       "statement",
       "gifting"
     ],
+    "tags": [
+      "necklaces",
+      "statement",
+      "gifting"
+    ],
     "finish": "High Polish",
     "colour": "Turquoise Blue & Silver",
     "isNew": true,
@@ -1308,8 +1323,11 @@ export const PRODUCTS: Product[] = [
     ],
     "collections": [
       "statement",
-      "minimalist",
       "new-arrivals"
+    ],
+    "tags": [
+      "bracelets",
+      "statement"
     ],
     "finish": "Rhodium Polish",
     "colour": "Emerald Green, White & Silver",
@@ -1357,6 +1375,12 @@ export const PRODUCTS: Product[] = [
     ],
     "collections": [
       "new-arrivals",
+      "moissanite",
+      "statement"
+    ],
+    "tags": [
+      "bracelets",
+      "gra-certified",
       "moissanite",
       "statement"
     ],
@@ -1465,6 +1489,11 @@ export const PRODUCTS: Product[] = [
       "statement",
       "gifting"
     ],
+    "tags": [
+      "earrings",
+      "statement",
+      "gifting"
+    ],
     "finish": "Mirror Rhodium Polish",
     "colour": "Canary Yellow & Silver",
     "isNew": true,
@@ -1509,6 +1538,11 @@ export const PRODUCTS: Product[] = [
     ],
     "collections": [
       "new-arrivals",
+      "statement",
+      "gifting"
+    ],
+    "tags": [
+      "earrings",
       "statement",
       "gifting"
     ],
@@ -1698,6 +1732,11 @@ export const PRODUCTS: Product[] = [
       "gifting",
       "new-arrivals"
     ],
+    "tags": [
+      "earrings",
+      "statement",
+      "gifting"
+    ],
     "finish": "Platinum Rhodium",
     "colour": "Ruby Crimson & Silver",
     "isNew": true,
@@ -1743,6 +1782,11 @@ export const PRODUCTS: Product[] = [
     ],
     "collections": [
       "new-arrivals",
+      "statement",
+      "gifting"
+    ],
+    "tags": [
+      "earrings",
       "statement",
       "gifting"
     ],
@@ -1992,8 +2036,11 @@ export const PRODUCTS: Product[] = [
     ],
     "collections": [
       "statement",
-      "minimalist",
       "new-arrivals"
+    ],
+    "tags": [
+      "necklaces",
+      "statement"
     ],
     "finish": "Mirror Vermeil Finish",
     "colour": "Emerald Green & 14K Gold",

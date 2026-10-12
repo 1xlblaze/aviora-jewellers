@@ -585,8 +585,8 @@ function AppProvider({ children }) {
                 description,
                 images: hasRemoteImages ? p.images : (canonical.images || []),
                 modelImage: p.modelImage || (hasRemoteImages ? p.images[0] : canonical.modelImage),
-                collections: Array.isArray(p.collections) && p.collections.length > 0 ? p.collections : (canonical.collections || []),
-                tags: Array.isArray(p.tags) && p.tags.length > 0 ? p.tags : (canonical.tags || []),
+                collections: Array.isArray(p.collections) && p.collections.length > 0 ? Array.from(new Set([...p.collections, ...(canonical.collections || [])])) : (canonical.collections || []),
+                tags: Array.isArray(p.tags) && p.tags.length > 0 ? Array.from(new Set([...p.tags, ...(canonical.tags || [])])) : (canonical.tags || []),
               };
             }
             return p;
@@ -3320,32 +3320,24 @@ function ShopView() {
             (Array.isArray(p.tags) && (p.tags.includes('new') || p.tags.includes('new-arrivals') || p.tags.includes('new-arrival')))
         );
       } else if (selectedCategory === 'minimalist') {
-        // Minimalist: strictly delicate, non-statement
         list = list.filter(
           (p) =>
-            (p.category === 'minimalist' ||
-              p.categorySlug === 'minimalist' ||
-              (Array.isArray(p.collections) && p.collections.includes('minimalist')) ||
-              (p.silhouette === 'light' && p.category !== 'statement')) &&
-            p.category !== 'statement' &&
-            p.categorySlug !== 'statement' &&
-            p.silhouette !== 'heavy' &&
-            !(Array.isArray(p.collections) && p.collections.includes('statement')) &&
-            !(Array.isArray(p.tags) && p.tags.includes('statement'))
+            p.category === 'minimalist' ||
+            p.categorySlug === 'minimalist' ||
+            (Array.isArray(p.collections) && p.collections.includes('minimalist')) ||
+            (Array.isArray(p.tags) && p.tags.includes('minimalist')) ||
+            p.occasionVibe === 'Minimalist' ||
+            (p.silhouette === 'light' && !(Array.isArray(p.collections) && p.collections.includes('statement')) && p.occasionVibe !== 'Statement')
         );
       } else if (selectedCategory === 'statement') {
-        // Statement: strictly sculptural & bold, non-minimalist
         list = list.filter(
           (p) =>
-            (p.category === 'statement' ||
-              p.categorySlug === 'statement' ||
-              (Array.isArray(p.collections) && p.collections.includes('statement')) ||
-              (p.silhouette === 'heavy' && p.category !== 'minimalist')) &&
-            p.category !== 'minimalist' &&
-            p.categorySlug !== 'minimalist' &&
-            p.silhouette !== 'light' &&
-            !(Array.isArray(p.collections) && p.collections.includes('minimalist')) &&
-            !(Array.isArray(p.tags) && p.tags.includes('minimalist'))
+            p.category === 'statement' ||
+            p.categorySlug === 'statement' ||
+            (Array.isArray(p.collections) && p.collections.includes('statement')) ||
+            (Array.isArray(p.tags) && p.tags.includes('statement')) ||
+            p.occasionVibe === 'Statement' ||
+            p.silhouette === 'heavy'
         );
       } else if (selectedCategory === 'moissanite') {
         list = list.filter(
@@ -3364,6 +3356,15 @@ function ShopView() {
             p.materials?.includes('freshwater-pearls') ||
             p.collections?.includes('pearl') ||
             p.name.toLowerCase().includes('pearl')
+        );
+      } else if (selectedCategory === 'gifting') {
+        list = list.filter(
+          (p) =>
+            p.category === 'gifting' ||
+            p.categorySlug === 'gifting' ||
+            (Array.isArray(p.collections) && p.collections.includes('gifting')) ||
+            (Array.isArray(p.tags) && p.tags.includes('gifting')) ||
+            p.occasionVibe === 'Gifting'
         );
       } else {
         list = list.filter(
@@ -3408,22 +3409,22 @@ function ShopView() {
       } else if (selectedCollection === 'minimalist') {
         list = list.filter(
           (p) =>
-            ((Array.isArray(p.collections) && p.collections.includes('minimalist')) ||
-              p.category === 'minimalist' ||
-              (p.silhouette === 'light' && p.category !== 'statement')) &&
-            p.silhouette !== 'heavy' &&
-            p.category !== 'statement' &&
-            !(Array.isArray(p.collections) && p.collections.includes('statement'))
+            p.category === 'minimalist' ||
+            p.categorySlug === 'minimalist' ||
+            (Array.isArray(p.collections) && p.collections.includes('minimalist')) ||
+            (Array.isArray(p.tags) && p.tags.includes('minimalist')) ||
+            p.occasionVibe === 'Minimalist' ||
+            (p.silhouette === 'light' && !(Array.isArray(p.collections) && p.collections.includes('statement')) && p.occasionVibe !== 'Statement')
         );
       } else if (selectedCollection === 'statement') {
         list = list.filter(
           (p) =>
-            ((Array.isArray(p.collections) && p.collections.includes('statement')) ||
-              p.silhouette === 'heavy' ||
-              p.category === 'statement') &&
-            p.silhouette !== 'light' &&
-            p.category !== 'minimalist' &&
-            !(Array.isArray(p.collections) && p.collections.includes('minimalist'))
+            p.category === 'statement' ||
+            p.categorySlug === 'statement' ||
+            (Array.isArray(p.collections) && p.collections.includes('statement')) ||
+            (Array.isArray(p.tags) && p.tags.includes('statement')) ||
+            p.occasionVibe === 'Statement' ||
+            p.silhouette === 'heavy'
         );
       } else if (selectedCollection === 'moissanite') {
         list = list.filter((p) => p.collections?.includes('moissanite') || p.category === 'moissanite' || p.materials?.includes('moissanite') || p.name.toLowerCase().includes('moissanite'));
@@ -7735,6 +7736,21 @@ function AdminView() {
       list = list.filter((p) => {
         if (p.category === filterCategory) return true;
         if (p.categorySlug === filterCategory) return true;
+        if (filterCategory === 'statement' && (
+          p.category === 'statement' ||
+          p.categorySlug === 'statement' ||
+          (Array.isArray(p.collections) && p.collections.includes('statement')) ||
+          (Array.isArray(p.tags) && p.tags.includes('statement')) ||
+          p.occasionVibe === 'Statement' ||
+          p.silhouette === 'heavy'
+        )) return true;
+        if (filterCategory === 'minimalist' && (
+          p.category === 'minimalist' ||
+          p.categorySlug === 'minimalist' ||
+          (Array.isArray(p.collections) && p.collections.includes('minimalist')) ||
+          (Array.isArray(p.tags) && p.tags.includes('minimalist')) ||
+          p.occasionVibe === 'Minimalist'
+        )) return true;
         if (filterCategory === 'earrings' && (p.subcategory === 'earrings' || p.categorySlug?.includes('ear') || p.name?.toLowerCase().includes('earring'))) return true;
         if (filterCategory === 'necklaces' && (p.subcategory === 'necklaces' || p.categorySlug?.includes('choker') || p.categorySlug?.includes('hasli') || p.name?.toLowerCase().includes('necklace') || p.name?.toLowerCase().includes('chain') || p.name?.toLowerCase().includes('pendant'))) return true;
         if (filterCategory === 'bracelets' && (p.subcategory === 'bracelets' || p.categorySlug?.includes('kada') || p.categorySlug?.includes('bangle') || p.name?.toLowerCase().includes('bracelet') || p.name?.toLowerCase().includes('kada'))) return true;

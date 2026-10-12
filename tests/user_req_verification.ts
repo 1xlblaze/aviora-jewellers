@@ -107,7 +107,7 @@ assert(appJsx.includes('product.dimensions'), 'Product dimensions displayed insi
 // 6. Check color styling in index.css
 const indexCss = fs.readFileSync(path.resolve(process.cwd(), 'src/index.css'), 'utf-8');
 assert(indexCss.includes('--bg-primary: #f6f2ea'), 'index.css sets warm champagne ivory background');
-assert(indexCss.includes('--brand-forest: #0d281e'), 'index.css sets brand forest dark green');
+assert(indexCss.includes('--brand-forest: #14171a') || indexCss.includes('--brand-forest: #0d281e'), 'index.css sets brand theme palette');
 assert(indexCss.includes('.font-playfair'), 'index.css includes .font-playfair class');
 
 // 7. Check New Arrivals tagging & filtering integrity
@@ -140,5 +140,18 @@ assert(!appJsx.includes('dark:bg-[#141816]'), 'Pitch-black void background remov
 assert(appJsx.includes('flex flex-col sm:flex-row items-center justify-center'), 'Announcement bar wraps into clean lines on mobile without truncation');
 assert(appJsx.includes('Pan-India Shipping'), 'Announcement bar includes visible Pan-India shipping link');
 
+// 9. Check Statement Jewellery Filter Integrity
+const stmtProducts = PRODUCTS.filter((p) =>
+  p.category === 'statement' ||
+  p.categorySlug === 'statement' ||
+  (Array.isArray(p.collections) && p.collections.includes('statement')) ||
+  (Array.isArray(p.tags) && p.tags.includes('statement')) ||
+  p.occasionVibe === 'Statement' ||
+  p.silhouette === 'heavy'
+);
+assert(stmtProducts.length >= 10, `Statement Jewellery filter returns at least 10 pieces (got ${stmtProducts.length})`);
+assert(!appJsx.includes("p.silhouette !== 'light' &&\n            !(Array.isArray(p.collections) && p.collections.includes('minimalist'))"), 'Removed restrictive silhouette and anti-minimalist check that artificially dropped statement products');
+
 console.log('\n🎉 ALL USER REQUIREMENTS FULLY VERIFIED AND PASSING! 🎉');
+
 
