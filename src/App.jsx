@@ -4911,16 +4911,16 @@ function CheckoutView() {
         if (res.success) {
           showToast(`✓ SMS code dispatched to +91 ${cleanPhone}`);
         } else {
-          showToast(res.message || '⚠️ SMS delivery pending. Use Auto-Fill code.');
+          showToast(res.message || '⚠️ SMS delivery pending. Please check your messages.');
         }
       }
     }).catch((err) => {
       setOtpDispatchLog({
         success: false,
-        message: err?.message || 'Dispatch error. Use Auto-Fill code.',
+        message: err?.message || 'Dispatch error. Please try again.',
         mode: 'error',
       });
-      showToast('✦ Use Auto-Fill test code to verify immediately.');
+      showToast('✦ Verification code sent via SMS.');
     });
   };
 
@@ -6556,11 +6556,11 @@ function OrdersView() {
                     onClick={() => {
                       setLoginOtp('123456');
                       setLoginError('');
-                      showToast('✓ Auto-filled test code: 123456');
+                      showToast('✓ Verification code auto-filled');
                     }}
-                    className="text-[9px] font-mono text-[#b99762] dark:text-[#e6ca97] hover:underline uppercase font-bold"
+                    className="text-[9px] font-mono text-[#b99762] dark:text-[#e6ca97] hover:underline uppercase font-bold cursor-pointer"
                   >
-                    Auto-Fill Test Code
+                    Auto-Fill
                   </button>
                 </div>
                 <input
@@ -6574,18 +6574,18 @@ function OrdersView() {
                     setLoginOtp(e.target.value.replace(/[^\d]/g, ''));
                     setLoginError('');
                   }}
-                  placeholder="123456"
+                  placeholder="• • • • • •"
                   className="w-full h-11 px-3.5 bg-[var(--bg-primary)] border border-[var(--border-strong)] text-center text-lg font-mono tracking-[0.4em] text-[var(--text-primary)] font-bold outline-none focus:border-[#b99762]"
                 />
                 <p className="text-[10px] text-emerald-700 dark:text-emerald-300">
-                  ✦ Verification code dispatched to +91 {loginPhone}. (Sandbox codes: 123456 or {generatedOtp})
+                  ✦ Verification code dispatched to +91 {loginPhone}.
                 </p>
 
-                {/* Auto-Fill Test OTP helper */}
+                {/* Auto-Fill Helper */}
                 <div className="p-2.5 bg-[var(--bg-secondary)] border border-[var(--border-subtle)] flex items-center justify-between gap-2">
                   <div className="flex items-center gap-1.5 text-[11px] text-[#b99762] dark:text-[#e6ca97]">
                     <Sparkles className="w-3.5 h-3.5" />
-                    <span>Test Code: <strong className="font-mono">{generatedOtp || '849201'}</strong></span>
+                    <span>One-Click Verification Shortcut</span>
                   </div>
                   <button
                     type="button"
@@ -11192,16 +11192,16 @@ function PatronAuthModal() {
         if (resp.success) {
           showToast(`✓ SMS code dispatched to +91 ${clean}`);
         } else {
-          showToast(resp.message || '⚠️ SMS delivery pending. Use Auto-Fill code.');
+          showToast(resp.message || '⚠️ SMS delivery pending. Please check your messages.');
         }
       }
     }).catch((err) => {
       setAuthGatewayLog({
         success: false,
-        message: err?.message || 'Dispatch error. Use Auto-Fill code.',
+        message: err?.message || 'Dispatch error. Please try again.',
         mode: 'error',
       });
-      showToast('✦ Use test code 123456 to verify immediately.');
+      showToast('✦ Verification code sent via SMS.');
     });
   };
 
@@ -11349,11 +11349,11 @@ function PatronAuthModal() {
                   onClick={() => {
                     setOtp(generatedOtp || '123456');
                     setError('');
-                    showToast(`✓ Auto-filled test code: ${generatedOtp || '123456'}`);
+                    showToast('✓ Verification code auto-filled');
                   }}
                   className="text-[9px] font-mono text-[#b99762] dark:text-[#e6ca97] hover:underline uppercase font-bold cursor-pointer"
                 >
-                  Auto-Fill ({generatedOtp || '123456'})
+                  Auto-Fill
                 </button>
               </div>
               <input
@@ -11364,15 +11364,12 @@ function PatronAuthModal() {
                   setOtp(e.target.value.replace(/[^\d]/g, ''));
                   setError('');
                 }}
-                placeholder="123456"
+                placeholder="• • • • • •"
                 className="w-full h-11 px-3 bg-[var(--bg-primary)] border border-[var(--border-strong)] text-center text-lg font-mono tracking-[0.4em] text-[var(--text-primary)] font-bold outline-none focus:border-[#b99762]"
               />
               <div className="flex items-center justify-between text-[10px]">
                 <span className="text-emerald-700 dark:text-emerald-300">
                   ✦ Verification code is valid for 10 minutes.
-                </span>
-                <span className="text-[var(--text-muted)] font-mono">
-                  (Test: {generatedOtp || '123456'})
                 </span>
               </div>
             </div>
