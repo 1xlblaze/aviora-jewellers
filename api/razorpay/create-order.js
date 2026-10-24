@@ -1,7 +1,4 @@
-/**
- * Vercel Serverless Function: /api/razorpay/create-order
- * Creates an official Razorpay Order for checkout
- */
+import { logInfo, logWarn, logError, flushLogs } from '../_logger.js';
 
 export default async function handler(req, res) {
   // CORS configuration
@@ -30,6 +27,8 @@ export default async function handler(req, res) {
     const { amount, currency = 'INR', receipt, notes = {} } = body || {};
 
     if (!amount || Number(amount) <= 0) {
+      logWarn('Razorpay create-order invalid amount rejected', { amount, currency });
+      await flushLogs();
       return res.status(400).json({
         success: false,
         message: 'Valid amount is required (e.g. in INR or paise).',
@@ -44,6 +43,14 @@ export default async function handler(req, res) {
 
     const authHeader = keyId && keySecret ? 'Basic ' + Buffer.from(`${keyId}:${keySecret}`).toString('base64') : '';
     const orderReceipt = receipt || `rcpt_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+
+    logInfo('Razorpay create-order initiated', {
+      amountInPaise,
+      currency,
+      receipt: orderReceipt,
+      customerPhone: notes?.customerPhone || '',
+      hasAuthHeader: Boolean(authHeader),
+    });
 
     try {
       const upstreamRes = await fetch('https://api.razorpay.com/v1/orders', {
@@ -66,6 +73,12 @@ export default async function handler(req, res) {
       const orderData = await upstreamRes.json();
 
       if (upstreamRes.ok && orderData.id) {
+        logInfo('Razorpay order created successfully', {
+          orderId: orderData.id,
+          amount: orderData.amount,
+          receipt: orderData.receipt,
+        });
+
         let paymentLinkUrl = '';
         try {
           const plinkRes = await fetch('https://api.razorpay.com/v1/payment_links', {
@@ -102,6 +115,8 @@ export default async function handler(req, res) {
           console.warn('Payment link creation skipped:', linkErr);
         }
 
+        await flushLogs();
+
         return res.status(200).json({
           success: true,
           keyId,
@@ -114,9 +129,15 @@ export default async function handler(req, res) {
         });
       }
 
-      console.warn('Razorpay upstream API response:', orderData);
+      console.warn('Razorpay upstream API response error:', orderData);
+      logWarn('Razorpay upstream order creation failed, fallback triggered', {
+        orderData,
+        amountInPaise,
+      });
+
       // Fallback test order if upstream returned error (e.g. rate limit / network issue)
       const mockOrderId = `order_${Math.random().toString(36).substring(2, 16)}`;
+      await flushLogs();
       return res.status(200).json({
         success: true,
         fallback: true,
@@ -138,7 +159,9 @@ export default async function handler(req, res) {
       });
     } catch (fetchErr) {
       console.error('Razorpay fetch error:', fetchErr);
+      logError('Razorpay fetch network error during create-order', fetchErr, { amountInPaise });
       const mockOrderId = `order_${Math.random().toString(36).substring(2, 16)}`;
+      await flushLogs();
       return res.status(200).json({
         success: true,
         fallback: true,
@@ -156,6 +179,8 @@ export default async function handler(req, res) {
     }
   } catch (error) {
     console.error('Error in /api/razorpay/create-order:', error);
+    logError('Unhandled error in /api/razorpay/create-order', error);
+    await flushLogs();
     return res.status(500).json({
       success: false,
       message: 'Failed to create Razorpay order',
@@ -163,3 +188,4 @@ export default async function handler(req, res) {
     });
   }
 }
+

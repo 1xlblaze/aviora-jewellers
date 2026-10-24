@@ -125,6 +125,7 @@ import {
   savePhonePeConfig,
   DEFAULT_PHONEPE_CONFIG,
 } from '../lib/services';
+import { pulse } from '../lib/pulse';
 
 // Razorpay Brand Icon SVG
 export function RazorpayIcon({ className = 'w-5 h-5' }) {
@@ -825,8 +826,10 @@ function AppProvider({ children }) {
           ...updated[existingIdx],
           quantity: updated[existingIdx].quantity + quantity,
         };
+        pulse.addedToCart(product);
         return updated;
       }
+      pulse.addedToCart(product);
       return [...prev, { productId: product.id, quantity, engraving }];
     });
     setIsCartOpen(true);
@@ -5002,6 +5005,7 @@ function CheckoutView() {
       const config = getRazorpayConfig();
 
       if (typeof window !== 'undefined' && window.Razorpay) {
+        pulse.razorpayModalOpened(activeOrder.orderId || activeOrder.id, activeOrder.amountInPaise);
         const options = {
           key: config.keyId,
           amount: activeOrder.amountInPaise,
@@ -5049,6 +5053,11 @@ function CheckoutView() {
             // Successful payment callback
             setIsProcessingPayment(true);
             try {
+              pulse.orderCompleted({
+                id: response.razorpay_order_id || activeOrder.orderId,
+                amount: activeOrder.amountInRupees,
+                paymentId: response.razorpay_payment_id,
+              });
               await handleFinalizeSuccessfulOrder({
                 gateway: 'Razorpay',
                 transactionId: response.razorpay_payment_id || `pay_${Date.now()}`,
@@ -5068,6 +5077,10 @@ function CheckoutView() {
             confirm_close: true,
             ondismiss: function () {
               setIsProcessingPayment(false);
+              pulse.razorpayModalDismissed(activeOrder.orderId || activeOrder.id, {
+                receipt: activeOrder.receipt,
+                amount: activeOrder.amountInRupees,
+              });
               showToast('Payment window closed. Your cart and details are saved.');
             },
             escape: true,
@@ -5082,6 +5095,7 @@ function CheckoutView() {
         rzp.on('payment.failed', function (response) {
           setIsProcessingPayment(false);
           console.warn('Razorpay payment failed:', response.error);
+          pulse.razorpayPaymentFailed(activeOrder.orderId || activeOrder.id, response.error || {});
           const errorDesc = response?.error?.description || response?.error?.reason || 'Payment could not be completed by your bank/UPI app.';
 
           // If blocked due to domain mismatch, seamlessly open Razorpay's official hosted link on rzp.io

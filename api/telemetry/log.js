@@ -1,7 +1,9 @@
 /**
  * Vercel Serverless Function: /api/telemetry/log
- * Logs auth & payment telemetry hits into Vercel runtime logs
+ * Emits auth, checkout & payment telemetry hits into PostHog OTLP logs
  */
+
+import { logInfo, logError, flushLogs } from '../_logger.js';
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -27,13 +29,26 @@ export default async function handler(req, res) {
     }
 
     const { event = 'TELEMETRY_EVENT', details = {}, timestamp = new Date().toISOString() } = body || {};
-    
-    // Log directly into Vercel runtime functions console
+
+    // 1. Emit to PostHog OpenTelemetry Logger
+    logInfo(`[TELEMETRY] ${event}`, {
+      'telemetry.event': event,
+      'telemetry.timestamp': timestamp,
+      ...details,
+    });
+
+    // 2. Fallback console print for Vercel runtime logs
     console.info(`[A SILVER CHAPTER TELEMETRY] [${timestamp}] ${event}:`, JSON.stringify(details));
+
+    // Ensure OTLP payload is sent before serverless function exits
+    await flushLogs();
 
     return res.status(200).json({ success: true, logged: true });
   } catch (err) {
     console.error('[A SILVER CHAPTER TELEMETRY] Error logging telemetry hit:', err);
+    logError('Failed processing telemetry hit', err);
+    await flushLogs();
     return res.status(200).json({ success: true });
   }
 }
+

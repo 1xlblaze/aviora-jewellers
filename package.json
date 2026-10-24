@@ -12,6 +12,12 @@
     "contract:emit": "prisma contract emit"
   },
   "dependencies": {
+    "@opentelemetry/api": "^1.10.0",
+    "@opentelemetry/api-logs": "^0.223.0",
+    "@opentelemetry/exporter-logs-otlp-http": "^0.300.0",
+    "@opentelemetry/resources": "^3.0.0",
+    "@opentelemetry/sdk-logs": "^3.0.0",
+    "@opentelemetry/sdk-node": "^0.300.0",
     "@prisma/client": "^7.10.0",
     "@supabase/supabase-js": "^2.116.0",
     "@tailwindcss/vite": "^4.3.3",
@@ -22,6 +28,7 @@
     "framer-motion": "^13.2.0",
     "lucide-react": "^1.45.0",
     "postcss": "^8.5.28",
+    "posthog-js": "^1.438.21",
     "prisma": "^8.0.0-rc.14",
     "qrcode": "^1.5.4",
     "react": "^19.2.8",

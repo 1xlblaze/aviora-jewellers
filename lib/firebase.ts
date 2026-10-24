@@ -29,10 +29,16 @@ const app = typeof window !== 'undefined'
   : null;
 export const auth = app ? getAuth(app) : null;
 
-// Telemetry API logger to record hits into serverless logs
+import { pulse } from './pulse';
+
+// Telemetry API logger to record hits into serverless logs & PostHog pulse
 export function logTelemetryToApi(event: string, details: Record<string, any> = {}) {
   try {
     if (typeof window !== 'undefined') {
+      // 1. PostHog Client Pulse
+      pulse.custom(event, details);
+
+      // 2. Serverless API Log
       fetch('/api/telemetry/log', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -45,6 +51,7 @@ export function logTelemetryToApi(event: string, details: Record<string, any> = 
     }
   } catch {}
 }
+
 
 let recaptchaVerifier: RecaptchaVerifier | null = null;
 let activeConfirmationResult: ConfirmationResult | null = null;
