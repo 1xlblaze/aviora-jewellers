@@ -29,21 +29,40 @@ export function initPulse() {
   }
 
   try {
-    posthog.init(POSTHOG_KEY, {
+    const isClient = typeof window !== 'undefined';
+    const proxyHost = isClient && window.location.hostname !== 'localhost'
+      ? `${window.location.origin}/ingest`
+      : POSTHOG_HOST;
 
-      api_host: POSTHOG_HOST,
-      person_profiles: 'identified_only',
+    posthog.init(POSTHOG_KEY, {
+      api_host: proxyHost,
+      ui_host: 'https://us.posthog.com',
+      person_profiles: 'always',
       autocapture: true,
       capture_pageview: true,
       capture_pageleave: true,
+      enable_recording_console_log: true,
+      logs: {
+        captureConsoleLogs: true,
+        serviceName: 'aviora-jewellers-web',
+      },
       session_recording: {
         maskAllInputs: false,
         maskInputOptions: {
           password: true,
         },
       },
-      loaded: () => {
+      loaded: (ph) => {
         isInitialized = true;
+        try {
+          ph.capture('$pageview', { path: window.location.pathname });
+          ph.capture('store_loaded', {
+            path: window.location.pathname,
+            referrer: document.referrer || '',
+            url: window.location.href,
+            timestamp: new Date().toISOString(),
+          });
+        } catch {}
       },
     });
     isInitialized = true;
@@ -51,6 +70,7 @@ export function initPulse() {
     console.warn('[Pulse] Failed to initialize PostHog tracker:', err);
   }
 }
+
 
 // Auto-initialize on browser load
 if (typeof window !== 'undefined') {
