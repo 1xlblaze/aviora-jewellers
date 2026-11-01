@@ -1,0 +1,7 @@
+# Robots.txt for A Silver Chapter (https://www.asilverchapter.com)
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /#admin
+
+Sitemap: https://www.asilverchapter.com/sitemap.xml

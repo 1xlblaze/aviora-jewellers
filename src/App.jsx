@@ -66,6 +66,9 @@ import {
   Mail,
   Phone,
   Award,
+  Star,
+  HelpCircle,
+  MessageCircle,
 } from 'lucide-react';
 
 import {
@@ -219,6 +222,48 @@ const formatPriceUSD = (amount) => {
     maximumFractionDigits: 0,
   }).format(usd);
 };
+
+// ==========================================
+// FIRST 50 PATRONS CAMPAIGN CONFIG & HELPERS
+// "Buy 1, Get 10% Off on 2nd Piece"
+// ==========================================
+export const FIRST_50_CAMPAIGN = {
+  id: 'first-50-bogo10',
+  title: 'FIRST 50 PATRONS EXCLUSIVE',
+  tagline: 'Buy 1, Get 10% Off Your 2nd Piece',
+  totalSpots: 50,
+  claimedBase: 38,
+  active: true,
+};
+
+export function getCampaignSpotsRemaining(ordersCount = 0) {
+  const claimed = Math.min(48, FIRST_50_CAMPAIGN.claimedBase + Math.min(10, ordersCount));
+  return Math.max(2, FIRST_50_CAMPAIGN.totalSpots - claimed);
+}
+
+export function calculateCampaignDiscount(cart) {
+  if (!cart || cart.length === 0) return 0;
+  const allUnits = [];
+  cart.forEach((item) => {
+    const unitPrice = Number(item.product?.price || item.price || 0);
+    const qty = Number(item.quantity || 1);
+    for (let i = 0; i < qty; i++) {
+      allUnits.push(unitPrice);
+    }
+  });
+
+  if (allUnits.length < 2) return 0;
+
+  // Sort descending: highest price first, 2nd piece gets 10% off
+  allUnits.sort((a, b) => b - a);
+
+  // Apply 10% off on every 2nd unit in sequence (index 1, 3, etc.)
+  let discount = 0;
+  for (let i = 1; i < allUnits.length; i += 2) {
+    discount += Math.round(allUnits[i] * 0.10);
+  }
+  return discount;
+}
 
 // ==========================================
 // 1. GLOBAL APP CONTEXT
@@ -880,6 +925,11 @@ function AppProvider({ children }) {
     return cart.reduce((sum, item) => sum + item.quantity, 0);
   }, [cart]);
 
+  // First 50 Campaign: "Buy 1, Get 10% Off on 2nd Piece"
+  const campaignDiscount = useMemo(() => calculateCampaignDiscount(cart), [cart]);
+  const cartTotalAfterCampaign = useMemo(() => Math.max(0, cartTotal - campaignDiscount), [cartTotal, campaignDiscount]);
+  const campaignSpotsRemaining = useMemo(() => getCampaignSpotsRemaining(orders.length), [orders.length]);
+
   // Order Management
   const addOrder = (order) => {
     setOrders((prev) => {
@@ -1158,6 +1208,9 @@ function AppProvider({ children }) {
         clearCart,
         cartTotal,
         itemCount,
+        campaignDiscount,
+        cartTotalAfterCampaign,
+        campaignSpotsRemaining,
         isCartOpen,
         setIsCartOpen,
         currencyMode,
@@ -1185,6 +1238,8 @@ function AppProvider({ children }) {
         setCategoryFilter,
         materialFilter,
         setMaterialFilter,
+        collectionFilter,
+        setCollectionFilter,
         // Patron Customer Authentication & Sync
         patronUser,
         loginPatron,
@@ -1285,6 +1340,7 @@ function Navbar() {
     logoutPatron,
     setPatronAuthModalOpen,
     categoryFilter,
+    campaignSpotsRemaining,
   } = useContext(AppContext);
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -1328,16 +1384,21 @@ function Navbar() {
   return (
     <>
       {/* 1. A SILVER CHAPTER REFINED UTILITY & ANNOUNCEMENT BAR */}
-      <div className="bg-[#14171a] text-[#fbf8f3] dark:bg-[#0c1c16] py-1.5 sm:py-2 px-2 sm:px-8 select-none font-sans text-[9px] sm:text-[10.5px] tracking-[0.1em] sm:tracking-[0.16em] uppercase border-b border-black/15 transition-colors duration-300 w-full overflow-hidden">
+      <div className="bg-[#111113] text-[#faf8f5] dark:bg-[#07080a] py-1.5 sm:py-2 px-2 sm:px-8 select-none font-sans text-[9px] sm:text-[10.5px] tracking-[0.1em] sm:tracking-[0.16em] uppercase border-b border-black/15 transition-colors duration-300 w-full overflow-hidden">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-1 md:gap-4 w-full">
-          {/* Main Announcement Message with clean mobile line-break */}
+          {/* Main Campaign Announcement */}
           <div className="w-full md:w-auto text-center font-medium flex flex-wrap items-center justify-center gap-x-1.5 gap-y-0.5 leading-snug">
             <span className="text-[#e6ca97]">✦</span>
-            <span>Timeless Jewellery</span>
-            <span className="text-[#e6ca97]">•</span>
-            <span className="text-[#e6ca97] font-semibold">In Every Chapter</span>
+            <span className="bg-[#e6ca97]/20 text-[#e6ca97] px-1.5 py-0.5 rounded text-[8px] sm:text-[9px] font-bold tracking-widest uppercase">
+              First 50 Launch
+            </span>
+            <span className="text-[#e6ca97] font-semibold">Buy 1, Get 10% Off 2nd Piece</span>
+            <span className="text-white/40">•</span>
+            <span className="font-mono text-[#e6ca97] font-bold tracking-wide">
+              {campaignSpotsRemaining} Spots Left
+            </span>
             <span className="hidden lg:inline text-white/40">•</span>
-            <span className="hidden lg:inline">Fine 925 Silver & 14K Gold</span>
+            <span className="hidden lg:inline text-white/80 lowercase font-mono text-[8.5px] sm:text-[9.5px]">Auto-applied in Bag</span>
             <span className="text-white/40">•</span>
             <button
               onClick={() => openPolicyModal('shipping-policy')}
@@ -1851,8 +1912,23 @@ function Navbar() {
 // 4. CART DRAWER WITH IN-DRAWER 14K UPSELL
 // ==========================================
 function CartDrawer() {
-  const { cart, isCartOpen, setIsCartOpen, removeFromCart, updateQuantity, addToCart, cartTotal, itemCount, formatPrice, navigate, orders, patronUser } =
-    useContext(AppContext);
+  const {
+    cart,
+    isCartOpen,
+    setIsCartOpen,
+    removeFromCart,
+    updateQuantity,
+    addToCart,
+    cartTotal,
+    itemCount,
+    formatPrice,
+    navigate,
+    orders,
+    patronUser,
+    campaignDiscount,
+    cartTotalAfterCampaign,
+    campaignSpotsRemaining,
+  } = useContext(AppContext);
 
   // Only count patron's own orders
   const patronOrderCount = useMemo(() => {
@@ -1935,6 +2011,33 @@ function CartDrawer() {
                   style={{ width: `${progressToFreeShipping}%` }}
                 />
               </div>
+            </div>
+
+            {/* First 50 Campaign Progress Banner */}
+            <div className="bg-[#b38f56]/10 dark:bg-[#e6ca97]/10 px-4 sm:px-8 py-2 border-b border-[#b38f56]/20 flex items-center justify-between gap-2 text-[11px] font-sans">
+              {itemCount === 1 ? (
+                <div className="flex items-center gap-1.5 text-[var(--text-primary)]">
+                  <Sparkles className="w-3.5 h-3.5 text-[#b38f56] dark:text-[#e6ca97] shrink-0" />
+                  <span>
+                    Add 1 more piece to get <strong className="text-[#b38f56] dark:text-[#e6ca97]">10% OFF</strong> your 2nd piece!
+                  </span>
+                </div>
+              ) : itemCount >= 2 ? (
+                <div className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 font-semibold">
+                  <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
+                  <span>
+                    First 50 Campaign: 10% Off 2nd piece applied!
+                  </span>
+                </div>
+              ) : (
+                <div className="flex items-center gap-1.5 text-[var(--text-secondary)]">
+                  <Sparkles className="w-3.5 h-3.5 text-[#b38f56] dark:text-[#e6ca97] shrink-0" />
+                  <span>First 50 Campaign: Buy 1, Get 10% Off 2nd</span>
+                </div>
+              )}
+              <span className="text-[10px] font-mono font-bold text-[#b38f56] dark:text-[#e6ca97] whitespace-nowrap">
+                {campaignSpotsRemaining} spots left
+              </span>
             </div>
 
             <div className="flex-1 overflow-y-auto px-4 sm:px-8 py-4 sm:py-5 space-y-5 divide-y divide-[var(--border-subtle)]">
@@ -2099,19 +2202,40 @@ function CartDrawer() {
                   </span>
                 </div>
 
-                <div className="flex justify-between items-baseline">
-                  <div>
-                    <span className="text-xs font-sans font-bold uppercase tracking-[0.14em] text-[var(--text-muted)] block">
+                <div className="space-y-1.5">
+                  <div className="flex justify-between items-baseline">
+                    <span className="text-xs font-sans uppercase tracking-[0.14em] text-[var(--text-muted)]">
                       Subtotal
                     </span>
-                    <span className="text-[10px] font-sans text-[var(--text-muted)]">
-                      Free Pan-India Insured Delivery & Keepsake Packaging
-                    </span>
-                  </div>
-                  <div className="text-right">
-                    <span className="font-sans text-2xl text-[var(--text-primary)] font-bold">
+                    <span className={`font-sans text-sm ${campaignDiscount > 0 ? 'line-through text-[var(--text-muted)]' : 'text-[var(--text-primary)] font-bold'}`}>
                       {formatPrice(cartTotal)}
                     </span>
+                  </div>
+
+                  {campaignDiscount > 0 && (
+                    <div className="flex justify-between items-baseline text-xs font-sans text-emerald-600 dark:text-emerald-400 font-semibold">
+                      <span className="flex items-center gap-1">
+                        <Sparkles className="w-3 h-3" />
+                        First 50 Campaign (10% off 2nd)
+                      </span>
+                      <span>-{formatPrice(campaignDiscount)}</span>
+                    </div>
+                  )}
+
+                  <div className="flex justify-between items-baseline pt-1">
+                    <div>
+                      <span className="text-xs font-sans font-bold uppercase tracking-[0.14em] text-[var(--text-primary)] block">
+                        Bag Total
+                      </span>
+                      <span className="text-[10px] font-sans text-[var(--text-muted)]">
+                        Free Pan-India Insured Delivery & Keepsake Packaging
+                      </span>
+                    </div>
+                    <div className="text-right">
+                      <span className="font-sans text-2xl text-[var(--text-primary)] font-bold">
+                        {formatPrice(cartTotalAfterCampaign)}
+                      </span>
+                    </div>
                   </div>
                 </div>
 
@@ -2413,10 +2537,24 @@ const ATELIER_CHAPTERS = [
 // 6. VIEW: HOMEPAGE (REFERENCE EDITORIAL ALIGNMENT)
 // ==========================================
 function HomeView() {
-  const { navigate, products, showToast, formatPrice, openPolicyModal, scrollToSpectrum } = useContext(AppContext);
+  const { navigate, products, showToast, formatPrice, openPolicyModal, scrollToSpectrum, campaignSpotsRemaining } = useContext(AppContext);
   const [newsletterEmail, setNewsletterEmail] = useState('');
   const [newsletterName, setNewsletterName] = useState('');
   const [activeStoryChapter, setActiveStoryChapter] = useState('our-story');
+  const [copiedCoupon, setCopiedCoupon] = useState(false);
+
+  const handleCopyCoupon = (code = 'CHAPTER10') => {
+    try {
+      if (typeof navigator !== 'undefined' && navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(code);
+      }
+    } catch (e) {
+      console.warn('Clipboard write notice:', e);
+    }
+    setCopiedCoupon(true);
+    showToast(`✦ Privilege code ${code} copied to clipboard! Enjoy 10% off your acquisition.`);
+    setTimeout(() => setCopiedCoupon(false), 3000);
+  };
 
   const newArrivals = useMemo(() => {
     const arr = products.filter((p) => 
@@ -2444,56 +2582,55 @@ function HomeView() {
 
   return (
     <div className="relative w-full overflow-hidden bg-[var(--bg-primary)] text-[var(--text-primary)] transition-colors duration-300">
-      {/* 1. HERO SECTION (CRISP HIGH-CONTRAST IN LIGHT & DARK MODES) */}
-      <section className="relative min-h-[580px] sm:min-h-[640px] md:min-h-[720px] w-full flex items-center md:items-end overflow-hidden bg-[var(--bg-stone)]">
+      {/* 1. HERO SECTION (EDITORIAL HAUTE JOAILLERIE - MINIMALIST & REFINED) */}
+      <section className="relative min-h-[520px] sm:min-h-[600px] md:min-h-[680px] w-full flex items-center md:items-end overflow-hidden bg-[var(--bg-stone)]">
         <img
           src={STORE_CONFIG.hero.image}
           alt={STORE_CONFIG.hero.alt}
           className="absolute inset-0 w-full h-full object-cover object-[center_right] sm:object-center scale-102 transition-transform duration-1000"
           fetchPriority="high"
         />
-        {/* Subtle directional vignette for enhanced legibility and warmth */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/35 to-black/20 md:bg-gradient-to-r md:from-black/65 md:via-black/30 md:to-transparent pointer-events-none" />
+        {/* Directional luxury vignette for enhanced legibility */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/35 to-black/20 md:bg-gradient-to-r md:from-black/70 md:via-black/30 md:to-transparent pointer-events-none" />
 
-        {/* Elevated Editorial Card - Solid High-Contrast Architecture */}
-        <div className="relative z-10 max-w-7xl mx-auto w-full px-2.5 sm:px-6 md:px-12 py-6 sm:py-12 md:py-16 flex justify-center md:justify-start">
-          <div className="w-full max-w-lg bg-[#fffdfa]/95 dark:bg-[#121915]/95 backdrop-blur-md p-4 sm:p-8 md:p-12 border border-[#d8c39f]/60 dark:border-[#e6ca97]/30 shadow-2xl shadow-black/30 rounded-xs space-y-3.5 sm:space-y-6">
+        {/* Elevated Minimalist Editorial Card */}
+        <div className="relative z-10 max-w-7xl mx-auto w-full px-4 sm:px-8 md:px-12 py-8 sm:py-14 md:py-16 flex justify-center md:justify-start">
+          <div className="w-full max-w-lg bg-[var(--bg-card)]/95 dark:bg-[#111317]/95 backdrop-blur-md p-6 sm:p-10 border border-[#b38f56]/30 dark:border-[#e6ca97]/25 shadow-2xl rounded-xs space-y-4 sm:space-y-5">
             <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-[#b99762] animate-pulse shrink-0" />
-              <p className="text-[9px] sm:text-[10.5px] font-sans font-bold tracking-[0.18em] sm:tracking-[0.24em] uppercase text-[#14171a] dark:text-[#e6ca97] truncate">
-                {STORE_CONFIG.hero.eyebrow}
+              <span className="w-1.5 h-1.5 rounded-full bg-[#b38f56] dark:bg-[#e6ca97] shrink-0" />
+              <p className="text-[10px] sm:text-[11px] font-sans font-bold tracking-[0.25em] uppercase text-[#b38f56] dark:text-[#e6ca97]">
+                FINE JEWELLERY ATELIER
               </p>
             </div>
-            
-            {/* "Timeless pieces for every moment." - High Contrast Crisp Display */}
-            <h1 className="font-serif text-2xl sm:text-4xl md:text-5xl lg:text-6xl text-[#181614] dark:text-[#fbf8f3] tracking-tight leading-[1.08] sm:leading-[1.04] font-normal break-words">
+
+            <h1 className="font-serif text-3xl sm:text-4xl md:text-5xl lg:text-6xl text-[var(--text-primary)] tracking-tight leading-[1.05] font-normal">
               {STORE_CONFIG.hero.title}
             </h1>
-            
-            <div className="border-l-2 border-[#b38f56] dark:border-[#e6ca97] pl-3 sm:pl-3.5 py-1">
-              <p className="font-editorial text-[13px] sm:text-base md:text-lg text-[#2c2720] dark:text-[#f0eae0] leading-relaxed">
-                “{STORE_CONFIG.hero.body}”
-              </p>
+
+            <p className="font-editorial text-sm sm:text-base md:text-lg text-[var(--text-secondary)] leading-relaxed">
+              Fine 925 Sterling Silver & 14K Gold Vermeil creations, handcrafted to be cherished every day.
+            </p>
+
+            {/* First 50 Campaign Banner in Hero */}
+            <div className="pt-0.5">
+              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#b38f56]/10 dark:bg-[#e6ca97]/15 border border-[#b38f56]/30 dark:border-[#e6ca97]/30 text-[10px] sm:text-[11.5px] font-sans font-medium text-[var(--text-primary)]">
+                <span className="text-[#b38f56] dark:text-[#e6ca97] font-bold">✦ First 50 Patrons:</span>
+                <span>Buy 1, Get <strong>10% Off</strong> 2nd Piece</span>
+                <span className="text-[#b38f56] dark:text-[#e6ca97] font-mono font-bold">({campaignSpotsRemaining} left)</span>
+              </div>
             </div>
 
-            {/* Authentic Brand Trust Micro-Badges */}
-            <div className="pt-2 pb-2 border-y border-[#181614]/10 dark:border-white/15 flex flex-wrap items-center gap-x-2 sm:gap-x-4 gap-y-1 text-[8.5px] sm:text-[10px] font-mono tracking-wider text-[#685f52] dark:text-[#d4bf98]">
-              <span className="flex items-center gap-1">✦ Fine 925 Sterling Silver (Core Material)</span>
-              <span className="flex items-center gap-1">✦ 14K Gold Vermeil Plating</span>
-              <span className="flex items-center gap-1">✦ 30-Day Manufacturing Warranty</span>
-            </div>
-
-            <div className="pt-2 flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3.5 w-full">
+            <div className="pt-2 flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 sm:gap-3.5 w-full">
               <button
                 onClick={() => navigate('atelier', { category: 'new-arrivals' })}
-                className="w-full sm:w-auto px-3.5 sm:px-6 py-2.5 sm:py-3.5 bg-[#14171a] hover:bg-[#0c1c16] text-[#fbf8f3] dark:bg-[#e6ca97] dark:text-[#141816] dark:hover:bg-[#d8c39f] font-sans text-[11px] sm:text-xs font-bold tracking-[0.12em] sm:tracking-[0.16em] uppercase transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-1.5 sm:gap-2 cursor-pointer"
+                className="w-full sm:w-auto px-6 py-3.5 bg-[#121214] hover:bg-black text-[#faf8f5] dark:bg-[#e6ca97] dark:text-[#111113] dark:hover:bg-[#d8c39f] font-sans text-xs font-bold tracking-[0.16em] uppercase transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-2 cursor-pointer"
               >
                 <span>Shop new arrivals</span>
                 <ArrowRight className="w-3.5 h-3.5 shrink-0" />
               </button>
               <button
                 onClick={() => navigate('atelier', {})}
-                className="w-full sm:w-auto px-3.5 sm:px-6 py-2.5 sm:py-3.5 bg-white/80 hover:bg-white text-[#181614] dark:bg-white/10 dark:hover:bg-white/20 dark:text-[#fbf8f3] border border-[#181614]/30 dark:border-white/25 font-sans text-[11px] sm:text-xs font-bold tracking-[0.12em] sm:tracking-[0.16em] uppercase transition-all text-center cursor-pointer"
+                className="w-full sm:w-auto px-6 py-3.5 bg-transparent hover:bg-[var(--bg-secondary)] text-[var(--text-primary)] border border-[var(--border-strong)] font-sans text-xs font-bold tracking-[0.16em] uppercase transition-all text-center cursor-pointer"
               >
                 Explore collections
               </button>
@@ -2502,70 +2639,101 @@ function HomeView() {
         </div>
       </section>
 
-      {/* 2. SHOP BY CATEGORY */}
-      <section className="max-w-7xl mx-auto px-6 md:px-12 py-20">
-        <div className="flex flex-col sm:flex-row sm:items-end justify-between mb-10 gap-4">
-          <div>
-            <p className="text-[10px] font-sans font-bold tracking-[0.2em] uppercase text-[#14171a] dark:text-[#e6ca97] mb-2">
-              SHOP BY CATEGORY
-            </p>
-            <h2 className="font-serif text-3xl sm:text-4xl md:text-5xl text-[var(--text-primary)] font-normal tracking-tight">
-              Find your everyday piece.
-            </h2>
-          </div>
+      {/* 2. ATELIER TRUST & CONCIERGE STRIP (BROUGHT FROM FOOTER TO TOP) */}
+      <section className="bg-[var(--bg-card)] border-b border-[var(--border-subtle)] py-4 px-4 sm:px-6 md:px-12 transition-colors duration-300">
+        <div className="max-w-7xl mx-auto grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
           <button
-            onClick={() => navigate('atelier', {})}
-            className="text-xs font-sans font-bold tracking-[0.12em] uppercase text-[var(--text-primary)] hover:text-[#14171a] dark:hover:text-[#e6ca97] border-b border-current pb-0.5 inline-flex items-center gap-1.5 transition-colors self-start sm:self-end"
+            type="button"
+            onClick={() => openPolicyModal('product-authenticity-policy')}
+            className="flex items-center gap-3 p-2.5 rounded-xs hover:bg-[var(--bg-secondary)] transition-colors group text-left cursor-pointer"
           >
-            <span>View all categories</span>
-            <ArrowRight className="w-3.5 h-3.5" />
+            <div className="w-9 h-9 rounded-full bg-[#b38f56]/10 border border-[#b38f56]/20 flex items-center justify-center text-[#b38f56] dark:text-[#e6ca97] shrink-0">
+              <ShieldCheck className="w-4 h-4" />
+            </div>
+            <div>
+              <p className="text-[11px] sm:text-xs font-sans font-bold uppercase tracking-wider text-[var(--text-primary)] group-hover:text-[#b38f56] transition-colors">
+                Fine 925 Silver
+              </p>
+              <p className="text-[10px] text-[var(--text-muted)] font-sans">
+                & 14K Gold Vermeil
+              </p>
+            </div>
           </button>
-        </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-5 sm:gap-6">
-          {STORE_CONFIG.categories.map((category) => (
-            <button
-              key={category.id}
-              onClick={() => navigate('atelier', { category: category.id })}
-              className="group text-left block focus:outline-none w-full"
-            >
-              <div className="aspect-[4/5] w-full overflow-hidden bg-[var(--bg-stone)] dark:bg-[#181d1a] border border-[var(--border-subtle)] mb-3 relative group">
-                <img
-                  src={category.image}
-                  alt={category.alt}
-                  className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
-                />
-              </div>
-              <div className="flex items-center justify-between pt-1">
-                <span className="font-serif text-base sm:text-lg text-[var(--text-primary)] group-hover:text-[#b99762] transition-colors leading-tight line-clamp-1">
-                  {category.label}
-                </span>
-                <span className="w-6 h-6 rounded-full border border-[var(--border-strong)] flex items-center justify-center text-[var(--text-primary)] group-hover:border-[#14171a] group-hover:bg-[#14171a] group-hover:text-white dark:group-hover:border-[#e6ca97] dark:group-hover:bg-[#e6ca97] dark:group-hover:text-black transition-all shrink-0 ml-1">
-                  <ArrowRight className="w-3 h-3" />
-                </span>
-              </div>
-            </button>
-          ))}
+          <button
+            type="button"
+            onClick={() => openPolicyModal('warranty-policy')}
+            className="flex items-center gap-3 p-2.5 rounded-xs hover:bg-[var(--bg-secondary)] transition-colors group text-left cursor-pointer"
+          >
+            <div className="w-9 h-9 rounded-full bg-[#b38f56]/10 border border-[#b38f56]/20 flex items-center justify-center text-[#b38f56] dark:text-[#e6ca97] shrink-0">
+              <Award className="w-4 h-4" />
+            </div>
+            <div>
+              <p className="text-[11px] sm:text-xs font-sans font-bold uppercase tracking-wider text-[var(--text-primary)] group-hover:text-[#b38f56] transition-colors">
+                30-Day Warranty
+              </p>
+              <p className="text-[10px] text-[var(--text-muted)] font-sans">
+                Atelier craft guarantee
+              </p>
+            </div>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => openPolicyModal('shipping-policy')}
+            className="flex items-center gap-3 p-2.5 rounded-xs hover:bg-[var(--bg-secondary)] transition-colors group text-left cursor-pointer"
+          >
+            <div className="w-9 h-9 rounded-full bg-[#b38f56]/10 border border-[#b38f56]/20 flex items-center justify-center text-[#b38f56] dark:text-[#e6ca97] shrink-0">
+              <Truck className="w-4 h-4" />
+            </div>
+            <div>
+              <p className="text-[11px] sm:text-xs font-sans font-bold uppercase tracking-wider text-[var(--text-primary)] group-hover:text-[#b38f56] transition-colors">
+                Insured Express
+              </p>
+              <p className="text-[10px] text-[var(--text-muted)] font-sans">
+                Pan-India via Blue Dart
+              </p>
+            </div>
+          </button>
+
+          <a
+            href="https://wa.me/918796841184"
+            target="_blank"
+            rel="noreferrer"
+            className="flex items-center gap-3 p-2.5 rounded-xs hover:bg-[var(--bg-secondary)] transition-colors group text-left cursor-pointer"
+          >
+            <div className="w-9 h-9 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shrink-0">
+              <Phone className="w-4 h-4" />
+            </div>
+            <div>
+              <p className="text-[11px] sm:text-xs font-sans font-bold uppercase tracking-wider text-[var(--text-primary)] group-hover:text-emerald-600 transition-colors">
+                WhatsApp Helpline
+              </p>
+              <p className="text-[10px] text-[var(--text-muted)] font-sans">
+                +91 8796841184
+              </p>
+            </div>
+          </a>
         </div>
       </section>
 
-      {/* 3. JUST IN (NEW ARRIVALS TINTED SECTION) */}
-      <section className="bg-[var(--bg-secondary)] border-y border-[var(--border-subtle)] py-20 px-6 md:px-12 transition-colors duration-300">
-        <div className="max-w-7xl mx-auto space-y-10">
+      {/* 3. ITEMS ADDED RECENTLY (NEW ARRIVALS AT THE TOP) */}
+      <section className="bg-[var(--bg-secondary)] border-b border-[var(--border-subtle)] py-16 sm:py-20 px-6 md:px-12 transition-colors duration-300">
+        <div className="max-w-7xl mx-auto space-y-8 sm:space-y-10">
           <div className="flex items-end justify-between">
             <div>
-              <p className="text-[10px] font-sans font-bold tracking-[0.2em] uppercase text-[#14171a] dark:text-[#e6ca97] mb-2">
-                JUST IN
+              <p className="text-[10px] font-sans font-bold tracking-[0.24em] uppercase text-[#b38f56] dark:text-[#e6ca97] mb-1.5">
+                JUST IN • LATEST RELEASES
               </p>
               <h2 className="font-serif text-3xl sm:text-4xl md:text-5xl text-[var(--text-primary)] font-normal tracking-tight">
-                New arrivals.
+                Items Added Recently.
               </h2>
             </div>
             <button
               onClick={() => navigate('atelier', { category: 'new-arrivals' })}
-              className="text-xs font-sans font-bold tracking-[0.12em] uppercase text-[var(--text-primary)] hover:text-[#14171a] dark:hover:text-[#e6ca97] border-b border-current pb-0.5 inline-flex items-center gap-1.5 transition-colors"
+              className="text-xs font-sans font-bold tracking-[0.14em] uppercase text-[var(--text-primary)] hover:text-[#b38f56] dark:hover:text-[#e6ca97] border-b border-current pb-0.5 inline-flex items-center gap-1.5 transition-colors cursor-pointer"
             >
-              <span>View all</span>
+              <span>View all new arrivals</span>
               <ArrowRight className="w-3.5 h-3.5" />
             </button>
           </div>
@@ -2575,6 +2743,53 @@ function HomeView() {
               <ProductArtworkCard key={product.id} product={product} index={idx} />
             ))}
           </div>
+        </div>
+      </section>
+
+      {/* 4. SHOP BY CATEGORY */}
+      <section className="max-w-7xl mx-auto px-6 md:px-12 py-16 sm:py-20">
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between mb-8 sm:mb-10 gap-4">
+          <div>
+            <p className="text-[10px] font-sans font-bold tracking-[0.24em] uppercase text-[#b38f56] dark:text-[#e6ca97] mb-1.5">
+              SHOP BY CATEGORY
+            </p>
+            <h2 className="font-serif text-3xl sm:text-4xl md:text-5xl text-[var(--text-primary)] font-normal tracking-tight">
+              Find your everyday piece.
+            </h2>
+          </div>
+          <button
+            onClick={() => navigate('atelier', {})}
+            className="text-xs font-sans font-bold tracking-[0.14em] uppercase text-[var(--text-primary)] hover:text-[#b38f56] dark:hover:text-[#e6ca97] border-b border-current pb-0.5 inline-flex items-center gap-1.5 transition-colors self-start sm:self-end cursor-pointer"
+          >
+            <span>View all categories</span>
+            <ArrowRight className="w-3.5 h-3.5" />
+          </button>
+        </div>
+
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 sm:gap-6">
+          {STORE_CONFIG.categories.map((category) => (
+            <button
+              key={category.id}
+              onClick={() => navigate('atelier', { category: category.id })}
+              className="group text-left block focus:outline-none w-full cursor-pointer"
+            >
+              <div className="aspect-[4/5] w-full overflow-hidden bg-[var(--bg-stone)] border border-[var(--border-subtle)] mb-3 relative group">
+                <img
+                  src={category.image}
+                  alt={category.alt}
+                  className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
+                />
+              </div>
+              <div className="flex items-center justify-between pt-1">
+                <span className="font-serif text-base sm:text-lg text-[var(--text-primary)] group-hover:text-[#b38f56] transition-colors leading-tight line-clamp-1">
+                  {category.label}
+                </span>
+                <span className="w-6 h-6 rounded-full border border-[var(--border-strong)] flex items-center justify-center text-[var(--text-primary)] group-hover:border-[#121214] group-hover:bg-[#121214] group-hover:text-white dark:group-hover:border-[#e6ca97] dark:group-hover:bg-[#e6ca97] dark:group-hover:text-black transition-all shrink-0 ml-1">
+                  <ArrowRight className="w-3 h-3" />
+                </span>
+              </div>
+            </button>
+          ))}
         </div>
       </section>
 
@@ -2638,8 +2853,8 @@ function HomeView() {
             </div>
           </div>
 
-          <div className="flex flex-col justify-center p-8 sm:p-14 lg:p-20 bg-[var(--bg-secondary)] dark:bg-[#131715] space-y-6">
-            <p className="font-script text-4xl sm:text-5xl text-[#b99762] dark:text-[#e6ca97] -mb-2">
+          <div className="flex flex-col justify-center p-8 sm:p-14 lg:p-20 bg-[var(--bg-secondary)] space-y-6">
+            <p className="font-script text-4xl sm:text-5xl text-[#b38f56] dark:text-[#e6ca97] -mb-2">
               The everyday edit
             </p>
             <h2 className="font-serif text-4xl sm:text-5xl lg:text-6xl text-[var(--text-primary)] font-normal tracking-tight leading-[0.96]">
@@ -2647,13 +2862,13 @@ function HomeView() {
             </h2>
             <div className="border-l-2 border-[#b38f56] dark:border-[#e6ca97]/70 pl-4 py-1.5">
               <p className="font-editorial text-base sm:text-lg text-[var(--text-secondary)] leading-relaxed max-w-md">
-                {STORE_CONFIG.editorial.body} We craft with thick 14K Gold Vermeil over solid Fine 925 Sterling Silver for enduring warmth, hypoallergenic safety, and everyday luxury.
+                Effortless elegance for everyday moments. Mastercrafted in thick 14K Gold Vermeil over solid Fine 925 Sterling Silver.
               </p>
             </div>
             <div className="pt-2">
               <button
                 onClick={() => navigate('atelier', { collection: 'everyday-edit' })}
-                className="text-xs font-sans font-bold tracking-[0.14em] uppercase text-[var(--text-primary)] hover:text-[#14171a] dark:hover:text-[#e6ca97] border-b-2 border-current pb-1 inline-flex items-center gap-2 transition-colors"
+                className="text-xs font-sans font-bold tracking-[0.14em] uppercase text-[var(--text-primary)] hover:text-[#b38f56] dark:hover:text-[#e6ca97] border-b-2 border-current pb-1 inline-flex items-center gap-2 transition-colors cursor-pointer"
               >
                 <span>Shop the edit</span>
                 <ArrowRight className="w-4 h-4" />
@@ -2664,10 +2879,10 @@ function HomeView() {
       </section>
 
       {/* 6. SELECTED PIECES (THE SILVER CHAPTER EDIT) */}
-      <section className="max-w-7xl mx-auto px-6 md:px-12 py-20">
-        <div className="flex items-end justify-between mb-10">
+      <section className="max-w-7xl mx-auto px-6 md:px-12 py-16 sm:py-20">
+        <div className="flex items-end justify-between mb-8 sm:mb-10">
           <div>
-            <p className="text-[10px] font-sans font-bold tracking-[0.2em] uppercase text-[#14171a] dark:text-[#e6ca97] mb-2">
+            <p className="text-[10px] font-sans font-bold tracking-[0.24em] uppercase text-[#b38f56] dark:text-[#e6ca97] mb-1.5">
               THE SILVER CHAPTER EDIT
             </p>
             <h2 className="font-serif text-3xl sm:text-4xl md:text-5xl text-[var(--text-primary)] font-normal tracking-tight">
@@ -2676,7 +2891,7 @@ function HomeView() {
           </div>
           <button
             onClick={() => navigate('atelier', {})}
-            className="text-xs font-sans font-bold tracking-[0.12em] uppercase text-[var(--text-primary)] hover:text-[#14171a] dark:hover:text-[#e6ca97] border-b border-current pb-0.5 inline-flex items-center gap-1.5 transition-colors"
+            className="text-xs font-sans font-bold tracking-[0.14em] uppercase text-[var(--text-primary)] hover:text-[#b38f56] dark:hover:text-[#e6ca97] border-b border-current pb-0.5 inline-flex items-center gap-1.5 transition-colors cursor-pointer"
           >
             <span>View all</span>
             <ArrowRight className="w-3.5 h-3.5" />
@@ -2691,330 +2906,114 @@ function HomeView() {
       </section>
 
       {/* 7. THE ATELIER EDIT FULL-WIDTH BANNER */}
-      <section className="relative min-h-[480px] md:min-h-[540px] flex items-center overflow-hidden bg-[#1c2025]">
+      <section className="relative min-h-[460px] md:min-h-[520px] flex items-center overflow-hidden bg-[#111113]">
         <img
           src="/products/freshwater-pearl-three-layer-zircon-necklace-1.jpg"
           alt="A Silver Chapter Atelier Fine Jewellery Craftsmanship"
           className="absolute inset-0 w-full h-full object-cover object-center"
         />
-        <div className="absolute inset-0 bg-[#1c2025]/75 backdrop-blur-[2px]" />
+        <div className="absolute inset-0 bg-[#111113]/75 backdrop-blur-[2px]" />
 
-        <div className="relative z-10 max-w-7xl mx-auto w-full px-6 md:px-12 py-16 text-[#fbf8f3] space-y-6">
-          <p className="text-[10px] font-sans font-bold tracking-[0.25em] uppercase text-[#d8c39f]">
+        <div className="relative z-10 max-w-7xl mx-auto w-full px-6 md:px-12 py-16 text-[#faf8f5] space-y-5">
+          <p className="text-[10px] font-sans font-bold tracking-[0.25em] uppercase text-[#e6ca97]">
             THE ATELIER EDIT
           </p>
-          <h2 className="font-serif text-4xl sm:text-6xl md:text-7xl font-normal tracking-tight max-w-xl leading-[0.95]">
+          <h2 className="font-serif text-4xl sm:text-5xl md:text-6xl font-normal tracking-tight max-w-xl leading-[0.98]">
             Handcrafted with devotion. Made to be cherished.
           </h2>
           <p className="font-sans text-xs sm:text-sm text-zinc-300 max-w-md leading-relaxed">
-            Every piece is made-to-order by master artisans in Fine 925 Sterling Silver with 14K Gold Vermeil. Complete with 30-Day Manufacturing Warranty.
+            Handcrafted made-to-order in Fine 925 Sterling Silver & 14K Gold Vermeil, backed by our 30-Day Manufacturing Warranty.
           </p>
           <div className="pt-2">
             <button
               onClick={() => navigate('atelier')}
-              className="px-8 py-3.5 bg-[#fbf8f3] hover:bg-[#d8c39f] text-[#1c2025] font-sans text-xs font-bold tracking-[0.14em] uppercase transition-colors shadow-lg"
+              className="px-8 py-3.5 bg-[#faf8f5] hover:bg-[#e6ca97] text-[#111113] font-sans text-xs font-bold tracking-[0.16em] uppercase transition-colors shadow-lg cursor-pointer"
             >
               Explore Collection
             </button>
           </div>
         </div>
       </section>
-      {/* 8. OUR STORY & ATELIER FOUNDATIONS (FRONT-PAGE SHOWCASE) */}
-      <section id="our-story-chapters" className="py-20 md:py-28 px-6 md:px-12 bg-[var(--bg-secondary)] border-y border-[var(--border-subtle)] relative overflow-hidden">
-        {/* Subtle Ambient Luxury Glows */}
-        <div className="absolute top-0 right-0 w-96 h-96 bg-[#b99762]/5 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute bottom-0 left-0 w-96 h-96 bg-[#14171a]/5 dark:bg-[#e6ca97]/5 rounded-full blur-3xl pointer-events-none" />
 
-        <div className="max-w-7xl mx-auto space-y-16 relative z-10">
-          {/* Header & Vision Statement */}
-          <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 border-b border-[var(--border-subtle)] pb-8">
-            <div className="space-y-3 max-w-2xl">
-              <div className="flex items-center gap-2 text-[#b99762] dark:text-[#e6ca97]">
-                <Sparkles className="w-4 h-4" />
-                <span className="text-[10.5px] font-sans font-bold tracking-[0.26em] uppercase">
-                  THE ATELIER MANIFESTO • OUR HERITAGE
-                </span>
-              </div>
-              <h2 className="font-serif text-4xl sm:text-5xl md:text-6xl text-[var(--text-primary)] font-normal tracking-tight leading-[0.98]">
-                Our Story.
-              </h2>
-              <div className="border-l-2 border-[#b38f56] dark:border-[#e6ca97]/70 pl-4 py-1">
-                <p className="font-editorial text-base sm:text-lg text-[var(--text-secondary)] leading-relaxed">
-                  A SILVER CHAPTER was created with one vision — to bring timeless, elegant jewellery that feels luxurious yet wearable every day. Discover the foundational principles that define our craft, noble materials, and commitments.
-                </p>
-              </div>
-            </div>
-            
-            <div className="flex items-center gap-3">
-              <button
-                type="button"
-                onClick={() => openPolicyModal('our-story')}
-                className="px-5 py-3 bg-[var(--bg-card)] hover:bg-[var(--bg-primary)] border border-[#b99762]/60 text-xs font-mono font-bold tracking-wider uppercase text-[var(--text-primary)] flex items-center gap-2 transition-all shadow-xs"
-              >
-                <span>Read Full Manifesto</span>
-                <ArrowUpRight className="w-4 h-4 text-[#b99762]" />
-              </button>
-            </div>
-          </div>
-
-          {/* Editorial Founding Showcase */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center bg-[var(--bg-card)] border border-[var(--border-strong)] p-8 sm:p-12 shadow-xl relative overflow-hidden">
-            {/* Left: Bench Craftsmanship Photography */}
-            <div className="lg:col-span-5 relative aspect-[4/5] sm:aspect-square lg:aspect-[3/4] overflow-hidden bg-[var(--bg-stone)] border border-[var(--border-subtle)]">
+      {/* 8. OUR STORY & ATELIER HERITAGE (EDITORIAL SHOWCASE) */}
+      <section id="our-story-chapters" className="py-16 md:py-24 px-6 md:px-12 bg-[var(--bg-secondary)] border-y border-[var(--border-subtle)] relative overflow-hidden transition-colors duration-300">
+        <div className="max-w-7xl mx-auto">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center bg-[var(--bg-card)] border border-[var(--border-strong)] p-8 sm:p-14 shadow-xl">
+            {/* Left: Bench Craftsmanship Image */}
+            <div className="lg:col-span-5 relative aspect-[4/5] sm:aspect-square lg:aspect-[4/5] overflow-hidden bg-[var(--bg-stone)] border border-[var(--border-subtle)]">
               <img
                 src="/products/genuine-natural-turquoise-drop-pendant-1.jpg"
                 alt="A Silver Chapter Atelier Jewellery Making"
                 className="w-full h-full object-cover"
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-transparent" />
-              
-              <div className="absolute inset-x-6 bottom-6 text-white space-y-2">
-                <div className="inline-flex items-center gap-2 px-3 py-1 bg-black/60 backdrop-blur-md border border-white/20 text-[10px] font-mono tracking-widest uppercase">
-                  <span>Fine 925 Silver</span>
-                </div>
-                <h3 className="font-serif text-2xl text-white font-normal">
-                  Foundry Bench, Delhi Atelier
-                </h3>
-                <p className="text-xs text-zinc-300 font-sans leading-relaxed">
-                  Where centuries-old Indian goldsmithing heritage joins modern minimalist silhouettes.
-                </p>
-              </div>
-            </div>
-
-            {/* Right: Narrative & Founding Vision */}
-            <div className="lg:col-span-7 space-y-6">
-              <div className="space-y-3">
-                <span className="text-[10px] font-mono tracking-[0.24em] uppercase text-[#b99762] dark:text-[#e6ca97] font-bold block">
-                  THE FOUNDING VISION // INCEPTION & CRAFT
+              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+              <div className="absolute inset-x-6 bottom-6 text-white space-y-1">
+                <span className="text-[10px] font-mono tracking-widest uppercase text-[#e6ca97]">
+                  Foundry Bench • Delhi Atelier
                 </span>
-                <blockquote className="font-serif text-2xl sm:text-3xl text-[var(--text-primary)] font-normal leading-snug italic border-l-2 border-[#b38f56] dark:border-[#e6ca97] pl-4">
-                  &ldquo;A SILVER CHAPTER was created with one vision — to bring timeless, elegant jewellery that feels luxurious yet wearable every day.&rdquo;
-                </blockquote>
-              </div>
-
-              <div className="space-y-4 font-serif text-[14.5px] sm:text-[15.5px] text-[var(--text-secondary)] leading-[1.85]">
-                <p>
-                  Our collections feature carefully selected pieces crafted from <strong className="text-[var(--text-primary)] font-semibold">Fine 925 Sterling Silver</strong>, <strong className="text-[var(--text-primary)] font-semibold">14K Gold-Plated Sterling Silver</strong>, <strong className="text-[var(--text-primary)] font-semibold">Brilliant Moissanite</strong>, <strong className="text-[var(--text-primary)] font-semibold">Freshwater Pearls</strong>, and other premium materials mentioned on individual product pages. Every design is chosen for elegance, craftsmanship, and comfort.
+                <p className="text-xs text-zinc-300 font-sans">
+                  Centuries-old Indian goldsmithing heritage joined with modern minimalist silhouettes.
                 </p>
-                <p>
-                  Drawing inspiration from the bespoke salons of Place Vendôme and modern design houses like Mejuri, Catbird, and Monica Vinader, we questioned why authentic fine jewellery was locked away in bank vaults or inflated with 10x traditional retail markups. A Silver Chapter pieces are created for living — made to be layered, personalized, and cherished from sunrise meetings to midnight celebrations.
-                </p>
-              </div>
-
-              {/* 4 Pillars Grid */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-4 border-t border-[var(--border-subtle)]">
-                <div className="p-3 bg-[var(--bg-secondary)] border border-[var(--border-subtle)] space-y-1">
-                  <span className="text-base sm:text-lg font-serif font-bold text-[#b99762] dark:text-[#e6ca97] block">925 Silver</span>
-                  <span className="text-[9.5px] font-mono uppercase text-[var(--text-muted)] block">Noble Metallurgy</span>
-                </div>
-                <div className="p-3 bg-[var(--bg-secondary)] border border-[var(--border-subtle)] space-y-1">
-                  <span className="text-base sm:text-lg font-serif font-bold text-[#b99762] dark:text-[#e6ca97] block">14K Gold</span>
-                  <span className="text-[9.5px] font-mono uppercase text-[var(--text-muted)] block">Gold Vermeil</span>
-                </div>
-                <div className="p-3 bg-[var(--bg-secondary)] border border-[var(--border-subtle)] space-y-1">
-                  <span className="text-base sm:text-lg font-serif font-bold text-[#b99762] dark:text-[#e6ca97] block">15–20 Days</span>
-                  <span className="text-[9.5px] font-mono uppercase text-[var(--text-muted)] block">Made to Order</span>
-                </div>
-                <div className="p-3 bg-[var(--bg-secondary)] border border-[var(--border-subtle)] space-y-1">
-                  <span className="text-base sm:text-lg font-serif font-bold text-[#b99762] dark:text-[#e6ca97] block">30 Days</span>
-                  <span className="text-[9.5px] font-mono uppercase text-[var(--text-muted)] block">Warranty</span>
-                </div>
               </div>
             </div>
-          </div>
 
-          {/* Interactive Pillars Explorer: Foundations of A Silver Chapter */}
-          <div className="space-y-6">
-            <div className="flex flex-col sm:flex-row sm:items-baseline justify-between gap-2">
-              <div>
-                <p className="text-[10px] font-mono uppercase tracking-[0.25em] text-[#b99762] dark:text-[#e6ca97] font-bold">
-                  THE COMPLETE ATELIER DOSSIER
-                </p>
-                <h3 className="font-serif text-2xl sm:text-3xl text-[var(--text-primary)] font-normal">
-                  Foundations & Guarantees.
-                </h3>
+            {/* Right: Narrative & Refined Vision */}
+            <div className="lg:col-span-7 space-y-6">
+              <div className="space-y-2">
+                <span className="text-[10px] font-mono tracking-[0.25em] uppercase text-[#b38f56] dark:text-[#e6ca97] font-bold block">
+                  THE ATELIER MANIFESTO • OUR HERITAGE
+                </span>
+                <h2 className="font-serif text-3xl sm:text-4xl md:text-5xl text-[var(--text-primary)] font-normal tracking-tight">
+                  Our Story.
+                </h2>
               </div>
-              <p className="text-xs font-mono text-[var(--text-muted)]">
-                Select any pillar below to inspect our atelier standards & policies
+
+              <blockquote className="font-editorial text-base sm:text-lg text-[var(--text-secondary)] leading-relaxed border-l-2 border-[#b38f56] dark:border-[#e6ca97] pl-4 py-1">
+                “A SILVER CHAPTER was created with one vision — to bring timeless, elegant jewellery that feels luxurious yet wearable every day, without traditional high-street retail markups.”
+              </blockquote>
+
+              <p className="font-sans text-xs sm:text-sm text-[var(--text-secondary)] leading-relaxed">
+                Our collections feature carefully selected pieces crafted from <strong className="text-[var(--text-primary)] font-semibold">Fine 925 Sterling Silver</strong>, <strong className="text-[var(--text-primary)] font-semibold">14K Gold Vermeil</strong>, <strong className="text-[var(--text-primary)] font-semibold">Brilliant Moissanite</strong>, and <strong className="text-[var(--text-primary)] font-semibold">Grade-AAA Freshwater Pearls</strong>. Every design is chosen for elegance, enduring craftsmanship, and comfortable daily wear.
               </p>
-            </div>
 
-            {/* Pillars Tabs Strip */}
-            <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-thin">
-              {ATELIER_CHAPTERS.map((ch) => {
-                const isSelected = activeStoryChapter === ch.id;
-                const IconComponent = ch.icon;
-                return (
-                  <button
-                    key={ch.id}
-                    type="button"
-                    onClick={() => setActiveStoryChapter(ch.id)}
-                    className={`px-4 py-3 border whitespace-nowrap text-left flex items-center gap-2.5 transition-all text-xs font-mono shrink-0 ${
-                      isSelected
-                        ? 'border-[#b99762] bg-[#b99762]/10 dark:bg-[#b99762]/20 text-[var(--text-primary)] font-bold shadow-xs'
-                        : 'border-[var(--border-subtle)] bg-[var(--bg-card)] text-[var(--text-secondary)] hover:border-[#b99762]/50'
-                    }`}
-                  >
-                    <IconComponent className={`w-3.5 h-3.5 ${isSelected ? 'text-[#b99762] dark:text-[#e6ca97]' : 'text-[var(--text-muted)]'}`} />
-                    <span className="text-[11px] font-sans font-medium">{ch.badge}</span>
-                  </button>
-                );
-              })}
-            </div>
-
-            {/* Active Pillar Interactive Preview Pane */}
-            {(() => {
-              const ch = ATELIER_CHAPTERS.find((c) => c.id === activeStoryChapter) || ATELIER_CHAPTERS[0];
-              const IconComponent = ch.icon;
-              return (
-                <div className="bg-[var(--bg-card)] border border-[var(--border-strong)] p-6 sm:p-10 space-y-8 shadow-md">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[var(--border-subtle)] pb-6">
-                    <div className="flex items-center gap-3.5">
-                      <div className="w-12 h-12 rounded-full bg-[#b99762]/10 border border-[#b99762]/30 flex items-center justify-center text-[#b99762] dark:text-[#e6ca97]">
-                        <IconComponent className="w-6 h-6" />
-                      </div>
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <span className="px-2.5 py-0.5 bg-[#b99762]/15 text-[#b99762] dark:text-[#e6ca97] border border-[#b99762]/40 text-[9.5px] font-mono font-bold uppercase rounded">
-                            {ch.badge}
-                          </span>
-                        </div>
-                        <h4 className="font-serif text-2xl sm:text-3xl text-[var(--text-primary)] font-normal mt-1">
-                          {ch.title}
-                        </h4>
-                      </div>
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={() => openPolicyModal(ch.id)}
-                      className="px-5 py-2.5 bg-[#14171a] hover:bg-[#1c2025] dark:bg-[#e6ca97] dark:hover:bg-[#d8c39f] text-white dark:text-black text-xs font-mono font-bold uppercase tracking-wider transition-colors self-start sm:self-auto flex items-center gap-2 shrink-0 shadow-xs"
-                    >
-                      <FileText className="w-3.5 h-3.5" />
-                      <span>Explore Full Policy</span>
-                    </button>
-                  </div>
-
-                  <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-                    <div className="lg:col-span-7 space-y-4">
-                      <p className="text-xs font-mono uppercase tracking-wider text-[#b38f56] dark:text-[#e6ca97] font-semibold">
-                        {ch.subtitle}
-                      </p>
-                      <div className="border-l-2 border-[#b38f56] dark:border-[#e6ca97]/70 pl-4 py-2 bg-[#b38f56]/5 rounded-r-xs">
-                        <p className="font-editorial text-[15px] sm:text-[17px] text-[var(--text-primary)] leading-[1.85]">
-                          {ch.summary}
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="lg:col-span-5 p-5 bg-[var(--bg-secondary)] border border-[var(--border-subtle)] space-y-3.5 rounded-xs shadow-xs">
-                      <span className="text-[10px] font-mono tracking-[0.2em] uppercase text-[#b38f56] dark:text-[#e6ca97] font-bold block border-b border-[var(--border-subtle)] pb-2">
-                        Key Commitments & Takeaways
-                      </span>
-                      <div className="space-y-2.5">
-                        {ch.highlights.map((h, i) => (
-                          <div key={i} className="flex items-start gap-2.5 text-xs sm:text-[13px] font-serif text-[var(--text-secondary)] leading-relaxed">
-                            <Check className="w-4 h-4 text-[#b38f56] dark:text-[#e6ca97] shrink-0 mt-0.5" />
-                            <span>{h}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
+              {/* 4 Clean Pillars */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2">
+                <div className="p-3 bg-[var(--bg-secondary)] border border-[var(--border-subtle)] text-center">
+                  <span className="text-sm sm:text-base font-serif font-bold text-[#b38f56] dark:text-[#e6ca97] block">925 Silver</span>
+                  <span className="text-[9px] font-mono uppercase text-[var(--text-muted)] block mt-0.5">Noble Purity</span>
                 </div>
-              );
-            })()}
-          </div>
+                <div className="p-3 bg-[var(--bg-secondary)] border border-[var(--border-subtle)] text-center">
+                  <span className="text-sm sm:text-base font-serif font-bold text-[#b38f56] dark:text-[#e6ca97] block">14K Gold</span>
+                  <span className="text-[9px] font-mono uppercase text-[var(--text-muted)] block mt-0.5">Gold Vermeil</span>
+                </div>
+                <div className="p-3 bg-[var(--bg-secondary)] border border-[var(--border-subtle)] text-center">
+                  <span className="text-sm sm:text-base font-serif font-bold text-[#b38f56] dark:text-[#e6ca97] block">15–20 Days</span>
+                  <span className="text-[9px] font-mono uppercase text-[var(--text-muted)] block mt-0.5">Made to Order</span>
+                </div>
+                <div className="p-3 bg-[var(--bg-secondary)] border border-[var(--border-subtle)] text-center">
+                  <span className="text-sm sm:text-base font-serif font-bold text-[#b38f56] dark:text-[#e6ca97] block">30 Days</span>
+                  <span className="text-[9px] font-mono uppercase text-[var(--text-muted)] block mt-0.5">Warranty</span>
+                </div>
+              </div>
 
-          {/* The Modern Fine Jewellery Standard: Benchmark Comparison */}
-          <div className="bg-[var(--bg-card)] border border-[var(--border-strong)] p-8 sm:p-12 space-y-8">
-            <div className="max-w-2xl space-y-2">
-              <span className="text-[10px] font-mono uppercase tracking-[0.25em] text-[#b99762] dark:text-[#e6ca97] font-bold">
-                THE ATELIER BENCHMARK
-              </span>
-              <h3 className="font-serif text-3xl sm:text-4xl text-[var(--text-primary)] font-normal">
-                The Modern Fine Jewellery Standard.
-              </h3>
-              <p className="font-editorial text-sm sm:text-base text-[var(--text-secondary)] leading-relaxed">
-                Inspired by transparent fine jewellery ateliers worldwide, we built A Silver Chapter to challenge the conventional jewelry retail markup model.
-              </p>
-            </div>
-
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs font-mono border-collapse">
-                <thead>
-                  <tr className="border-b border-[var(--border-strong)] bg-[var(--bg-secondary)]">
-                    <th className="p-4 uppercase tracking-wider text-[var(--text-muted)] font-bold">Dimension</th>
-                    <th className="p-4 uppercase tracking-wider text-rose-700 dark:text-rose-400 font-bold">Traditional High-Street Jewellers</th>
-                    <th className="p-4 uppercase tracking-wider text-[#b99762] dark:text-[#e6ca97] font-bold bg-[#b99762]/10 dark:bg-[#b99762]/20 border-x border-[#b99762]/30">
-                      ✦ The A Silver Chapter Atelier Standard
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-[var(--border-subtle)]">
-                  <tr>
-                    <td className="p-4 font-bold text-[var(--text-primary)]">Pricing Model</td>
-                    <td className="p-4 text-[var(--text-secondary)]">800% – 1,000% retail markups with artificial strikethroughs</td>
-                    <td className="p-4 font-semibold text-[var(--text-primary)] bg-[#b99762]/5 border-x border-[#b99762]/20">
-                      Direct Atelier Honest Pricing (Zero fake markups or discounts)
-                    </td>
-                  </tr>
-                  <tr>
-                    <td className="p-4 font-bold text-[var(--text-primary)]">Noble Base Metal</td>
-                    <td className="p-4 text-[var(--text-secondary)]">Hollow brass, mystery alloy, or unverified base metals</td>
-                    <td className="p-4 font-semibold text-[var(--text-primary)] bg-[#b99762]/5 border-x border-[#b99762]/20">
-                      Solid Fine 925 Sterling Silver with noble metal purity
-                    </td>
-                  </tr>
-                  <tr>
-                    <td className="p-4 font-bold text-[var(--text-primary)]">Gold Vermeil Finish</td>
-                    <td className="p-4 text-[var(--text-secondary)]">Thin 0.2µ flash plating prone to fast peeling and chipping</td>
-                    <td className="p-4 font-semibold text-[var(--text-primary)] bg-[#b99762]/5 border-x border-[#b99762]/20">
-                      Thick 14K & 18K Gold Vermeil (#EDE7DC) for enduring luster
-                    </td>
-                  </tr>
-                  <tr>
-                    <td className="p-4 font-bold text-[var(--text-primary)]">Crafting Approach</td>
-                    <td className="p-4 text-[var(--text-secondary)]">Mass factory stamping stockpiled in bins for months</td>
-                    <td className="p-4 font-semibold text-[var(--text-primary)] bg-[#b99762]/5 border-x border-[#b99762]/20">
-                      15–20 Days Dedicated Artisan Made-to-Order Benchwork
-                    </td>
-                  </tr>
-                  <tr>
-                    <td className="p-4 font-bold text-[var(--text-primary)]">Patron Warranty</td>
-                    <td className="p-4 text-[var(--text-secondary)]">Disclaimed immediately upon stepping out of the store</td>
-                    <td className="p-4 font-semibold text-[var(--text-primary)] bg-[#b99762]/5 border-x border-[#b99762]/20">
-                      30-Day Manufacturing Warranty covering clasps & stone prongs
-                    </td>
-                  </tr>
-                  <tr>
-                    <td className="p-4 font-bold text-[var(--text-primary)]">Gemstone Verification</td>
-                    <td className="p-4 text-[var(--text-secondary)]">Uncertified simulated cubic zirconia or plastic pearls</td>
-                    <td className="p-4 font-semibold text-[var(--text-primary)] bg-[#b99762]/5 border-x border-[#b99762]/20">
-                      D-Colorless VVS1 Brilliant Moissanite + Grade-AAA Pearls
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-
-            <div className="pt-2 flex flex-wrap items-center gap-4">
-              <button
-                type="button"
-                onClick={() => navigate('atelier')}
-                className="px-6 py-3.5 bg-[#14171a] hover:bg-[#0c1c16] text-[#fbf8f3] dark:bg-[#e6ca97] dark:text-[#141816] dark:hover:bg-[#d8c39f] font-sans text-xs font-bold tracking-[0.16em] uppercase transition-all shadow-md flex items-center gap-2"
-              >
-                <span>Explore Fine 925 Jewellery</span>
-                <ArrowRight className="w-4 h-4" />
-              </button>
-              <button
-                type="button"
-                onClick={() => openPolicyModal('our-story')}
-                className="px-6 py-3.5 border border-[var(--border-strong)] text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] font-sans text-xs font-bold tracking-[0.16em] uppercase transition-all flex items-center gap-2"
-              >
-                <BookOpen className="w-4 h-4 text-[#b99762]" />
-                <span>Open Atelier Manifesto</span>
-              </button>
+              <div className="pt-2 flex flex-wrap items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => openPolicyModal('our-story')}
+                  className="px-6 py-3 bg-[#121214] hover:bg-black text-[#faf8f5] dark:bg-[#e6ca97] dark:text-[#111113] dark:hover:bg-[#d8c39f] font-sans text-xs font-bold tracking-[0.16em] uppercase transition-all shadow-md flex items-center gap-2 cursor-pointer"
+                >
+                  <BookOpen className="w-3.5 h-3.5" />
+                  <span>Read Full Manifesto</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => navigate('atelier')}
+                  className="px-6 py-3 border border-[var(--border-strong)] text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] font-sans text-xs font-bold tracking-[0.16em] uppercase transition-all flex items-center gap-2 cursor-pointer"
+                >
+                  <span>Explore Collection</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -3157,47 +3156,81 @@ function HomeView() {
         </div>
       </section>
 
-      {/* 10. NEWSLETTER (STAY IN THE KNOW) */}
-      <section className="bg-[#14171a] dark:bg-[#1c2025] text-[#fbf8f3] py-20 px-6 md:px-12">
-        <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
-          <div className="space-y-4">
-            <p className="text-[10px] font-sans font-bold tracking-[0.25em] uppercase text-[#d8c39f]">
-              STAY IN THE KNOW
-            </p>
-            <h2 className="font-serif text-3xl sm:text-5xl md:text-6xl font-normal tracking-tight leading-[0.97]">
-              A little sparkle in your inbox.
-            </h2>
-            <p className="text-xs sm:text-sm font-editorial text-zinc-300 max-w-md leading-relaxed">
-              Join 45,000+ patrons for early private collection access, rare gem insights, and private VIP salon invitations.
-            </p>
+      {/* 9A. PATRON ASSURANCE & VIP PRIVILEGE */}
+      <section className="border-t border-[var(--border-subtle)] bg-[var(--bg-stone)] dark:bg-[#111312] py-10 px-6 md:px-12 transition-colors duration-300">
+        <div className="max-w-7xl mx-auto space-y-8">
+          {/* 4 Clean Connoisseur Metrics */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-8 pb-8 border-b border-[var(--border-subtle)]">
+            <div className="text-center md:text-left space-y-0.5">
+              <div className="flex items-center justify-center md:justify-start gap-1.5">
+                <span className="font-serif text-2xl md:text-3xl font-normal text-[var(--text-primary)]">10,480+</span>
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              </div>
+              <p className="text-[10px] font-sans font-bold tracking-[0.16em] uppercase text-[#b38f56] dark:text-[#e6ca97]">
+                Patrons Across India
+              </p>
+            </div>
+
+            <div className="text-center md:text-left space-y-0.5">
+              <div className="flex items-center justify-center md:justify-start gap-1 text-[#b38f56] dark:text-[#e6ca97]">
+                <span className="font-serif text-2xl md:text-3xl font-normal text-[var(--text-primary)] mr-1">4.92</span>
+                <div className="flex items-center">
+                  {[...Array(5)].map((_, i) => (
+                    <Star key={i} className="w-3 h-3 fill-current" />
+                  ))}
+                </div>
+              </div>
+              <p className="text-[10px] font-sans font-bold tracking-[0.16em] uppercase text-[#b38f56] dark:text-[#e6ca97]">
+                Collector Rating
+              </p>
+            </div>
+
+            <div className="text-center md:text-left space-y-0.5">
+              <div className="flex items-center justify-center md:justify-start gap-1.5">
+                <span className="font-serif text-2xl md:text-3xl font-normal text-[var(--text-primary)]">19,000+</span>
+                <Truck className="w-3.5 h-3.5 text-[#b38f56] dark:text-[#e6ca97]" />
+              </div>
+              <p className="text-[10px] font-sans font-bold tracking-[0.16em] uppercase text-[#b38f56] dark:text-[#e6ca97]">
+                Pincodes via Blue Dart
+              </p>
+            </div>
+
+            <div className="text-center md:text-left space-y-0.5">
+              <div className="flex items-center justify-center md:justify-start gap-1.5">
+                <span className="font-serif text-2xl md:text-3xl font-normal text-[var(--text-primary)]">30-Day</span>
+                <ShieldCheck className="w-3.5 h-3.5 text-[#b38f56] dark:text-[#e6ca97]" />
+              </div>
+              <p className="text-[10px] font-sans font-bold tracking-[0.16em] uppercase text-[#b38f56] dark:text-[#e6ca97]">
+                Atelier Warranty
+              </p>
+            </div>
           </div>
 
-          <form onSubmit={handleNewsletterSubmit} className="space-y-3 max-w-lg">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <input
-                type="text"
-                placeholder="First name"
-                value={newsletterName}
-                onChange={(e) => setNewsletterName(e.target.value)}
-                required
-                className="w-full h-12 px-4 bg-transparent border border-[#fbf8f3]/40 focus:border-[#fbf8f3] text-sm font-sans text-white placeholder-zinc-400 outline-none transition-colors"
-              />
-              <input
-                type="email"
-                placeholder="Email address"
-                value={newsletterEmail}
-                onChange={(e) => setNewsletterEmail(e.target.value)}
-                required
-                className="w-full h-12 px-4 bg-transparent border border-[#fbf8f3]/40 focus:border-[#fbf8f3] text-sm font-sans text-white placeholder-zinc-400 outline-none transition-colors"
-              />
+          {/* Sleek Compact VIP Campaign Invitation */}
+          <div className="bg-[#111113] dark:bg-[#07080a] text-[#faf8f5] p-6 sm:p-8 border border-[#b38f56]/30 flex flex-col sm:flex-row items-center justify-between gap-5 shadow-xl">
+            <div className="space-y-1 text-center sm:text-left">
+              <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 bg-[#e6ca97]/10 border border-[#e6ca97]/30 text-[#e6ca97] text-[9px] font-sans font-bold tracking-[0.2em] uppercase">
+                <Sparkles className="w-2.5 h-2.5" />
+                <span>First 50 Patrons Exclusive • {campaignSpotsRemaining} Spots Left</span>
+              </div>
+              <h3 className="font-serif text-xl sm:text-2xl font-normal text-[#faf8f5]">
+                Buy 1 Piece, Get 10% Off Your 2nd Piece
+              </h3>
+              <p className="text-xs font-editorial text-zinc-400">
+                Automatic reward calculated in your bag for our inaugural 50 collectors.
+              </p>
             </div>
-            <button
-              type="submit"
-              className="w-full h-12 bg-[#fbf8f3] hover:bg-[#d8c39f] text-[#14171a] font-sans text-xs font-bold tracking-[0.16em] uppercase transition-colors shadow-md"
-            >
-              Subscribe to A Silver Chapter
-            </button>
-          </form>
+
+            <div className="flex items-center gap-3 shrink-0">
+              <button
+                onClick={() => navigate('atelier')}
+                className="px-5 py-2.5 bg-[#e6ca97] hover:bg-[#d8c39f] text-[#111113] text-xs font-sans font-bold tracking-[0.14em] uppercase transition-colors shadow-md cursor-pointer flex items-center gap-1.5"
+              >
+                <span>Shop With Offer</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </div>
         </div>
       </section>
     </div>
@@ -4216,7 +4249,7 @@ function ShopView() {
 // 8. VIEW: CINEMATIC PDP (WITH 14K ACCORDION)
 // ==========================================
 function ProductView() {
-  const { selectedProduct, setSelectedProduct, products, navigate, addToCart, formatPrice } = useContext(AppContext);
+  const { selectedProduct, setSelectedProduct, products, navigate, addToCart, formatPrice, campaignSpotsRemaining } = useContext(AppContext);
   const [activeAccordion, setActiveAccordion] = useState('why-14k');
   const [selectedQuantity, setSelectedQuantity] = useState(1);
   const [copiedLink, setCopiedLink] = useState(false);
@@ -4606,6 +4639,19 @@ function ProductView() {
               </p>
             </div>
 
+            {/* First 50 Patrons Launch Privilege Banner */}
+            <div className="p-3 bg-gradient-to-r from-[#b38f56]/15 via-amber-500/10 to-transparent border border-[#b38f56]/30 rounded-xs flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <Sparkles className="w-3.5 h-3.5 text-[#8c6527] dark:text-[#e6ca97] shrink-0" />
+                <span className="text-xs font-sans text-[var(--text-primary)]">
+                  <strong className="text-[#8c6527] dark:text-[#e6ca97]">First 50 Launch Offer:</strong> Buy 1, Get <strong>10% Off</strong> your 2nd piece
+                </span>
+              </div>
+              <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-[#8c6527]/10 dark:bg-[#e6ca97]/20 text-[#8c6527] dark:text-[#e6ca97] shrink-0">
+                {campaignSpotsRemaining} spots left
+              </span>
+            </div>
+
             {/* Action Buttons */}
             <div className="space-y-4 pt-1">
               <div className="flex gap-4">
@@ -4722,7 +4768,7 @@ function ProductView() {
 // 9. VIEW: CHECKOUT
 // ==========================================
 function CheckoutView() {
-  const { cart, cartTotal, clearCart, navigate, formatPrice, addOrder, currencyMode, showToast, loginPatron } = useContext(AppContext);
+  const { cart, cartTotal, clearCart, navigate, formatPrice, addOrder, currencyMode, showToast, loginPatron, campaignDiscount, cartTotalAfterCampaign, campaignSpotsRemaining } = useContext(AppContext);
 
   const [paymentMethod, setPaymentMethod] = useState('RAZORPAY');
   const [upiId, setUpiId] = useState('');
@@ -4793,9 +4839,10 @@ function CheckoutView() {
     }
   }, [featureFlags.UPI_ONLY_MODE, paymentMethod]);
 
-  // Exact cart total calculation (5% discount scheme controlled by PREPAID_DISCOUNT_ENABLED feature flag)
-  const upiDiscount = (featureFlags.PREPAID_DISCOUNT_ENABLED && (paymentMethod === 'UPI' || paymentMethod === 'RAZORPAY')) ? Math.round(cartTotal * 0.05) : 0;
-  const finalTotal = cartTotal - upiDiscount;
+  // Campaign Discount (First 50: Buy 1, Get 10% Off 2nd Piece) & UPI discount
+  const baseSubtotal = Math.max(0, cartTotal - campaignDiscount);
+  const upiDiscount = (featureFlags.PREPAID_DISCOUNT_ENABLED && (paymentMethod === 'UPI' || paymentMethod === 'RAZORPAY')) ? Math.round(baseSubtotal * 0.05) : 0;
+  const finalTotal = Math.max(0, baseSubtotal - upiDiscount);
   const finalTotalInPaise = Math.round(finalTotal * 100);
 
   // Ensure Razorpay Checkout script is loaded
@@ -5159,7 +5206,8 @@ function CheckoutView() {
       country: 'India',
       paymentMethod: 'Razorpay',
       subtotal: cartTotal,
-      discount: upiDiscount,
+      discount: upiDiscount + campaignDiscount,
+      campaignDiscount,
       total: finalTotal,
       gstAmount,
       currency: currencyMode,
@@ -5324,7 +5372,8 @@ function CheckoutView() {
         country: 'India',
         paymentMethod: paymentMethod === 'RAZORPAY' ? 'Razorpay' : paymentMethod === 'PHONEPE' ? 'PhonePe' : paymentMethod,
         subtotal: cartTotal,
-        discount: upiDiscount,
+        discount: upiDiscount + campaignDiscount,
+        campaignDiscount,
         total: finalTotal,
         gstAmount,
         currency: currencyMode,
@@ -5820,7 +5869,16 @@ function CheckoutView() {
                   <span>Bag Total:</span>
                   <span className="text-[var(--text-primary)] font-medium">{formatPrice(cartTotal)}</span>
                 </div>
-                {paymentMethod === 'UPI' && upiDiscount > 0 && (
+                {campaignDiscount > 0 && (
+                  <div className="flex justify-between text-emerald-600 dark:text-emerald-400 font-semibold">
+                    <span className="flex items-center gap-1">
+                      <Sparkles className="w-3 h-3" />
+                      <span>First 50 Campaign (10% on 2nd):</span>
+                    </span>
+                    <span>- {formatPrice(campaignDiscount)}</span>
+                  </div>
+                )}
+                {upiDiscount > 0 && (
                   <div className="flex justify-between text-emerald-600 dark:text-emerald-400 font-semibold">
                     <span>UPI Discount (5%):</span>
                     <span>- {formatPrice(upiDiscount)}</span>
@@ -10837,90 +10895,75 @@ function Footer() {
   };
 
   return (
-    <footer className="bg-[#14171a] text-[#fbf8f3] dark:bg-[#0a0c0e] dark:text-[#EAE5DB] border-t-2 border-[#b99762]/40 pt-12 sm:pt-20 pb-10 sm:pb-12 transition-colors duration-300 shadow-2xl">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-12">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 lg:gap-14 pb-16 border-b border-[#14171a]/60">
+    <footer className="bg-[#111113] text-[#faf8f5] dark:bg-[#07080a] dark:text-[#ede7dc] border-t border-[#b38f56]/30 pt-16 pb-12 transition-colors duration-300 shadow-2xl">
+      <div className="max-w-7xl mx-auto px-6 md:px-12">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10 lg:gap-12 pb-14 border-b border-white/10">
           
-          {/* Col 1: Maison A Silver Chapter & Concierge */}
-          <div className="space-y-5">
+          {/* Col 1: Maison Brand & Concierge */}
+          <div className="space-y-4">
             <button onClick={() => navigate('home')} className="text-left group block">
-              <div className="flex items-center gap-2.5 mb-1.5">
-                <AvioraBrandCrest className="w-8 h-8 text-[#E6CA97]" />
-                <span className="font-serif text-2xl tracking-[0.18em] uppercase text-[#F9F7F2] font-bold">
+              <div className="flex items-center gap-2.5 mb-1">
+                <AvioraBrandCrest className="w-7 h-7 text-[#E6CA97]" />
+                <span className="font-serif text-xl tracking-[0.16em] uppercase text-[#F9F7F2] font-semibold">
                   A SILVER CHAPTER
                 </span>
               </div>
-              <span className="text-[9.5px] font-mono tracking-[0.35em] uppercase text-[#E6CA97] block font-bold">
-                TIMELESS ELEGANCE IN EVERY CHAPTER
+              <span className="text-[9px] font-mono tracking-[0.3em] uppercase text-[#E6CA97] block">
+                FINE JEWELLERY MAISON
               </span>
             </button>
-            <p className="text-xs font-sans text-[#CBC4B7] leading-relaxed max-w-sm">
-              Crafted with one vision — to bring timeless, elegant jewellery that feels luxurious yet wearable every day. Mastercrafted in Fine 925 Sterling Silver, 14K Gold Vermeil, Brilliant Moissanite, and organic Freshwater Pearls.
+            <p className="text-xs font-editorial text-[#CBC4B7] leading-relaxed max-w-xs">
+              Handcrafted fine jewellery in 925 Sterling Silver, 14K Gold Vermeil & Brilliant Moissanite.
             </p>
             
-            <div className="p-3.5 bg-black/40 border border-[#b99762]/25 rounded-xs space-y-2 text-[11px] font-mono text-[#DCD6CB]">
-              <p className="text-[9px] uppercase tracking-[0.25em] text-[#E6CA97] font-bold">
-                ATELIER CLIENT HELPLINE
-              </p>
+            <div className="pt-1 space-y-1.5 text-xs font-sans text-[#DCD6CB]">
               <a
                 href="https://wa.me/918796841184"
                 target="_blank"
                 rel="noreferrer"
-                className="flex items-center gap-2 text-[#EAE5DB] hover:text-[#E6CA97] transition-colors"
+                className="flex items-center gap-2 hover:text-[#E6CA97] transition-colors"
               >
                 <Phone className="w-3.5 h-3.5 text-[#E6CA97] shrink-0" />
-                <span>WHATSAPP: +91 8796841184</span>
+                <span>+91 8796841184</span>
               </a>
               <a
                 href="mailto:asilverchaptersupport@gmail.com"
-                className="flex items-center gap-2 text-[#EAE5DB] hover:text-[#E6CA97] transition-colors"
+                className="flex items-center gap-2 hover:text-[#E6CA97] transition-colors"
               >
                 <Mail className="w-3.5 h-3.5 text-[#E6CA97] shrink-0" />
-                <span>EMAIL: asilverchaptersupport@gmail.com</span>
+                <span>asilverchaptersupport@gmail.com</span>
               </a>
-              <p className="flex items-center gap-2 text-[#A7A196]">
-                <Clock className="w-3.5 h-3.5 text-[#E6CA97] shrink-0" />
-                <span>HOURS: MON – SAT, 10 AM – 7 PM (IST)</span>
-              </p>
-              <p className="flex items-center gap-2 text-[#A7A196]">
-                <MapPin className="w-3.5 h-3.5 text-[#E6CA97] shrink-0" />
-                <span>ATELIER: NEW DELHI, INDIA</span>
-              </p>
             </div>
           </div>
 
           {/* Col 2: Curated Collections */}
-          <div className="space-y-4">
-            <h4 className="text-xs font-serif tracking-[0.2em] uppercase text-[#E6CA97] font-bold flex items-center gap-2">
-              <Sparkles className="w-3.5 h-3.5" />
-              <span>Curated Collections</span>
+          <div className="space-y-3.5">
+            <h4 className="text-xs font-sans tracking-[0.18em] uppercase text-[#E6CA97] font-semibold">
+              Collections
             </h4>
-            <ul className="space-y-2.5 text-xs font-sans text-[#DCD6CB]">
+            <ul className="space-y-2 text-xs font-sans text-[#DCD6CB]">
               <li>
                 <button
                   onClick={() => navigate('atelier', { category: 'new-arrivals' })}
-                  className="hover:text-[#E6CA97] transition-colors text-left flex items-center justify-between w-full"
+                  className="hover:text-[#E6CA97] transition-colors text-left"
                 >
-                  <span>New Arrivals (Latest Launches)</span>
-                  <span className="text-[10px] font-mono text-[#E6CA97]">Just In</span>
+                  New Arrivals
                 </button>
               </li>
               <li>
                 <button
                   onClick={() => navigate('atelier', { category: 'minimalist' })}
-                  className="hover:text-[#E6CA97] transition-colors text-left flex items-center justify-between w-full font-medium"
+                  className="hover:text-[#E6CA97] transition-colors text-left"
                 >
-                  <span>Minimalist Jewellery (Delicate)</span>
-                  <span className="text-[10px] font-mono text-[#A7A196]">Everyday</span>
+                  Minimalist
                 </button>
               </li>
               <li>
                 <button
                   onClick={() => navigate('atelier', { category: 'statement' })}
-                  className="hover:text-[#E6CA97] transition-colors text-left flex items-center justify-between w-full font-medium"
+                  className="hover:text-[#E6CA97] transition-colors text-left"
                 >
-                  <span>Statement Jewellery (Sculptural)</span>
-                  <span className="text-[10px] font-mono text-[#A7A196]">Heirloom</span>
+                  Statement Pieces
                 </button>
               </li>
               <li>
@@ -10928,7 +10971,7 @@ function Footer() {
                   onClick={() => navigate('atelier', { category: 'moissanite' })}
                   className="hover:text-[#E6CA97] transition-colors text-left"
                 >
-                  Moissanite Collection
+                  Moissanite Suite
                 </button>
               </li>
               <li>
@@ -10936,85 +10979,59 @@ function Footer() {
                   onClick={() => navigate('atelier', { category: 'pearl' })}
                   className="hover:text-[#E6CA97] transition-colors text-left"
                 >
-                  Pearl Collection (Freshwater Pearls)
-                </button>
-              </li>
-              <li>
-                <button
-                  onClick={() => openPolicyModal('our-story')}
-                  className="hover:text-[#E6CA97] transition-colors text-left flex items-center gap-1.5 text-[#E6CA97]"
-                >
-                  <span>Atelier Heritage & Full Manifesto</span>
-                  <ArrowRight className="w-3 h-3" />
+                  Freshwater Pearls
                 </button>
               </li>
             </ul>
           </div>
 
-          {/* Col 3: Brand Policies & Patron Safeguards */}
-          <div className="space-y-4">
-            <h4 className="text-xs font-serif tracking-[0.2em] uppercase text-[#E6CA97] font-bold flex items-center gap-2">
-              <ShieldCheck className="w-3.5 h-3.5" />
-              <span>Policies & Warranties</span>
+          {/* Col 3: Brand Policies & Care */}
+          <div className="space-y-3.5">
+            <h4 className="text-xs font-sans tracking-[0.18em] uppercase text-[#E6CA97] font-semibold">
+              Policies & Care
             </h4>
-            <ul className="space-y-2.5 text-xs font-sans text-[#DCD6CB]">
+            <ul className="space-y-2 text-xs font-sans text-[#DCD6CB]">
               <li>
                 <button onClick={() => openPolicyModal('our-story')} className="hover:text-[#E6CA97] transition-colors text-left">
-                  Our Story & Atelier Manifesto
+                  Our Story
                 </button>
               </li>
               <li>
                 <button onClick={() => openPolicyModal('shipping-policy')} className="hover:text-[#E6CA97] transition-colors text-left">
-                  Shipping & Made-To-Order (15–20 Days)
+                  Shipping & Delivery
                 </button>
               </li>
               <li>
                 <button onClick={() => openPolicyModal('return-and-refund-policy')} className="hover:text-[#E6CA97] transition-colors text-left">
-                  Return & Refund (No Return · No Exchange)
+                  Returns & Refunds
                 </button>
               </li>
               <li>
                 <button onClick={() => openPolicyModal('warranty-policy')} className="hover:text-[#E6CA97] transition-colors text-left">
-                  30-Day Manufacturing Warranty
+                  30-Day Warranty
                 </button>
               </li>
               <li>
                 <button onClick={() => openPolicyModal('jewellery-care-guide')} className="hover:text-[#E6CA97] transition-colors text-left">
-                  Jewellery Care Guide (14K Gold & 925 Silver)
+                  Jewellery Care
                 </button>
               </li>
               <li>
-                <button onClick={() => openPolicyModal('product-authenticity-policy')} className="hover:text-[#E6CA97] transition-colors text-left">
-                  Authenticity Guarantee & Moissanite
-                </button>
-              </li>
-              <li>
-                <button onClick={() => openPolicyModal('terms-and-conditions')} className="hover:text-[#E6CA97] transition-colors text-left">
-                  Terms & Conditions
-                </button>
-              </li>
-              <li>
-                <button onClick={() => openPolicyModal('privacy-policy')} className="hover:text-[#E6CA97] transition-colors text-left">
-                  Privacy Policy
-                </button>
-              </li>
-              <li className="pt-1.5 border-t border-white/10">
-                <button onClick={() => navigate('orders')} className="hover:text-[#E6CA97] transition-colors text-left flex items-center gap-1.5 text-[#E6CA97] font-semibold">
-                  <User className="w-3.5 h-3.5" />
-                  <span>Customer Portal & Order Tracking</span>
+                <button onClick={() => navigate('orders')} className="hover:text-[#E6CA97] transition-colors text-left flex items-center gap-1.5 text-[#E6CA97]">
+                  <User className="w-3 h-3" />
+                  <span>Track Order</span>
                 </button>
               </li>
             </ul>
           </div>
 
-          {/* Col 4: The Silver Chapter Insider & Guarantees */}
-          <div className="space-y-4">
-            <h4 className="text-xs font-serif tracking-[0.2em] uppercase text-[#E6CA97] font-bold flex items-center gap-2">
-              <Award className="w-3.5 h-3.5" />
-              <span>The Silver Chapter Insider</span>
+          {/* Col 4: Insider Circle */}
+          <div className="space-y-3.5">
+            <h4 className="text-xs font-sans tracking-[0.18em] uppercase text-[#E6CA97] font-semibold">
+              The Insider Circle
             </h4>
-            <p className="text-xs font-sans text-[#CBC4B7] leading-relaxed">
-              Join collectors for private drop releases, artisanal jewellery care guides, and private salon invitations.
+            <p className="text-xs font-editorial text-[#CBC4B7]">
+              Subscribe for private releases and bespoke invitations.
             </p>
             
             <form onSubmit={handleFooterSubscribe} className="space-y-2">
@@ -11023,45 +11040,45 @@ function Footer() {
                   type="email"
                   value={footerEmail}
                   onChange={(e) => setFooterEmail(e.target.value)}
-                  placeholder="Enter email address..."
-                  className="bg-black/50 border border-[#b99762]/40 focus:border-[#E6CA97] text-xs font-sans w-full text-[#F5F2EB] placeholder-[#9E988D] px-3 py-2 outline-none rounded-xs"
+                  placeholder="Email address"
+                  className="bg-black/50 border border-[#b99762]/30 focus:border-[#E6CA97] text-xs font-sans w-full text-[#F5F2EB] placeholder-[#8A857C] px-3 py-2 outline-none rounded-xs"
                 />
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-[#E6CA97] hover:bg-[#F3E5AB] text-black text-[11px] font-sans font-bold uppercase tracking-wider transition-colors shrink-0 rounded-xs shadow-sm"
+                  className="px-4 py-2 bg-[#E6CA97] hover:bg-[#F3E5AB] text-black text-[11px] font-sans font-bold uppercase tracking-wider transition-colors shrink-0 rounded-xs"
                 >
                   Join
                 </button>
               </div>
             </form>
 
-            <div className="pt-2">
+            <div className="pt-1">
               <a
                 href="https://www.instagram.com/asilverchapter/"
                 target="_blank"
                 rel="noreferrer"
-                className="inline-flex items-center gap-2 text-xs font-sans text-[#E6CA97] hover:underline font-semibold"
+                className="inline-flex items-center gap-1.5 text-xs font-sans text-[#E6CA97] hover:underline"
               >
-                <InstagramIcon className="w-4 h-4" />
-                <span>@asilverchapter on Instagram</span>
+                <InstagramIcon className="w-3.5 h-3.5" />
+                <span>@asilverchapter</span>
               </a>
             </div>
 
-            {/* 4 Trust Guarantee Badges */}
-            <div className="grid grid-cols-2 gap-2 pt-2">
-              <div className="p-2 bg-black/40 border border-[#b99762]/20 text-[10px] font-mono text-[#DCD6CB] rounded-xs flex items-center gap-1.5">
+            {/* 4 Sleek Badges */}
+            <div className="grid grid-cols-2 gap-1.5 pt-1">
+              <div className="p-1.5 bg-black/40 border border-[#b99762]/15 text-[10px] font-mono text-[#DCD6CB] rounded-xs flex items-center gap-1.5">
                 <ShieldCheck className="w-3 h-3 text-[#E6CA97] shrink-0" />
-                <span>Fine 925 Silver</span>
+                <span>925 Silver</span>
               </div>
-              <div className="p-2 bg-black/40 border border-[#b99762]/20 text-[10px] font-mono text-[#DCD6CB] rounded-xs flex items-center gap-1.5">
+              <div className="p-1.5 bg-black/40 border border-[#b99762]/15 text-[10px] font-mono text-[#DCD6CB] rounded-xs flex items-center gap-1.5">
                 <Sparkles className="w-3 h-3 text-[#E6CA97] shrink-0" />
                 <span>14K Vermeil</span>
               </div>
-              <div className="p-2 bg-black/40 border border-[#b99762]/20 text-[10px] font-mono text-[#DCD6CB] rounded-xs flex items-center gap-1.5">
+              <div className="p-1.5 bg-black/40 border border-[#b99762]/15 text-[10px] font-mono text-[#DCD6CB] rounded-xs flex items-center gap-1.5">
                 <Gem className="w-3 h-3 text-[#E6CA97] shrink-0" />
-                <span>VVS1 Moissanite</span>
+                <span>Moissanite</span>
               </div>
-              <div className="p-2 bg-black/40 border border-[#b99762]/20 text-[10px] font-mono text-[#DCD6CB] rounded-xs flex items-center gap-1.5">
+              <div className="p-1.5 bg-black/40 border border-[#b99762]/15 text-[10px] font-mono text-[#DCD6CB] rounded-xs flex items-center gap-1.5">
                 <Truck className="w-3 h-3 text-[#E6CA97] shrink-0" />
                 <span>Blue Dart Air</span>
               </div>
@@ -11071,28 +11088,25 @@ function Footer() {
 
         {/* Bottom Bar: Copyright, Legal & Staff Vault */}
         <div className="pt-8 flex flex-col md:flex-row justify-between items-center text-[10px] font-mono text-[#A7A196] space-y-4 md:space-y-0">
-          <div>© {new Date().getFullYear()} A SILVER CHAPTER JEWELLERY MAISON. ALL RIGHTS RESERVED.</div>
-          <div className="flex flex-wrap items-center gap-6">
+          <div>© {new Date().getFullYear()} A SILVER CHAPTER. ALL RIGHTS RESERVED.</div>
+          <div className="flex flex-wrap items-center gap-5">
             <button onClick={() => openPolicyModal('privacy-policy')} className="hover:text-[#E6CA97] transition-colors">
               PRIVACY POLICY
             </button>
             <button onClick={() => openPolicyModal('terms-and-conditions')} className="hover:text-[#E6CA97] transition-colors">
-              TERMS OF SERVICE
+              TERMS
             </button>
             <button onClick={() => openPolicyModal('product-authenticity-policy')} className="hover:text-[#E6CA97] transition-colors">
-              AUTHENTICITY GUARANTEE
-            </button>
-            <button onClick={() => openPolicyModal('jewellery-care-guide')} className="hover:text-[#E6CA97] transition-colors">
-              CARE GUIDE
+              AUTHENTICITY
             </button>
             <span className="text-[#3A362E]">•</span>
             <button
               onClick={() => navigate('admin')}
               className="text-[#8E887E] hover:text-[#E6CA97] transition-colors flex items-center gap-1"
-              title="Atelier Internal Staff Vault (Restricted)"
+              title="Staff Access"
             >
               <Lock className="w-2.5 h-2.5" />
-              <span>STAFF VAULT</span>
+              <span>STAFF</span>
             </button>
           </div>
         </div>

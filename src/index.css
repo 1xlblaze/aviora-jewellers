@@ -2,40 +2,40 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 :root {
-  /* Warm Luxury Champagne Alabaster & Silk Ivory Palette */
-  --bg-primary: #f6f2ea;
-  --bg-secondary: #eee7db;
-  --bg-card: #fdfbf7;
-  --bg-stone: #e5ded2;
-  --text-primary: #1c1b18;
-  --text-secondary: #4a453e;
-  --text-muted: #8c8275;
-  --brand-forest: #14171a;
-  --brand-forest-dark: #0a0c0e;
-  --brand-forest-light: #24292f;
+  /* Famous Haute Joaillerie Luxury Palette - Cartier / Tiffany & Co. Inspired */
+  --bg-primary: #faf8f5;
+  --bg-secondary: #f3efe8;
+  --bg-card: #ffffff;
+  --bg-stone: #ece7de;
+  --text-primary: #121214;
+  --text-secondary: #4a4742;
+  --text-muted: #827e75;
+  --brand-forest: #121214;
+  --brand-forest-dark: #0a0a0c;
+  --brand-forest-light: #202026;
   --brand-gold: #b38f56;
-  --brand-gold-soft: #d4bf98;
-  --border-subtle: rgba(70, 56, 36, 0.12);
-  --border-strong: rgba(70, 56, 36, 0.22);
-  --badge-bg: #f6f2ea;
+  --brand-gold-soft: #d8c39f;
+  --border-subtle: rgba(18, 18, 20, 0.08);
+  --border-strong: rgba(18, 18, 20, 0.18);
+  --badge-bg: #faf8f5;
 }
 
 .dark {
-  --bg-primary: #0a0c0e;
-  --bg-secondary: #101317;
-  --bg-card: #15191e;
-  --bg-stone: #1c2128;
-  --text-primary: #fbf8f3;
-  --text-secondary: #c9ceca;
-  --text-muted: #828a86;
-  --brand-forest: #e2e5eb;
+  --bg-primary: #0a0b0d;
+  --bg-secondary: #111317;
+  --bg-card: #16181d;
+  --bg-stone: #1c2026;
+  --text-primary: #faf7f2;
+  --text-secondary: #c7c5be;
+  --text-muted: #838179;
+  --brand-forest: #faf7f2;
   --brand-forest-dark: #cbd5e1;
   --brand-forest-light: #f1f5f9;
   --brand-gold: #e6ca97;
   --brand-gold-soft: #c5a059;
-  --border-subtle: rgba(255, 255, 255, 0.12);
-  --border-strong: rgba(255, 255, 255, 0.22);
-  --badge-bg: #15191e;
+  --border-subtle: rgba(255, 255, 255, 0.09);
+  --border-strong: rgba(255, 255, 255, 0.18);
+  --badge-bg: #16181d;
 }
 
 @layer base {

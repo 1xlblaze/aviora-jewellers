@@ -131,13 +131,13 @@ export const STORE_CONFIG = {
   hero: {
     eyebrow: 'THE SILVER CHAPTER EDIT',
     title: 'Timeless elegance in every chapter.',
-    body: 'Delicate jewellery designed to be worn and treasured every day. Crafted in Fine 925 Sterling Silver, 14K/18K Gold-Plated Vermeil, Brilliant Moissanite, and Freshwater Pearls.',
+    body: 'Delicate jewellery designed to be worn and treasured every day in Fine 925 Sterling Silver & 14K Gold Vermeil.',
     image: '/products/IMG-20260913-WA0089.jpg',
     alt: 'A Silver Chapter fine jewellery mastercraft collection',
   },
   editorial: {
     title: 'Made to become yours.',
-    body: 'Discover pieces that bring effortless elegance to everyday moments and meaningful occasions.',
+    body: 'Effortless elegance for every day. Handcrafted in 14K Gold Vermeil over solid 925 Sterling Silver.',
     image: '/customer/customer-tennis-wrist.jpg',
     alt: 'A Silver Chapter handcrafted 925 silver tennis bracelets',
   },
