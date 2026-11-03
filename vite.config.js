@@ -143,6 +143,23 @@ export default defineConfig(({ mode }) => {
       host: '0.0.0.0',
       port: 5174,
       historyApiFallback: true,
+      proxy: {
+        '/ingest/static': {
+          target: 'https://us-assets.i.posthog.com',
+          changeOrigin: true,
+          rewrite: (path) => path.replace(/^\/ingest/, ''),
+        },
+        '/ingest/array': {
+          target: 'https://us-assets.i.posthog.com',
+          changeOrigin: true,
+          rewrite: (path) => path.replace(/^\/ingest\/array/, '/static'),
+        },
+        '/ingest': {
+          target: 'https://us.i.posthog.com',
+          changeOrigin: true,
+          rewrite: (path) => path.replace(/^\/ingest/, ''),
+        },
+      },
     },
   };
 })

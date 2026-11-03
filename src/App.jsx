@@ -512,6 +512,10 @@ function AppProvider({ children }) {
     try {
       localStorage.setItem('aviora_patron_session', JSON.stringify(session));
     } catch {}
+    pulse.identify(cleanPhone, {
+      phone: cleanPhone,
+      name: session.name,
+    });
     showToast(`✓ Welcome, ${session.name}! Access granted to personal commission dossier.`);
     return session;
   };
@@ -778,10 +782,14 @@ function AppProvider({ children }) {
       const prod = data || selectedProduct;
       if (prod) {
         setSelectedProduct(prod);
+        pulse.productViewed(prod);
         try {
           localStorage.setItem('aviora_selected_product_id', prod.id);
         } catch {}
       }
+    }
+    if (view === 'checkout') {
+      pulse.checkoutStarted(cart, cartTotal);
     }
     if (view === 'orders') {
       if (data) setSelectedOrder(data);
@@ -929,6 +937,13 @@ function AppProvider({ children }) {
   const campaignDiscount = useMemo(() => calculateCampaignDiscount(cart), [cart]);
   const cartTotalAfterCampaign = useMemo(() => Math.max(0, cartTotal - campaignDiscount), [cartTotal, campaignDiscount]);
   const campaignSpotsRemaining = useMemo(() => getCampaignSpotsRemaining(orders.length), [orders.length]);
+
+  // Pulse Telemetry: Track cart drawer opens
+  useEffect(() => {
+    if (isCartOpen) {
+      pulse.cartDrawerOpened(itemCount, cartTotal);
+    }
+  }, [isCartOpen, itemCount, cartTotal]);
 
   // Order Management
   const addOrder = (order) => {
@@ -4291,6 +4306,9 @@ function ProductView() {
   // Reset active image on product switch
   useEffect(() => {
     setActiveImageIndex(0);
+    if (product?.id) {
+      pulse.productViewed(product);
+    }
   }, [product?.id]);
 
 
@@ -4845,6 +4863,13 @@ function CheckoutView() {
   const finalTotal = Math.max(0, baseSubtotal - upiDiscount);
   const finalTotalInPaise = Math.round(finalTotal * 100);
 
+  // Pulse Telemetry: Track checkout started
+  useEffect(() => {
+    if (cart.length > 0) {
+      pulse.checkoutStarted(cart, finalTotal);
+    }
+  }, []);
+
   // Ensure Razorpay Checkout script is loaded
   useEffect(() => {
     loadRazorpayCheckoutScript();
@@ -4943,6 +4968,7 @@ function CheckoutView() {
       return;
     }
 
+    pulse.otpRequested(cleanPhone, 'firebase');
     const generated = generateOtp(formData.customerPhone);
     setActiveGeneratedOtp(generated.otp);
     setOtpInput('');
@@ -4983,7 +5009,7 @@ function CheckoutView() {
       return;
     }
 
-    const cleanPhone = formData.customerPhone.replace(/[^\d]/g, '');
+    const cleanPhone = formData.customerPhone.replace(/[^\d]/g, '').slice(-10);
     if (cleanPhone.length < 10) {
       setErrorMessage('Please enter a valid 10-digit Indian mobile number.');
       return;
@@ -4993,6 +5019,15 @@ function CheckoutView() {
       setErrorMessage('Please enter a valid 6-digit Indian PIN code.');
       return;
     }
+
+    pulse.contactSubmitted(cleanPhone, formData.postalCode, formData.city);
+    pulse.identify(cleanPhone, {
+      name: formData.customerName,
+      email: formData.customerEmail,
+      phone: cleanPhone,
+      city: formData.city,
+      pincode: formData.postalCode,
+    });
 
     // Sole Payment Method: Launch Razorpay Merchant Gateway directly
     await handleLaunchRazorpayCheckout();
@@ -5009,6 +5044,15 @@ function CheckoutView() {
 
     const result = await verifyCustomerOtp(formData.customerPhone, otpInput.trim());
     if (result.success) {
+      const cleanPhone = (formData.customerPhone || '').replace(/[^\d]/g, '').slice(-10);
+      pulse.otpVerified(cleanPhone);
+      pulse.identify(cleanPhone, {
+        name: formData.customerName,
+        email: formData.customerEmail,
+        phone: cleanPhone,
+        city: formData.city,
+        pincode: formData.postalCode,
+      });
       setIsPhoneVerified(true);
       setShowOtpModal(false);
       await handleLaunchRazorpayCheckout();
@@ -5018,6 +5062,7 @@ function CheckoutView() {
   };
 
   const handleResendOtp = () => {
+    pulse.otpRequested(formData.customerPhone, 'firebase');
     const generated = generateOtp(formData.customerPhone);
     setActiveGeneratedOtp(generated.otp);
     setOtpInput('');
@@ -11203,6 +11248,7 @@ function PatronAuthModal() {
       setError('Please enter a valid 10-digit Indian mobile number.');
       return;
     }
+    pulse.otpRequested(clean, 'firebase');
     const res = generateOtp(clean);
     setGeneratedOtp(res.otp);
     setOtpSent(true);
@@ -11242,6 +11288,7 @@ function PatronAuthModal() {
     const clean = phone.replace(/[^\d]/g, '').slice(-10);
     const check = await verifyCustomerOtp(clean, otp);
     if (check.success) {
+      pulse.otpVerified(clean);
       const matched = orders.find(
         (o) => (o.customerPhone || '').replace(/[^\d]/g, '').slice(-10) === clean
       );

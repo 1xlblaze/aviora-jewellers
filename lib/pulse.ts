@@ -30,8 +30,15 @@ export function initPulse() {
 
   try {
     const isClient = typeof window !== 'undefined';
-    const proxyHost = isClient && window.location.hostname !== 'localhost'
-      ? `${window.location.origin}/ingest`
+    const isLocal = isClient && (
+      window.location.hostname === 'localhost' ||
+      window.location.hostname === '127.0.0.1' ||
+      window.location.hostname.startsWith('192.168.') ||
+      window.location.hostname.startsWith('10.') ||
+      window.location.hostname.endsWith('.local')
+    );
+    const proxyHost = isClient && !isLocal
+      ? '/ingest'
       : POSTHOG_HOST;
 
     posthog.init(POSTHOG_KEY, {
@@ -39,8 +46,11 @@ export function initPulse() {
       ui_host: 'https://us.posthog.com',
       person_profiles: 'always',
       autocapture: true,
-      capture_pageview: true,
+      capture_pageview: 'history_change',
       capture_pageleave: true,
+      persistence: 'localStorage+cookie',
+      cross_subdomain_cookie: true,
+      secure_cookie: isClient && window.location.protocol === 'https:',
       enable_recording_console_log: true,
       logs: {
         captureConsoleLogs: true,
@@ -55,7 +65,6 @@ export function initPulse() {
       loaded: (ph) => {
         isInitialized = true;
         try {
-          ph.capture('$pageview', { path: window.location.pathname });
           ph.capture('store_loaded', {
             path: window.location.pathname,
             referrer: document.referrer || '',
@@ -87,7 +96,13 @@ export const pulse = {
   identify(distinctId: string, traits: Record<string, any> = {}) {
     try {
       if (typeof window !== 'undefined') {
-        posthog.identify(distinctId, traits);
+        const cleanDigits = (distinctId || '').replace(/[^\d]/g, '');
+        const normalizedId = cleanDigits.length >= 10 ? `+91${cleanDigits.slice(-10)}` : distinctId;
+        const profileProperties = {
+          ...traits,
+          ...(cleanDigits.length >= 10 ? { $phone: normalizedId, phone: normalizedId } : {}),
+        };
+        posthog.identify(normalizedId, profileProperties);
       }
     } catch {}
   },
