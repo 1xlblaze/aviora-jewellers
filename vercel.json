@@ -56,7 +56,7 @@
       "destination": "/robots.txt"
     },
     {
-      "source": "/(.*)",
+      "source": "/((?!api|sitemap\\.xml|robots\\.txt|ingest).*)",
       "destination": "/index.html"
     }
   ]

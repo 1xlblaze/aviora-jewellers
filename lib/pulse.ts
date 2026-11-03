@@ -10,7 +10,7 @@ const env = typeof import.meta !== 'undefined' && (import.meta as any).env ? (im
 const POSTHOG_KEY =
   env.VITE_POSTHOG_KEY ||
   (typeof process !== 'undefined' && (process.env?.VITE_POSTHOG_KEY || process.env?.NEXT_PUBLIC_POSTHOG_KEY || process.env?.POSTHOG_API_KEY)) ||
-  '';
+  'phc_uGse6iV36oVVLZXPtHkwXYuUEn9T9pGeWJTnJXfiBUxm';
 
 const POSTHOG_HOST =
   env.VITE_POSTHOG_HOST ||
@@ -30,19 +30,9 @@ export function initPulse() {
 
   try {
     const isClient = typeof window !== 'undefined';
-    const isLocal = isClient && (
-      window.location.hostname === 'localhost' ||
-      window.location.hostname === '127.0.0.1' ||
-      window.location.hostname.startsWith('192.168.') ||
-      window.location.hostname.startsWith('10.') ||
-      window.location.hostname.endsWith('.local')
-    );
-    const proxyHost = isClient && !isLocal
-      ? '/ingest'
-      : POSTHOG_HOST;
 
     posthog.init(POSTHOG_KEY, {
-      api_host: proxyHost,
+      api_host: POSTHOG_HOST,
       ui_host: 'https://us.posthog.com',
       person_profiles: 'always',
       autocapture: true,
