@@ -230,7 +230,7 @@ const formatPriceUSD = (amount) => {
 export const FIRST_50_CAMPAIGN = {
   id: 'collector-offer-10',
   title: 'COLLECTOR PRIVILEGE',
-  tagline: 'Buy More Than 2 Pieces, Get 10% Off Entire Order',
+  tagline: 'Buy 2 or More Pieces, Get 10% Off Entire Order',
   active: true,
 };
 
@@ -249,8 +249,8 @@ export function calculateCampaignDiscount(cart) {
     subtotal += unitPrice * qty;
   });
 
-  // 10% discount only if items greater than 2 and on total price
-  if (totalUnits > 2) {
+  // 10% discount on total price when 2 or more items (totalUnits >= 2)
+  if (totalUnits >= 2) {
     return Math.round(subtotal * 0.10);
   }
   return 0;
@@ -1398,7 +1398,7 @@ function Navbar() {
             <span className="bg-[#e6ca97]/20 text-[#e6ca97] px-1.5 py-0.5 rounded text-[8px] sm:text-[9px] font-bold tracking-widest uppercase">
               Special Offer
             </span>
-            <span className="text-[#e6ca97] font-semibold">Buy More Than 2 Pieces, Get 10% Off Entire Order</span>
+            <span className="text-[#e6ca97] font-semibold">Buy 2 or More Pieces, Get 10% Off Entire Order</span>
             <span className="hidden lg:inline text-white/40">•</span>
             <span className="hidden lg:inline text-white/80 lowercase font-mono text-[8.5px] sm:text-[9.5px]">Auto-applied in Bag</span>
             <span className="text-white/40">•</span>
@@ -2015,33 +2015,26 @@ function CartDrawer() {
               </div>
             </div>
 
-            {/* First 50 Campaign Progress Banner */}
+            {/* Multi-piece Campaign Progress Banner */}
             <div className="bg-[#b38f56]/10 dark:bg-[#e6ca97]/10 px-4 sm:px-8 py-2 border-b border-[#b38f56]/20 flex items-center justify-between gap-2 text-[11px] font-sans">
-              {itemCount > 2 ? (
+              {itemCount >= 2 ? (
                 <div className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 font-semibold">
                   <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
                   <span>
                     10% Off Entire Order applied! ({itemCount} pieces)
                   </span>
                 </div>
-              ) : itemCount === 2 ? (
+              ) : itemCount === 1 ? (
                 <div className="flex items-center gap-1.5 text-[var(--text-primary)]">
                   <Sparkles className="w-3.5 h-3.5 text-[#b38f56] dark:text-[#e6ca97] shrink-0" />
                   <span>
                     Add 1 more piece to unlock <strong className="text-[#b38f56] dark:text-[#e6ca97]">10% OFF</strong> your entire order!
                   </span>
                 </div>
-              ) : itemCount === 1 ? (
-                <div className="flex items-center gap-1.5 text-[var(--text-primary)]">
-                  <Sparkles className="w-3.5 h-3.5 text-[#b38f56] dark:text-[#e6ca97] shrink-0" />
-                  <span>
-                    Add 2 more pieces to unlock <strong className="text-[#b38f56] dark:text-[#e6ca97]">10% OFF</strong> your entire order!
-                  </span>
-                </div>
               ) : (
                 <div className="flex items-center gap-1.5 text-[var(--text-secondary)]">
                   <Sparkles className="w-3.5 h-3.5 text-[#b38f56] dark:text-[#e6ca97] shrink-0" />
-                  <span>Buy more than 2 pieces, get 10% Off total price</span>
+                  <span>Buy 2 or more pieces, get 10% Off total price</span>
                 </div>
               )}
             </div>
@@ -2222,7 +2215,7 @@ function CartDrawer() {
                     <div className="flex justify-between items-baseline text-xs font-sans text-emerald-600 dark:text-emerald-400 font-semibold">
                       <span className="flex items-center gap-1">
                         <Sparkles className="w-3 h-3" />
-                        10% Discount (&gt;2 pieces)
+                        10% Multi-Piece Discount (2+ items)
                       </span>
                       <span>-{formatPrice(campaignDiscount)}</span>
                     </div>
@@ -2621,7 +2614,7 @@ function HomeView() {
             <div className="pt-0.5">
               <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#b38f56]/10 dark:bg-[#e6ca97]/15 border border-[#b38f56]/30 dark:border-[#e6ca97]/30 text-[10px] sm:text-[11.5px] font-sans font-medium text-[var(--text-primary)]">
                 <span className="text-[#b38f56] dark:text-[#e6ca97] font-bold">✦ Atelier Privilege:</span>
-                <span>Buy More Than 2 Pieces, Get <strong>10% Off</strong> Entire Order</span>
+                <span>Buy 2 or More Pieces, Get <strong>10% Off</strong> Entire Order</span>
               </div>
             </div>
 
@@ -3219,10 +3212,10 @@ function HomeView() {
                 <span>Special Collector Offer</span>
               </div>
               <h3 className="font-serif text-xl sm:text-2xl font-normal text-[#faf8f5]">
-                Buy More Than 2 Pieces, Get 10% Off Entire Order
+                Buy 2 or More Pieces, Get 10% Off Entire Order
               </h3>
               <p className="text-xs font-editorial text-zinc-400">
-                Automatic 10% savings on total price calculated in your bag when ordering 3 or more pieces.
+                Automatic 10% savings on total price calculated in your bag when ordering 2 or more pieces.
               </p>
             </div>
 
@@ -4652,7 +4645,7 @@ function ProductView() {
               <div className="flex items-center gap-2">
                 <Sparkles className="w-3.5 h-3.5 text-[#8c6527] dark:text-[#e6ca97] shrink-0" />
                 <span className="text-xs font-sans text-[var(--text-primary)]">
-                  <strong className="text-[#8c6527] dark:text-[#e6ca97]">Collector Offer:</strong> Buy more than 2 pieces, get <strong>10% Off</strong> your entire order
+                  <strong className="text-[#8c6527] dark:text-[#e6ca97]">Collector Offer:</strong> Buy 2 or more pieces, get <strong>10% Off</strong> your entire order
                 </span>
               </div>
             </div>
@@ -5905,7 +5898,7 @@ function CheckoutView() {
                   <div className="flex justify-between text-emerald-600 dark:text-emerald-400 font-semibold">
                     <span className="flex items-center gap-1">
                       <Sparkles className="w-3 h-3" />
-                      <span>10% Order Discount (&gt;2 items):</span>
+                      <span>10% Order Discount (2+ items):</span>
                     </span>
                     <span>- {formatPrice(campaignDiscount)}</span>
                   </div>

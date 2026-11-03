@@ -204,15 +204,16 @@ async function runFullE2ETest() {
   const paymentAmountInPaise = Math.round(paymentAmount * 100);
   assert(paymentAmountInPaise === calculatedSubtotal * 100, `Razorpay exact amount in paise: ${paymentAmountInPaise} paise (₹${paymentAmount})`);
 
-  // Verify 10% discount only when items > 2 and applied on total price
+  // Verify 10% discount when items >= 2 and applied on total price
   const discount1Item = calculateCampaignDiscount([{ product: item1, quantity: 1 }]);
-  assert(discount1Item === 0, 'Zero discount applied for 1 item (requires > 2 items)', `₹${discount1Item}`);
+  assert(discount1Item === 0, 'Zero discount applied for 1 item (requires >= 2 items)', `₹${discount1Item}`);
 
   const discount2Items = calculateCampaignDiscount([
     { product: item1, quantity: 1 },
     { product: item2, quantity: 1 },
   ]);
-  assert(discount2Items === 0, 'Zero discount applied for 2 items (requires strictly > 2 items)', `₹${discount2Items}`);
+  const expectedDiscount2 = Math.round(calculatedSubtotal * 0.10);
+  assert(discount2Items === expectedDiscount2, `10% discount applied on total price for 2 items: ₹${discount2Items} off ₹${calculatedSubtotal}`, `Expected ₹${expectedDiscount2}, got ₹${discount2Items}`);
 
   const item3 = PRODUCTS[2]; // 3rd item
   const cart3Items = [
@@ -225,7 +226,7 @@ async function runFullE2ETest() {
   const actualDiscount3 = calculateCampaignDiscount(cart3Items);
   assert(
     actualDiscount3 === expected10PctDiscount,
-    `10% discount applied on total price for > 2 items: ₹${actualDiscount3} off ₹${subtotal3}`,
+    `10% discount applied on total price for 3 items: ₹${actualDiscount3} off ₹${subtotal3}`,
     `Expected ₹${expected10PctDiscount}, got ₹${actualDiscount3}`
   );
 
