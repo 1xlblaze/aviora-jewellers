@@ -10,7 +10,7 @@ const env = typeof import.meta !== 'undefined' && (import.meta as any).env ? (im
 const POSTHOG_KEY =
   env.VITE_POSTHOG_KEY ||
   (typeof process !== 'undefined' && (process.env?.VITE_POSTHOG_KEY || process.env?.NEXT_PUBLIC_POSTHOG_KEY || process.env?.POSTHOG_API_KEY)) ||
-  'phc_uGse6iV36oVVLZXPtHkwXYuUEn9T9pGeWJTnJXfiBUxm';
+  '';
 
 const POSTHOG_HOST =
   env.VITE_POSTHOG_HOST ||
