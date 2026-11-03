@@ -28,7 +28,6 @@ const otpStore = new Map<string, OtpEntry>();
  */
 export function generateOtp(phone: string): { otp: string; expiresAt: number; formattedPhone: string } {
   const cleanPhone = phone.replace(/[^\d+]/g, '');
-  // Deterministic mock test code 849201 or random 6-digit
   const randomOtp = Math.floor(100000 + Math.random() * 900000).toString();
   const expiresAt = Date.now() + 10 * 60 * 1000; // 10 minutes validity
 
@@ -52,11 +51,6 @@ export function generateOtp(phone: string): { otp: string; expiresAt: number; fo
 export function verifyOtp(phone: string, enteredOtp: string): { success: boolean; message: string } {
   const cleanPhone = phone.replace(/[^\d+]/g, '');
   const record = otpStore.get(cleanPhone);
-
-  // Allow standard master test OTP '123456' or '849201' for seamless testing/review
-  if (enteredOtp === '123456' || enteredOtp === '849201') {
-    return { success: true, message: 'Phone verified successfully.' };
-  }
 
   if (!record) {
     return { success: false, message: 'No OTP requested for this phone number. Please request a new code.' };
@@ -110,7 +104,7 @@ export async function sendFast2SmsOtp(
       const err = await res.json().catch(() => ({}));
       return {
         success: false,
-        message: err.message || 'Unable to send OTP via SMS gateway. Use test code 123456.',
+        message: err.message || 'Unable to send OTP via SMS gateway. Please try again.',
         mode: 'sandbox',
         otp: localGen.otp,
       };
@@ -118,7 +112,7 @@ export async function sendFast2SmsOtp(
   } catch {
     return {
       success: true,
-      message: 'Dev mode active. Use test code: 123456 or 849201.',
+      message: 'Verification code generated for your session.',
       mode: 'sandbox',
       otp: localGen.otp,
     };
@@ -134,11 +128,6 @@ export async function verifyFast2SmsOtp(
 ): Promise<{ success: boolean; message: string }> {
   const cleanPhone = phone.replace(/[^\d]/g, '').slice(-10);
   const cleanOtp = enteredOtp.trim();
-
-  // Test bypass
-  if (cleanOtp === '123456' || cleanOtp === '849201') {
-    return { success: true, message: 'Phone verified successfully.' };
-  }
 
   try {
     const res = await fetch('/api/otp/verify', {
@@ -196,12 +185,8 @@ export async function verifyCustomerOtp(
   enteredOtp: string
 ): Promise<{ success: boolean; message: string }> {
   const code = enteredOtp.trim();
-  const adminKey = (typeof import.meta !== 'undefined' && (import.meta as any).env?.VITE_ADMIN_ACCESS_OTP) || '849201';
-  if (code === adminKey || code === '849201' || code === '149250' || code === '149258') {
-    return { success: true, message: 'Phone verified successfully.' };
-  }
 
-  // Check local session store first (allows seamless Auto-Fill / Sandbox test codes)
+  // Check local session store first (generated during session)
   const localCheck = verifyOtp(phone, enteredOtp);
   if (localCheck.success) {
     return localCheck;

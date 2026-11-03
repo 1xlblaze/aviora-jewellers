@@ -244,12 +244,9 @@ async function runFullE2ETest() {
   const invalidVerify = verifyOtp(testPhone, '000000');
   assert(!invalidVerify.success, 'Invalid code 000000 is correctly rejected', invalidVerify.message);
 
-  // Verify master evaluation bypass codes
-  const bypass1 = verifyOtp(testPhone, '849201');
-  assert(bypass1.success, 'Master evaluation bypass code [849201] verified successfully');
-
-  const bypass2 = verifyOtp(testPhone, '123456');
-  assert(bypass2.success, 'Master evaluation bypass code [123456] verified successfully');
+  // Verify authentic generated OTP verification
+  const validVerify = verifyOtp(testPhone, otpResult.otp);
+  assert(validVerify.success, `Authentic generated OTP [${otpResult.otp}] verified successfully`);
 
   // ==========================================
   // SECTION 5: RAZORPAY ORDERS API & EXACT PAISE CONVERSION
@@ -712,7 +709,6 @@ async function runFullE2ETest() {
   // 5. Verify App.jsx contains Patron Authentication and UTR Verification UI
   assert(appJsx.includes('Patron Security Authentication'), 'App.jsx renders dedicated Patron Security Authentication screen');
   assert(appJsx.includes('Step 2: Enter 12-Digit Bank UTR / Reference No.'), 'App.jsx includes Step 2 UTR verification in payment modal');
-  assert(appJsx.includes('Auto-Fill Test UTR'), 'App.jsx provides Auto-Fill Test UTR sandbox shortcut');
   assert(appJsx.includes('Sync Workshop Status'), 'App.jsx provides live Workshop Status sync button in OrdersView');
   assert(appJsx.includes('Official WhatsApp Dispatch • Template:'), 'App.jsx renders WhatsApp dispatch card in 5-stage tracking stepper');
 

@@ -1889,18 +1889,6 @@ function Navbar() {
                       {currencyMode === 'INR' ? '₹ INR' : '$ USD'}
                     </button>
                   </div>
-
-                  <button
-                    onClick={() => {
-                      navigate('admin');
-                      setMobileMenuOpen(false);
-                    }}
-                    className="text-[10px] font-mono text-[var(--text-muted)] hover:text-[#b99762] flex items-center gap-1"
-                    title="Atelier Internal Staff Vault (Restricted)"
-                  >
-                    <Lock className="w-2.5 h-2.5" />
-                    <span>Staff Portal</span>
-                  </button>
                 </div>
               </div>
             </div>
@@ -5283,7 +5271,7 @@ function CheckoutView() {
     if (paymentMethod === 'UPI') {
       const cleanUtr = (userUtr || '').trim();
       if (!cleanUtr) {
-        setUtrError('Please enter your 12-digit UPI Bank Reference / UTR Number from your payment app, or click "Auto-Fill Test UTR".');
+        setUtrError('Please enter your 12-digit UPI Bank Reference / UTR Number from your payment app.');
         return;
       }
       if (cleanUtr.length < 6) {
@@ -6381,18 +6369,6 @@ function CheckoutView() {
                         <ShieldCheck className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
                         Step 2: Enter 12-Digit Bank UTR / Reference No.
                       </span>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const demoUtr = `42${Math.floor(1000000000 + Math.random() * 9000000000)}`;
-                          setUserUtr(demoUtr);
-                          setUtrError('');
-                          showToast(`✓ Auto-filled demo UTR: ${demoUtr}`);
-                        }}
-                        className="px-2 py-0.5 bg-amber-500/15 hover:bg-amber-500/25 text-amber-700 dark:text-amber-300 border border-amber-500/30 text-[9px] font-mono font-bold uppercase transition-colors"
-                      >
-                        Auto-Fill Test UTR
-                      </button>
                     </div>
                     <p className="text-[10px] text-[var(--text-secondary)] font-mono leading-relaxed">
                       After completing your transfer of <strong className="text-[var(--text-primary)]">{formatPrice(finalTotal)}</strong> to <strong className="text-[var(--text-primary)]">8796841184-2@ibl</strong> in PhonePe / UPI app, enter your 12-digit bank reference (UTR) from the receipt.
@@ -6648,17 +6624,6 @@ function OrdersView() {
                   <label className="block uppercase tracking-wider text-[10px] text-[var(--text-muted)] font-bold">
                     6-Digit Verification Code (OTP)
                   </label>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setLoginOtp('123456');
-                      setLoginError('');
-                      showToast('✓ Verification code auto-filled');
-                    }}
-                    className="text-[9px] font-mono text-[#b99762] dark:text-[#e6ca97] hover:underline uppercase font-bold cursor-pointer"
-                  >
-                    Auto-Fill
-                  </button>
                 </div>
                 <input
                   type="text"
@@ -6677,21 +6642,6 @@ function OrdersView() {
                 <p className="text-[10px] text-emerald-700 dark:text-emerald-300">
                   ✦ Verification code dispatched to +91 {loginPhone}.
                 </p>
-
-                {/* Auto-Fill Helper */}
-                <div className="p-2.5 bg-[var(--bg-secondary)] border border-[var(--border-subtle)] flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-1.5 text-[11px] text-[#b99762] dark:text-[#e6ca97]">
-                    <Sparkles className="w-3.5 h-3.5" />
-                    <span>One-Click Verification Shortcut</span>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setLoginOtp(generatedOtp || '849201')}
-                    className="px-2.5 py-1 bg-[#b99762]/10 hover:bg-[#b99762]/20 border border-[#b99762]/40 text-[#b99762] dark:text-[#e6ca97] text-[10px] font-bold uppercase tracking-wider transition-colors cursor-pointer"
-                  >
-                    Auto-Fill
-                  </button>
-                </div>
               </div>
             )}
 
@@ -6868,15 +6818,6 @@ function OrdersView() {
               >
                 <ArrowLeft className="w-3 h-3" />
                 <span>Return to Catalog</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => navigate('admin')}
-                className="text-[#b99762] hover:underline flex items-center gap-1 font-bold"
-                title="Strictly for store management and master jewelers"
-              >
-                <Lock className="w-2.5 h-2.5" />
-                <span>Store Owner / Staff Login →</span>
               </button>
             </div>
           </div>
@@ -7649,27 +7590,45 @@ function AdminView() {
     }
   };
 
-  const handleLogin = (e) => {
-    e?.preventDefault();
-    const adminKey = (import.meta.env.VITE_ADMIN_ACCESS_OTP || '849201').trim();
-    if (pinCode.trim() === adminKey || pinCode.trim() === '849201' || pinCode.trim() === '149250' || pinCode.trim() === '149258') {
-      setIsAuthenticated(true);
-      try {
-        sessionStorage.setItem('silverchapter_admin_session_auth', 'true');
-        sessionStorage.removeItem('aviora_admin_session_auth');
-        localStorage.removeItem('aviora_admin_auth');
-      } catch {}
-      setPinError('');
-      showToast('✦ Staff Access Authorized');
-    } else {
-      setPinError('Invalid Key. Please enter the authorized Master Key configured in Vercel.');
-    }
-  };
+  const [isVerifyingPin, setIsVerifyingPin] = useState(false);
 
-  const handlePrefillPin = () => {
-    setPinCode('149250');
+  const handleLogin = async (e) => {
+    e?.preventDefault();
+    const cleanPin = pinCode.trim();
+    if (!cleanPin) {
+      setPinError('Please enter your Master PIN.');
+      return;
+    }
+
+    setIsVerifyingPin(true);
     setPinError('');
-    showToast('PIN 149250 entered. Click Authenticate to proceed.');
+
+    try {
+      const res = await fetch('/api/admin/verify-pin', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pin: cleanPin }),
+      });
+      const data = await res.json().catch(() => ({}));
+
+      if (res.ok && data.success) {
+        setIsAuthenticated(true);
+        try {
+          sessionStorage.setItem('silverchapter_admin_session_auth', 'true');
+          sessionStorage.removeItem('aviora_admin_session_auth');
+          localStorage.removeItem('aviora_admin_auth');
+        } catch {}
+        setPinError('');
+        showToast('✦ Staff Access Authorized');
+      } else {
+        setPinError(data.message || 'Invalid Master PIN. Access denied.');
+      }
+    } catch (err) {
+      console.error('Admin authentication error:', err);
+      setPinError('Unable to verify PIN. Please check network connection.');
+    } finally {
+      setIsVerifyingPin(false);
+    }
   };
 
   const handleLogout = () => {
@@ -7677,6 +7636,7 @@ function AdminView() {
     setPinCode('');
     setPinError('');
     try {
+      sessionStorage.removeItem('silverchapter_admin_session_auth');
       sessionStorage.removeItem('aviora_admin_session_auth');
       localStorage.removeItem('aviora_admin_auth');
     } catch {}
@@ -7944,9 +7904,11 @@ function AdminView() {
 
             <button
               type="submit"
-              className="w-full h-12 bg-[#14171a] dark:bg-[#e6ca97] text-white dark:text-black font-sans text-xs font-bold tracking-[0.16em] uppercase transition-colors hover:bg-[#1c2025] dark:hover:bg-[#d8c39f]"
+              disabled={isVerifyingPin}
+              className="w-full h-12 bg-[#14171a] dark:bg-[#e6ca97] text-white dark:text-black font-sans text-xs font-bold tracking-[0.16em] uppercase transition-colors hover:bg-[#1c2025] dark:hover:bg-[#d8c39f] flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
             >
-              Authenticate Staff Access
+              {isVerifyingPin && <RefreshCw className="w-4 h-4 animate-spin" />}
+              <span>{isVerifyingPin ? 'Verifying Key...' : 'Authenticate Staff Access'}</span>
             </button>
           </form>
 
@@ -9518,12 +9480,13 @@ function AdminView() {
                       </label>
                       <input
                         type="password"
-                        value={razorpayConfig.keySecret || ''}
-                        onChange={(e) => setRazorpayConfig({ ...razorpayConfig, keySecret: e.target.value })}
+                        readOnly
+                        disabled
+                        value="••••••••••••••••••••••••"
                         placeholder="••••••••••••••••••••••••"
-                        className="w-full h-10 px-3 bg-[var(--bg-primary)] border border-[var(--border-strong)] text-xs font-mono text-[var(--text-primary)] outline-none"
+                        className="w-full h-10 px-3 bg-[var(--bg-secondary)] border border-[var(--border-subtle)] text-xs font-mono text-[var(--text-muted)] outline-none cursor-not-allowed"
                       />
-                      <span className="text-[9px] text-[var(--text-muted)]">Configured in Vercel environment variables (RAZORPAY_KEY_SECRET)</span>
+                      <span className="text-[9px] text-emerald-600 dark:text-emerald-400 font-mono">🔒 Securely isolated in Vercel backend environment (RAZORPAY_KEY_SECRET)</span>
                     </div>
 
                     <div className="space-y-1">
@@ -11124,15 +11087,6 @@ function Footer() {
             <button onClick={() => openPolicyModal('product-authenticity-policy')} className="hover:text-[#E6CA97] transition-colors">
               AUTHENTICITY
             </button>
-            <span className="text-[#3A362E]">•</span>
-            <button
-              onClick={() => navigate('admin')}
-              className="text-[#8E887E] hover:text-[#E6CA97] transition-colors flex items-center gap-1"
-              title="Staff Access"
-            >
-              <Lock className="w-2.5 h-2.5" />
-              <span>STAFF</span>
-            </button>
           </div>
         </div>
       </div>
@@ -11181,7 +11135,7 @@ function PatronAuthModal() {
   const [phone, setPhone] = useState('');
   const [otp, setOtp] = useState('');
   const [otpSent, setOtpSent] = useState(false);
-  const [generatedOtp, setGeneratedOtp] = useState('123456');
+  const [generatedOtp, setGeneratedOtp] = useState('');
   const [isVerifying, setIsVerifying] = useState(false);
   const [error, setError] = useState('');
   const [resendTimer, setResendTimer] = useState(0);
@@ -11399,17 +11353,6 @@ function PatronAuthModal() {
                 <label className="block uppercase tracking-wider text-[10px] text-[var(--text-muted)] font-bold">
                   6-Digit OTP Code
                 </label>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setOtp(generatedOtp || '123456');
-                    setError('');
-                    showToast('✓ Verification code auto-filled');
-                  }}
-                  className="text-[9px] font-mono text-[#b99762] dark:text-[#e6ca97] hover:underline uppercase font-bold cursor-pointer"
-                >
-                  Auto-Fill
-                </button>
               </div>
               <input
                 type="text"

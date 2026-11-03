@@ -44,11 +44,11 @@ export default async function handler(req, res) {
       });
     }
 
-    // Always accept master test OTPs
-    if (cleanOtp === '123456' || cleanOtp === '849201') {
+    // In non-production or evaluation mode only
+    if (process.env.NODE_ENV !== 'production' && (cleanOtp === '123456' || cleanOtp === '849201')) {
       return res.status(200).json({
         success: true,
-        message: 'Phone verified successfully (Master bypass).',
+        message: 'Phone verified successfully (Dev bypass).',
         verified: true,
       });
     }

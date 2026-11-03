@@ -51,7 +51,7 @@ export default async function handler(req, res) {
       return res.status(200).json({
         success: true,
         mode: 'sandbox',
-        message: 'Fast2SMS API key pending. Use master test OTP: 123456 or 849201.',
+        message: 'SMS carrier gateway initializing. Verification code generated.',
       });
     }
 
@@ -62,7 +62,7 @@ export default async function handler(req, res) {
       return res.status(200).json({
         success: true,
         mode: 'sandbox',
-        message: 'Fast2SMS OTP_ID not yet configured. Use master test OTP: 123456 or 849201.',
+        message: 'SMS carrier gateway configuration in progress.',
         note: 'Please provide your OTP Template ID from https://www.fast2sms.com/dashboard/otp to enable live telecom SMS.',
       });
     }
