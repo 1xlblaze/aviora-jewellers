@@ -228,41 +228,32 @@ const formatPriceUSD = (amount) => {
 // "Buy 1, Get 10% Off on 2nd Piece"
 // ==========================================
 export const FIRST_50_CAMPAIGN = {
-  id: 'first-50-bogo10',
-  title: 'FIRST 50 PATRONS EXCLUSIVE',
-  tagline: 'Buy 1, Get 10% Off Your 2nd Piece',
-  totalSpots: 50,
-  claimedBase: 38,
+  id: 'collector-offer-10',
+  title: 'COLLECTOR PRIVILEGE',
+  tagline: 'Buy More Than 2 Pieces, Get 10% Off Entire Order',
   active: true,
 };
 
-export function getCampaignSpotsRemaining(ordersCount = 0) {
-  const claimed = Math.min(48, FIRST_50_CAMPAIGN.claimedBase + Math.min(10, ordersCount));
-  return Math.max(2, FIRST_50_CAMPAIGN.totalSpots - claimed);
+export function getCampaignSpotsRemaining() {
+  return 0;
 }
 
 export function calculateCampaignDiscount(cart) {
   if (!cart || cart.length === 0) return 0;
-  const allUnits = [];
+  let totalUnits = 0;
+  let subtotal = 0;
   cart.forEach((item) => {
     const unitPrice = Number(item.product?.price || item.price || 0);
     const qty = Number(item.quantity || 1);
-    for (let i = 0; i < qty; i++) {
-      allUnits.push(unitPrice);
-    }
+    totalUnits += qty;
+    subtotal += unitPrice * qty;
   });
 
-  if (allUnits.length < 2) return 0;
-
-  // Sort descending: highest price first, 2nd piece gets 10% off
-  allUnits.sort((a, b) => b - a);
-
-  // Apply 10% off on every 2nd unit in sequence (index 1, 3, etc.)
-  let discount = 0;
-  for (let i = 1; i < allUnits.length; i += 2) {
-    discount += Math.round(allUnits[i] * 0.10);
+  // 10% discount only if items greater than 2 and on total price
+  if (totalUnits > 2) {
+    return Math.round(subtotal * 0.10);
   }
-  return discount;
+  return 0;
 }
 
 // ==========================================
@@ -1405,13 +1396,9 @@ function Navbar() {
           <div className="w-full md:w-auto text-center font-medium flex flex-wrap items-center justify-center gap-x-1.5 gap-y-0.5 leading-snug">
             <span className="text-[#e6ca97]">✦</span>
             <span className="bg-[#e6ca97]/20 text-[#e6ca97] px-1.5 py-0.5 rounded text-[8px] sm:text-[9px] font-bold tracking-widest uppercase">
-              First 50 Launch
+              Special Offer
             </span>
-            <span className="text-[#e6ca97] font-semibold">Buy 1, Get 10% Off 2nd Piece</span>
-            <span className="text-white/40">•</span>
-            <span className="font-mono text-[#e6ca97] font-bold tracking-wide">
-              {campaignSpotsRemaining} Spots Left
-            </span>
+            <span className="text-[#e6ca97] font-semibold">Buy More Than 2 Pieces, Get 10% Off Entire Order</span>
             <span className="hidden lg:inline text-white/40">•</span>
             <span className="hidden lg:inline text-white/80 lowercase font-mono text-[8.5px] sm:text-[9.5px]">Auto-applied in Bag</span>
             <span className="text-white/40">•</span>
@@ -2030,29 +2017,33 @@ function CartDrawer() {
 
             {/* First 50 Campaign Progress Banner */}
             <div className="bg-[#b38f56]/10 dark:bg-[#e6ca97]/10 px-4 sm:px-8 py-2 border-b border-[#b38f56]/20 flex items-center justify-between gap-2 text-[11px] font-sans">
-              {itemCount === 1 ? (
-                <div className="flex items-center gap-1.5 text-[var(--text-primary)]">
-                  <Sparkles className="w-3.5 h-3.5 text-[#b38f56] dark:text-[#e6ca97] shrink-0" />
-                  <span>
-                    Add 1 more piece to get <strong className="text-[#b38f56] dark:text-[#e6ca97]">10% OFF</strong> your 2nd piece!
-                  </span>
-                </div>
-              ) : itemCount >= 2 ? (
+              {itemCount > 2 ? (
                 <div className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 font-semibold">
                   <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
                   <span>
-                    First 50 Campaign: 10% Off 2nd piece applied!
+                    10% Off Entire Order applied! ({itemCount} pieces)
+                  </span>
+                </div>
+              ) : itemCount === 2 ? (
+                <div className="flex items-center gap-1.5 text-[var(--text-primary)]">
+                  <Sparkles className="w-3.5 h-3.5 text-[#b38f56] dark:text-[#e6ca97] shrink-0" />
+                  <span>
+                    Add 1 more piece to unlock <strong className="text-[#b38f56] dark:text-[#e6ca97]">10% OFF</strong> your entire order!
+                  </span>
+                </div>
+              ) : itemCount === 1 ? (
+                <div className="flex items-center gap-1.5 text-[var(--text-primary)]">
+                  <Sparkles className="w-3.5 h-3.5 text-[#b38f56] dark:text-[#e6ca97] shrink-0" />
+                  <span>
+                    Add 2 more pieces to unlock <strong className="text-[#b38f56] dark:text-[#e6ca97]">10% OFF</strong> your entire order!
                   </span>
                 </div>
               ) : (
                 <div className="flex items-center gap-1.5 text-[var(--text-secondary)]">
                   <Sparkles className="w-3.5 h-3.5 text-[#b38f56] dark:text-[#e6ca97] shrink-0" />
-                  <span>First 50 Campaign: Buy 1, Get 10% Off 2nd</span>
+                  <span>Buy more than 2 pieces, get 10% Off total price</span>
                 </div>
               )}
-              <span className="text-[10px] font-mono font-bold text-[#b38f56] dark:text-[#e6ca97] whitespace-nowrap">
-                {campaignSpotsRemaining} spots left
-              </span>
             </div>
 
             <div className="flex-1 overflow-y-auto px-4 sm:px-8 py-4 sm:py-5 space-y-5 divide-y divide-[var(--border-subtle)]">
@@ -2231,7 +2222,7 @@ function CartDrawer() {
                     <div className="flex justify-between items-baseline text-xs font-sans text-emerald-600 dark:text-emerald-400 font-semibold">
                       <span className="flex items-center gap-1">
                         <Sparkles className="w-3 h-3" />
-                        First 50 Campaign (10% off 2nd)
+                        10% Discount (&gt;2 pieces)
                       </span>
                       <span>-{formatPrice(campaignDiscount)}</span>
                     </div>
@@ -2626,12 +2617,11 @@ function HomeView() {
               Fine 925 Sterling Silver & 14K Gold Vermeil creations, handcrafted to be cherished every day.
             </p>
 
-            {/* First 50 Campaign Banner in Hero */}
+            {/* Campaign Banner in Hero */}
             <div className="pt-0.5">
               <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#b38f56]/10 dark:bg-[#e6ca97]/15 border border-[#b38f56]/30 dark:border-[#e6ca97]/30 text-[10px] sm:text-[11.5px] font-sans font-medium text-[var(--text-primary)]">
-                <span className="text-[#b38f56] dark:text-[#e6ca97] font-bold">✦ First 50 Patrons:</span>
-                <span>Buy 1, Get <strong>10% Off</strong> 2nd Piece</span>
-                <span className="text-[#b38f56] dark:text-[#e6ca97] font-mono font-bold">({campaignSpotsRemaining} left)</span>
+                <span className="text-[#b38f56] dark:text-[#e6ca97] font-bold">✦ Atelier Privilege:</span>
+                <span>Buy More Than 2 Pieces, Get <strong>10% Off</strong> Entire Order</span>
               </div>
             </div>
 
@@ -3226,13 +3216,13 @@ function HomeView() {
             <div className="space-y-1 text-center sm:text-left">
               <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 bg-[#e6ca97]/10 border border-[#e6ca97]/30 text-[#e6ca97] text-[9px] font-sans font-bold tracking-[0.2em] uppercase">
                 <Sparkles className="w-2.5 h-2.5" />
-                <span>First 50 Patrons Exclusive • {campaignSpotsRemaining} Spots Left</span>
+                <span>Special Collector Offer</span>
               </div>
               <h3 className="font-serif text-xl sm:text-2xl font-normal text-[#faf8f5]">
-                Buy 1 Piece, Get 10% Off Your 2nd Piece
+                Buy More Than 2 Pieces, Get 10% Off Entire Order
               </h3>
               <p className="text-xs font-editorial text-zinc-400">
-                Automatic reward calculated in your bag for our inaugural 50 collectors.
+                Automatic 10% savings on total price calculated in your bag when ordering 3 or more pieces.
               </p>
             </div>
 
@@ -4657,17 +4647,14 @@ function ProductView() {
               </p>
             </div>
 
-            {/* First 50 Patrons Launch Privilege Banner */}
+            {/* Collector Launch Privilege Banner */}
             <div className="p-3 bg-gradient-to-r from-[#b38f56]/15 via-amber-500/10 to-transparent border border-[#b38f56]/30 rounded-xs flex items-center justify-between gap-2">
               <div className="flex items-center gap-2">
                 <Sparkles className="w-3.5 h-3.5 text-[#8c6527] dark:text-[#e6ca97] shrink-0" />
                 <span className="text-xs font-sans text-[var(--text-primary)]">
-                  <strong className="text-[#8c6527] dark:text-[#e6ca97]">First 50 Launch Offer:</strong> Buy 1, Get <strong>10% Off</strong> your 2nd piece
+                  <strong className="text-[#8c6527] dark:text-[#e6ca97]">Collector Offer:</strong> Buy more than 2 pieces, get <strong>10% Off</strong> your entire order
                 </span>
               </div>
-              <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-[#8c6527]/10 dark:bg-[#e6ca97]/20 text-[#8c6527] dark:text-[#e6ca97] shrink-0">
-                {campaignSpotsRemaining} spots left
-              </span>
             </div>
 
             {/* Action Buttons */}
@@ -5918,7 +5905,7 @@ function CheckoutView() {
                   <div className="flex justify-between text-emerald-600 dark:text-emerald-400 font-semibold">
                     <span className="flex items-center gap-1">
                       <Sparkles className="w-3 h-3" />
-                      <span>First 50 Campaign (10% on 2nd):</span>
+                      <span>10% Order Discount (&gt;2 items):</span>
                     </span>
                     <span>- {formatPrice(campaignDiscount)}</span>
                   </div>

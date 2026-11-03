@@ -47,6 +47,7 @@ import {
   savePhonePeConfig,
   DEFAULT_PHONEPE_CONFIG,
 } from '../lib/services';
+import { calculateCampaignDiscount } from '../src/App.jsx';
 import fs from 'node:fs';
 import {
   uploadProductImageToStorage,
@@ -202,6 +203,31 @@ async function runFullE2ETest() {
   const paymentAmount = calculatedSubtotal;
   const paymentAmountInPaise = Math.round(paymentAmount * 100);
   assert(paymentAmountInPaise === calculatedSubtotal * 100, `Razorpay exact amount in paise: ${paymentAmountInPaise} paise (₹${paymentAmount})`);
+
+  // Verify 10% discount only when items > 2 and applied on total price
+  const discount1Item = calculateCampaignDiscount([{ product: item1, quantity: 1 }]);
+  assert(discount1Item === 0, 'Zero discount applied for 1 item (requires > 2 items)', `₹${discount1Item}`);
+
+  const discount2Items = calculateCampaignDiscount([
+    { product: item1, quantity: 1 },
+    { product: item2, quantity: 1 },
+  ]);
+  assert(discount2Items === 0, 'Zero discount applied for 2 items (requires strictly > 2 items)', `₹${discount2Items}`);
+
+  const item3 = PRODUCTS[2]; // 3rd item
+  const cart3Items = [
+    { product: item1, quantity: 1 },
+    { product: item2, quantity: 1 },
+    { product: item3, quantity: 1 },
+  ];
+  const subtotal3 = item1.price + item2.price + item3.price;
+  const expected10PctDiscount = Math.round(subtotal3 * 0.10);
+  const actualDiscount3 = calculateCampaignDiscount(cart3Items);
+  assert(
+    actualDiscount3 === expected10PctDiscount,
+    `10% discount applied on total price for > 2 items: ₹${actualDiscount3} off ₹${subtotal3}`,
+    `Expected ₹${expected10PctDiscount}, got ₹${actualDiscount3}`
+  );
 
   // ==========================================
   // SECTION 4: PHONE OTP VERIFICATION ENGINE
