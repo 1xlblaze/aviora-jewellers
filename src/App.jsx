@@ -69,6 +69,7 @@ import {
   Star,
   HelpCircle,
   MessageCircle,
+  MessageSquare,
 } from 'lucide-react';
 
 import {
@@ -7286,7 +7287,19 @@ function AdminView() {
 
   const [pinCode, setPinCode] = useState('');
   const [pinError, setPinError] = useState('');
-  const [activeTab, setActiveTab] = useState('catalog'); // 'catalog' | 'add' | 'orders' | 'razorpay' | 'phonepe' | 'bookkeeping'
+  const [activeTab, setActiveTab] = useState('catalog'); // 'catalog' | 'add' | 'orders' | 'razorpay' | 'phonepe' | 'bookkeeping' | 'feedback'
+  const [feedbackList, setFeedbackList] = useState([]);
+  const [feedbackFilter, setFeedbackFilter] = useState('all');
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try {
+      const stored = localStorage.getItem('silverchapter_patron_feedbacks');
+      if (stored) {
+        setFeedbackList(JSON.parse(stored));
+      }
+    } catch {}
+  }, [activeTab]);
   const [searchCatalog, setSearchCatalog] = useState('');
   const [filterCategory, setFilterCategory] = useState('all');
   const [filterCollection, setFilterCollection] = useState('all'); // 'all' | 'new-arrivals' | 'minimalist' | 'statement' | 'moissanite' | 'pearl' | 'gifting'
@@ -8084,6 +8097,17 @@ function AdminView() {
           >
             <FileSpreadsheet className="w-4 h-4" />
             <span>Bookkeeping & Analytics Ledger</span>
+          </button>
+          <button
+            onClick={() => setActiveTab('feedback')}
+            className={`pb-3 border-b-2 flex items-center gap-2 transition-colors ${
+              activeTab === 'feedback'
+                ? 'border-[#14171a] dark:border-[#e6ca97] text-[#14171a] dark:text-[#e6ca97]'
+                : 'border-transparent text-[var(--text-muted)] hover:text-[var(--text-primary)]'
+            }`}
+          >
+            <MessageSquare className="w-4 h-4" />
+            <span>Patron Exit Feedback ({feedbackList.length})</span>
           </button>
         </div>
 
@@ -10008,6 +10032,153 @@ function AdminView() {
             )}
           </div>
         )}
+
+        {/* ========================================== */}
+        {/* TAB 6: PATRON EXIT FEEDBACK INTELLIGENCE */}
+        {/* ========================================== */}
+        {activeTab === 'feedback' && (
+          <div className="mt-8 space-y-6">
+            <div className="border-b border-[var(--border-subtle)] pb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div>
+                <div className="flex items-center gap-2">
+                  <MessageSquare className="w-6 h-6 text-[#14171a] dark:text-[#e6ca97]" />
+                  <h3 className="font-serif text-2xl text-[var(--text-primary)] font-normal">
+                    Patron Exit Feedback & Drop-Off Insights
+                  </h3>
+                </div>
+                <p className="text-xs font-sans text-[var(--text-secondary)] mt-0.5 max-w-2xl leading-relaxed">
+                  Real-time survey entries submitted by visitors as they leave the storefront. Captured directly into PostHog telemetry and atelier logs.
+                </p>
+              </div>
+
+              {feedbackList.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    const csvContent =
+                      'data:text/csv;charset=utf-8,\uFEFF' +
+                      ['Timestamp,Reason,Additional Notes,Cart Items,Cart Total']
+                        .concat(
+                          feedbackList.map(
+                            (f) =>
+                              `"${f.timestamp}","${(f.reason || '').replace(/"/g, '""')}","${(f.notes || '').replace(/"/g, '""')}",${f.cartItemCount || 0},${f.cartTotal || 0}`
+                          )
+                        )
+                        .join('\n');
+                    const encodedUri = encodeURI(csvContent);
+                    const link = document.createElement('a');
+                    link.setAttribute('href', encodedUri);
+                    link.setAttribute('download', `silver_chapter_exit_feedback_${new Date().toISOString().split('T')[0]}.csv`);
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    showToast('✓ Feedback exported to CSV');
+                  }}
+                  className="px-3.5 py-2 bg-[#14171a] hover:bg-[#22272e] dark:bg-[#e6ca97] dark:hover:bg-[#d9b87c] text-white dark:text-[#242321] text-xs font-mono font-bold uppercase rounded flex items-center gap-1.5 transition-colors shadow-xs w-fit"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  <span>Export Feedback (CSV)</span>
+                </button>
+              )}
+            </div>
+
+            {/* Filter pills */}
+            <div className="flex flex-wrap items-center gap-2 text-xs font-sans">
+              <span className="text-[10px] font-mono uppercase text-[var(--text-muted)] font-bold mr-1">Filter Reason:</span>
+              {['all', 'browsing', 'delivery_time', 'pricing_budget', 'looking_for_design', 'need_more_details'].map((key) => {
+                const labelMap = {
+                  all: `All (${feedbackList.length})`,
+                  browsing: 'Inspiration',
+                  delivery_time: 'Delivery Time',
+                  pricing_budget: 'Price/Budget',
+                  looking_for_design: 'Different Piece',
+                  need_more_details: 'More Details',
+                };
+                return (
+                  <button
+                    key={key}
+                    onClick={() => setFeedbackFilter(key)}
+                    className={`px-3 py-1 rounded text-xs font-mono transition-colors ${
+                      feedbackFilter === key
+                        ? 'bg-[#14171a] text-white dark:bg-[#e6ca97] dark:text-[#242321] font-bold'
+                        : 'bg-[var(--bg-card)] border border-[var(--border-subtle)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+                    }`}
+                  >
+                    {labelMap[key]}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Feedback Cards & Table */}
+            {feedbackList.length === 0 ? (
+              <div className="p-12 text-center bg-[var(--bg-card)] border border-[var(--border-subtle)] space-y-3">
+                <MessageSquare className="w-10 h-10 text-[var(--text-muted)] mx-auto opacity-40" />
+                <h4 className="font-serif text-lg text-[var(--text-primary)]">No Exit Feedback Recorded Yet</h4>
+                <p className="text-xs font-sans text-[var(--text-secondary)] max-w-md mx-auto">
+                  When visitors move to close the storefront tab or leave, their submitted answers will appear here in real-time.
+                </p>
+              </div>
+            ) : (
+              <div className="bg-[var(--bg-card)] border border-[var(--border-strong)] overflow-hidden shadow-xs">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs font-sans">
+                    <thead className="bg-[var(--bg-secondary)] border-b border-[var(--border-subtle)] text-[10px] font-mono uppercase tracking-wider text-[var(--text-muted)]">
+                      <tr>
+                        <th className="p-3.5">Time</th>
+                        <th className="p-3.5">Selected Reason</th>
+                        <th className="p-3.5">Patron Note</th>
+                        <th className="p-3.5">Cart State</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-[var(--border-subtle)]">
+                      {feedbackList
+                        .filter((item) => {
+                          if (feedbackFilter === 'all') return true;
+                          const r = (item.reason || '').toLowerCase();
+                          if (feedbackFilter === 'browsing') return r.includes('browsing');
+                          if (feedbackFilter === 'delivery_time') return r.includes('delivery');
+                          if (feedbackFilter === 'pricing_budget') return r.includes('price') || r.includes('budget');
+                          if (feedbackFilter === 'looking_for_design') return r.includes('different');
+                          if (feedbackFilter === 'need_more_details') return r.includes('detail');
+                          return true;
+                        })
+                        .map((f, idx) => (
+                          <tr key={idx} className="hover:bg-[var(--bg-secondary)]/50 transition-colors">
+                            <td className="p-3.5 font-mono text-[10px] text-[var(--text-muted)] whitespace-nowrap">
+                              {new Date(f.timestamp).toLocaleDateString('en-IN', {
+                                day: '2-digit',
+                                month: 'short',
+                                hour: '2-digit',
+                                minute: '2-digit',
+                              })}
+                            </td>
+                            <td className="p-3.5">
+                              <span className="inline-block px-2.5 py-0.5 rounded text-[10.5px] font-mono font-bold bg-[#b99762]/10 dark:bg-[#e6ca97]/15 text-[#b99762] dark:text-[#e6ca97] border border-[#b99762]/30">
+                                {f.reason}
+                              </span>
+                            </td>
+                            <td className="p-3.5 text-xs text-[var(--text-primary)] max-w-sm">
+                              {f.notes ? `"${f.notes}"` : <span className="text-[var(--text-muted)] italic">No additional note provided</span>}
+                            </td>
+                            <td className="p-3.5 font-mono text-[10px] text-[var(--text-muted)] whitespace-nowrap">
+                              {f.cartItemCount > 0 ? (
+                                <span className="text-[#14171a] dark:text-[#e6ca97] font-bold">
+                                  {f.cartItemCount} item{f.cartItemCount > 1 ? 's' : ''} ({formatPrice(f.cartTotal)})
+                                </span>
+                              ) : (
+                                <span>Bag Empty</span>
+                              )}
+                            </td>
+                          </tr>
+                        ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* ========================================== */}
@@ -11514,6 +11685,21 @@ function ExitIntentFeedbackModal() {
   const handleSubmit = (e) => {
     e?.preventDefault();
     if (!selectedReason) return;
+
+    // Save to local feedback store for admin dashboard review
+    try {
+      const stored = localStorage.getItem('silverchapter_patron_feedbacks');
+      const list = stored ? JSON.parse(stored) : [];
+      const newEntry = {
+        id: `fb_${Date.now()}`,
+        timestamp: new Date().toISOString(),
+        reason: selectedReason,
+        notes: additionalNote.trim(),
+        cartItemCount: cart.reduce((s, i) => s + i.quantity, 0),
+        cartTotal,
+      };
+      localStorage.setItem('silverchapter_patron_feedbacks', JSON.stringify([newEntry, ...list]));
+    } catch {}
 
     // Dispatch pulse event to PostHog
     pulse.exitFeedbackSubmitted(
