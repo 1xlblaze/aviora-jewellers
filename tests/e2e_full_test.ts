@@ -321,7 +321,7 @@ async function runFullE2ETest() {
 
   const preparingTimeline = createOrderTimeline('PREPARING', new Date().toISOString(), '');
   assert(preparingTimeline[0].completed === true, 'Stage 1 [CONFIRMED]: Completed once order moves to studio preparation');
-  assert(preparingTimeline[1].current === true, 'Stage 2 [PREPARING]: Current active stage (15–20 days benchwork)');
+  assert(preparingTimeline[1].current === true, 'Stage 2 [PREPARING]: Current active stage (3–6 days benchwork)');
   assert(preparingTimeline[2].status === 'SHIPPED', 'Stage 3 [SHIPPED]: Blue Dart Air Express handover queued');
   assert(preparingTimeline[2].trackingUrl === undefined, 'Stage 3 tracking URL is undefined before physical dispatch');
 
@@ -364,7 +364,7 @@ async function runFullE2ETest() {
     courier: 'Blue Dart Express Air',
     trackingNumber: '', // Deferred until dispatch
     bluedartConsignmentNo: '', // Deferred until dispatch
-    estimatedDelivery: '15-20 Business Days Handcrafting + 1-5 Days Express Air',
+    estimatedDelivery: '5-10 Business Days Handcrafting & Express Delivery',
     items: [
       {
         productId: item1.id,
@@ -404,7 +404,7 @@ async function runFullE2ETest() {
   // 2. Test PREPARING stage template (AWB is omitted)
   const wa2 = await sendWhatsAppStageNotification(testOrder, 'PREPARING');
   assert(wa2.templateName === 'silver_chapter_order_preparing', 'Template mapped: silver_chapter_order_preparing');
-  assert(wa2.previewText.includes('15–20 business days'), 'Preparing text explains made-to-order craft schedule');
+  assert(wa2.previewText.includes('3–6 business days'), 'Preparing text explains made-to-order craft schedule');
   assert(wa2.previewText.includes('consignment tracking will be issued upon dispatch'), 'PREPARING WhatsApp confirms tracking pending handover');
   assert(!wa2.previewText.includes('BLD-'), 'PREPARING WhatsApp strictly omits premature AWB number');
 

@@ -293,7 +293,7 @@ export async function sendWhatsAppStageNotification(
     },
     PREPARING: {
       title: 'Handcrafting & Studio Preparation',
-      desc: 'Our Delhi master jewelers are currently handcrafting and casting your piece in Fine 925 Sterling Silver (15–20 business days). Blue Dart consignment tracking will be issued upon dispatch & courier handover.',
+      desc: 'Our Delhi master jewelers are currently handcrafting and casting your piece in Fine 925 Sterling Silver (3–6 business days). Blue Dart consignment tracking will be issued upon dispatch & courier handover.',
       template: 'silver_chapter_order_preparing',
     },
     SHIPPED: {

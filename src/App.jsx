@@ -1008,7 +1008,7 @@ function AppProvider({ children }) {
                 trackingNumber: confirmedOrder.tracking_number || '',
                 bluedartConsignmentNo: confirmedOrder.bluedart_consignment_no || '',
                 gstAmount: Number(confirmedOrder.gst_amount || 0),
-                estimatedDelivery: confirmedOrder.estimated_delivery || '15-20 Business Days Handcrafting + 1-5 Days Express Air',
+                estimatedDelivery: confirmedOrder.estimated_delivery || '5-10 Business Days Handcrafting & Express Delivery',
                 items: Array.isArray(confirmedOrder.items) && confirmedOrder.items.length > 0 ? confirmedOrder.items : (pendingOrder?.cart?.map(i => ({
                   productId: i.product?.id || i.productId,
                   name: i.product?.name || i.name,
@@ -1408,7 +1408,7 @@ function Navbar() {
               title="Pan-India Shipping & Crafting Schedule"
             >
               <span>Pan-India Shipping</span>
-              <span className="opacity-80 lowercase font-mono text-[8.5px] sm:text-[9px]">(15–20d)</span>
+              <span className="opacity-80 lowercase font-mono text-[8.5px] sm:text-[9px]">(5–10d)</span>
             </button>
             <span className="text-[#e6ca97]">✦</span>
           </div>
@@ -2432,12 +2432,12 @@ const ATELIER_CHAPTERS = [
     id: 'shipping-policy',
     badge: 'Logistics & Transit',
     title: 'Made-to-Order Shipping & Blue Dart Air',
-    subtitle: '15–20 Days Benchwork + Insured Pan-India Air Express',
+    subtitle: '5–10 Days Delivery (3–6 Days Benchwork + Insured Air Express)',
     icon: Truck,
-    summary: 'Because each A Silver Chapter artwork is custom cast, hand-set, and mirror-finished especially for you, our benchwork takes 15–20 business days. Once prepared, orders are dispatched via Blue Dart Air Cargo with live AWB tracking and complimentary transit insurance.',
+    summary: 'Because each A Silver Chapter artwork is custom cast, hand-set, and mirror-finished especially for you, our benchwork takes 3–6 business days. Once prepared, orders are dispatched via Blue Dart Air Cargo with live AWB tracking and complimentary transit insurance (5–10 business days total delivery).',
     highlights: [
-      '15–20 business days dedicated handcrafting benchwork',
-      '1–5 days insured express delivery across India via Blue Dart Air',
+      '3–6 business days dedicated handcrafting benchwork',
+      '2–4 days insured express delivery across India via Blue Dart Air',
       'Real-time SMS, Email, and WhatsApp Business notifications with AWB link',
       'Complimentary Pan-India insured delivery on all orders',
     ],
@@ -2973,8 +2973,8 @@ function HomeView() {
                   <span className="text-[9px] font-mono uppercase text-[var(--text-muted)] block mt-0.5">Gold Vermeil</span>
                 </div>
                 <div className="p-3 bg-[var(--bg-secondary)] border border-[var(--border-subtle)] text-center">
-                  <span className="text-sm sm:text-base font-serif font-bold text-[#b38f56] dark:text-[#e6ca97] block">15–20 Days</span>
-                  <span className="text-[9px] font-mono uppercase text-[var(--text-muted)] block mt-0.5">Made to Order</span>
+                  <span className="text-sm sm:text-base font-serif font-bold text-[#b38f56] dark:text-[#e6ca97] block">5–10 Days</span>
+                  <span className="text-[9px] font-mono uppercase text-[var(--text-muted)] block mt-0.5">Delivered</span>
                 </div>
                 <div className="p-3 bg-[var(--bg-secondary)] border border-[var(--border-subtle)] text-center">
                   <span className="text-sm sm:text-base font-serif font-bold text-[#b38f56] dark:text-[#e6ca97] block">30 Days</span>
@@ -4624,7 +4624,7 @@ function ProductView() {
                 <span>Made to Order Luxury</span>
               </div>
               <p className="text-xs font-sans text-[var(--text-secondary)] leading-relaxed">
-                Every A SILVER CHAPTER piece is made especially for you. Kindly allow <strong>15–20 business days</strong> for crafting and preparation, followed by <strong>1–5 business days</strong> for shipping.
+                Every A SILVER CHAPTER piece is made especially for you. Kindly allow <strong>5–10 business days</strong> for handcrafted preparation and express delivery.
               </p>
             </div>
 
@@ -5228,7 +5228,7 @@ function CheckoutView() {
       courier: 'Blue Dart Express Air',
       trackingNumber: '',
       bluedartConsignmentNo: '',
-      estimatedDelivery: '15-20 Business Days Handcrafting + 1-5 Days Express Air',
+      estimatedDelivery: '5-10 Business Days Handcrafting & Express Delivery',
       items: cart.map((item) => ({
         productId: item.product.id,
         name: item.product.name,
@@ -5394,7 +5394,7 @@ function CheckoutView() {
         courier: 'Blue Dart Express Air',
         trackingNumber: '',
         bluedartConsignmentNo: '',
-        estimatedDelivery: '15-20 Business Days Handcrafting + 1-5 Days Express Air',
+        estimatedDelivery: '5-10 Business Days Handcrafting & Express Delivery',
         items: cart.map((item) => ({
           productId: item.product.id,
           name: item.product.name,
@@ -5581,7 +5581,7 @@ function CheckoutView() {
             <div className="p-3 bg-[var(--bg-secondary)] border border-[var(--border-subtle)] text-[11px] font-mono text-[var(--text-secondary)] flex items-start gap-2.5">
               <Sparkles className="w-4 h-4 text-[#b99762] dark:text-[#e6ca97] shrink-0 mt-0.5" />
               <span>
-                Your made-to-order creation is entering casting & benchwork (15–20 business days). You will receive a Blue Dart consignment tracking number via WhatsApp as soon as the piece is completed and handed to the courier.
+                Your made-to-order creation is entering casting & benchwork (5–10 business days total delivery). You will receive a Blue Dart consignment tracking number via WhatsApp as soon as the piece is completed and handed to the courier.
               </span>
             </div>
           </div>
@@ -10758,8 +10758,8 @@ function BrandPolicyModal() {
                     <span className="text-[10px] font-mono uppercase text-[var(--text-muted)] block">Gold Vermeil</span>
                   </div>
                   <div className="p-4 bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-xs space-y-1">
-                    <span className="text-base font-serif font-bold text-[#b99762] dark:text-[#e6ca97] block">15–20 Days</span>
-                    <span className="text-[10px] font-mono uppercase text-[var(--text-muted)] block">Made to Order</span>
+                    <span className="text-base font-serif font-bold text-[#b99762] dark:text-[#e6ca97] block">5–10 Days</span>
+                    <span className="text-[10px] font-mono uppercase text-[var(--text-muted)] block">Delivered</span>
                   </div>
                   <div className="p-4 bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-xs space-y-1">
                     <span className="text-base font-serif font-bold text-[#b99762] dark:text-[#e6ca97] block">30 Days</span>
@@ -11462,6 +11462,194 @@ function PatronAuthModal() {
   );
 }
 
+// ==========================================
+// 14. EXIT-INTENT PATRON FEEDBACK MODAL
+// ==========================================
+function ExitIntentFeedbackModal() {
+  const { cart, cartTotal, showToast } = useContext(AppContext);
+  const [isOpen, setIsOpen] = useState(false);
+  const [selectedReason, setSelectedReason] = useState('');
+  const [additionalNote, setAdditionalNote] = useState('');
+  const [isSubmitted, setIsSubmitted] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    // Check if dismissed or submitted in the last 7 days
+    try {
+      const lastShown = localStorage.getItem('silverchapter_exit_survey_last_shown');
+      if (lastShown) {
+        const diffDays = (Date.now() - Number(lastShown)) / (1000 * 60 * 60 * 24);
+        if (diffDays < 7) return;
+      }
+    } catch {}
+
+    let triggered = false;
+
+    // Trigger on cursor leaving top of viewport (desktop)
+    const handleMouseLeave = (e) => {
+      if (e.clientY <= 15 && !triggered) {
+        triggered = true;
+        setIsOpen(true);
+        try {
+          localStorage.setItem('silverchapter_exit_survey_last_shown', Date.now().toString());
+        } catch {}
+      }
+    };
+
+    document.addEventListener('mouseleave', handleMouseLeave);
+    return () => {
+      document.removeEventListener('mouseleave', handleMouseLeave);
+    };
+  }, []);
+
+  const reasons = [
+    { id: 'browsing', label: 'Just browsing for inspiration' },
+    { id: 'delivery_time', label: 'Delivery timeframe is too long' },
+    { id: 'pricing_budget', label: 'Price or budget consideration' },
+    { id: 'looking_for_design', label: 'Looking for a different piece or metal' },
+    { id: 'need_more_details', label: 'Need more craftsmanship / sizing details' },
+  ];
+
+  const handleSubmit = (e) => {
+    e?.preventDefault();
+    if (!selectedReason) return;
+
+    // Dispatch pulse event to PostHog
+    pulse.exitFeedbackSubmitted(
+      selectedReason,
+      additionalNote,
+      cart.reduce((s, i) => s + i.quantity, 0),
+      cartTotal
+    );
+
+    setIsSubmitted(true);
+    showToast('✦ Thank you for your feedback!');
+    setTimeout(() => {
+      setIsOpen(false);
+    }, 1800);
+  };
+
+  const handleClose = () => {
+    setIsOpen(false);
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <AnimatePresence>
+      <div className="fixed inset-0 z-[120] flex items-center justify-center p-4">
+        {/* Backdrop */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          onClick={handleClose}
+          className="fixed inset-0 bg-black/60 backdrop-blur-xs transition-opacity"
+        />
+
+        {/* Modal Window */}
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95, y: 20 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.95, y: 20 }}
+          className="relative max-w-lg w-full bg-[var(--bg-card)] border border-[var(--border-strong)] p-6 sm:p-8 space-y-6 shadow-2xl z-10 overflow-hidden"
+        >
+          {/* Close button */}
+          <button
+            onClick={handleClose}
+            className="absolute top-4 right-4 p-2 text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors cursor-pointer"
+            aria-label="Close survey"
+          >
+            <X className="w-4 h-4" />
+          </button>
+
+          {!isSubmitted ? (
+            <div className="space-y-5">
+              <div className="space-y-1.5 text-center sm:text-left">
+                <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded text-[9.5px] font-mono uppercase bg-[#14171a]/10 dark:bg-[#e6ca97]/15 text-[#14171a] dark:text-[#e6ca97] border border-[#14171a]/20 dark:border-[#e6ca97]/30 font-bold">
+                  <Sparkles className="w-3 h-3" />
+                  <span>Patron Voice & Atelier Care</span>
+                </div>
+                <h3 className="font-serif text-2xl text-[var(--text-primary)] font-normal">
+                  Before you leave our chapter...
+                </h3>
+                <p className="text-xs font-sans text-[var(--text-secondary)] leading-relaxed">
+                  How can we craft a better experience for you? Share a quick thought to help us refine our creations:
+                </p>
+              </div>
+
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div className="space-y-2">
+                  {reasons.map((r) => (
+                    <label
+                      key={r.id}
+                      onClick={() => setSelectedReason(r.label)}
+                      className={`flex items-center gap-3 p-3 text-xs font-sans border transition-all cursor-pointer ${
+                        selectedReason === r.label
+                          ? 'border-[#14171a] dark:border-[#e6ca97] bg-[#14171a]/5 dark:bg-[#e6ca97]/10 text-[var(--text-primary)] font-bold'
+                          : 'border-[var(--border-subtle)] hover:border-[var(--border-strong)] text-[var(--text-secondary)]'
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name="exit_reason"
+                        checked={selectedReason === r.label}
+                        onChange={() => setSelectedReason(r.label)}
+                        className="accent-[#14171a] dark:accent-[#e6ca97]"
+                      />
+                      <span>{r.label}</span>
+                    </label>
+                  ))}
+                </div>
+
+                <div>
+                  <textarea
+                    rows={2}
+                    value={additionalNote}
+                    onChange={(e) => setAdditionalNote(e.target.value)}
+                    placeholder="Anything specific you'd love to see? (Optional)"
+                    className="w-full p-3 bg-[var(--bg-primary)] border border-[var(--border-subtle)] text-xs font-sans text-[var(--text-primary)] outline-none focus:border-[#b99762] resize-none"
+                  />
+                </div>
+
+                <div className="flex items-center justify-between gap-3 pt-2">
+                  <button
+                    type="button"
+                    onClick={handleClose}
+                    className="text-xs font-sans text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors cursor-pointer"
+                  >
+                    Skip for now
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={!selectedReason}
+                    className="px-5 py-2.5 bg-[#14171a] hover:bg-[#22272e] dark:bg-[#e6ca97] dark:hover:bg-[#d9b87c] text-white dark:text-[#242321] text-xs font-sans font-bold uppercase tracking-wider transition-all disabled:opacity-40 cursor-pointer disabled:cursor-not-allowed"
+                  >
+                    Submit Feedback
+                  </button>
+                </div>
+              </form>
+            </div>
+          ) : (
+            <div className="py-8 text-center space-y-3">
+              <div className="w-12 h-12 rounded-full bg-emerald-100 dark:bg-emerald-950/60 border border-emerald-300 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 flex items-center justify-center mx-auto">
+                <Check className="w-6 h-6" />
+              </div>
+              <h4 className="font-serif text-xl text-[var(--text-primary)]">
+                Thank You for Your Patronage
+              </h4>
+              <p className="text-xs font-sans text-[var(--text-secondary)] max-w-sm mx-auto leading-relaxed">
+                Your thoughts have been logged with our master artisans. We look forward to welcoming you back to A Silver Chapter.
+              </p>
+            </div>
+          )}
+        </motion.div>
+      </div>
+    </AnimatePresence>
+  );
+}
+
 function AppContent() {
   const { currentView } = useContext(AppContext);
 
@@ -11471,6 +11659,7 @@ function AppContent() {
       <CartDrawer />
       <BrandPolicyModal />
       <PatronAuthModal />
+      <ExitIntentFeedbackModal />
       <Toast />
 
       <main className="flex-1">
