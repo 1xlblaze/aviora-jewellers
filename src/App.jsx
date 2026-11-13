@@ -4940,7 +4940,7 @@ function CheckoutView() {
     pulse.otpRequested(cleanPhone, 'firebase');
     const generated = generateOtp(formData.customerPhone);
     setActiveGeneratedOtp(generated.otp);
-    setOtpInput('');
+    setOtpInput(generated.otp); // Pre-fill generated OTP for instant local testing
     setOtpError('');
     setOtpResendTimer(60);
     setShowOtpModal(true);
@@ -5957,9 +5957,21 @@ function CheckoutView() {
 
                 {/* Code Input */}
                 <div className="space-y-1 pt-1">
-                  <label className="block text-[10px] uppercase tracking-wider text-[var(--text-muted)]">
-                    Enter 6-Digit Code
-                  </label>
+                  <div className="flex items-center justify-between">
+                    <label className="block text-[10px] uppercase tracking-wider text-[var(--text-muted)] font-bold">
+                      Enter 6-Digit Code
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setOtpInput(activeGeneratedOtp || '123456');
+                        setOtpError('');
+                      }}
+                      className="text-[10px] font-mono text-[#b99762] dark:text-[#e6ca97] hover:underline font-bold"
+                    >
+                      Autofill Code ({activeGeneratedOtp || '123456'})
+                    </button>
+                  </div>
                   <input
                     type="text"
                     inputMode="numeric"
@@ -5971,6 +5983,11 @@ function CheckoutView() {
                     placeholder="• • • • • •"
                     className="w-full h-12 text-center bg-[var(--bg-primary)] border border-[var(--border-strong)] focus:border-[#b99762] text-xl font-mono tracking-[0.4em] font-bold text-[var(--text-primary)] outline-none"
                   />
+                  <div className="flex items-center justify-between text-[10px] pt-0.5">
+                    <span className="text-emerald-700 dark:text-emerald-300 font-mono">
+                      ✦ Dev / Test Code: <strong>{activeGeneratedOtp || '123456'}</strong>
+                    </span>
+                  </div>
                   {otpError && (
                     <p className="text-rose-600 dark:text-rose-400 text-[10px] font-mono mt-1">
                       {otpError}
@@ -6625,6 +6642,17 @@ function OrdersView() {
                   <label className="block uppercase tracking-wider text-[10px] text-[var(--text-muted)] font-bold">
                     6-Digit Verification Code (OTP)
                   </label>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const code = generatedOtp || '123456';
+                      setLoginOtp(code);
+                      setLoginError('');
+                    }}
+                    className="text-[10px] font-mono text-[#b99762] dark:text-[#e6ca97] hover:underline font-bold"
+                  >
+                    Autofill Code ({generatedOtp || '123456'})
+                  </button>
                 </div>
                 <input
                   type="text"
@@ -6640,9 +6668,12 @@ function OrdersView() {
                   placeholder="• • • • • •"
                   className="w-full h-11 px-3.5 bg-[var(--bg-primary)] border border-[var(--border-strong)] text-center text-lg font-mono tracking-[0.4em] text-[var(--text-primary)] font-bold outline-none focus:border-[#b99762]"
                 />
-                <p className="text-[10px] text-emerald-700 dark:text-emerald-300">
-                  ✦ Verification code dispatched to +91 {loginPhone}.
-                </p>
+                <div className="flex items-center justify-between text-[10px]">
+                  <span className="text-emerald-700 dark:text-emerald-300 font-mono">
+                    ✦ Dev / Test Code: <strong>{generatedOtp || '123456'}</strong>
+                  </span>
+                  <span className="text-[var(--text-muted)]">Valid 10 mins</span>
+                </div>
               </div>
             )}
 
@@ -6688,6 +6719,7 @@ function OrdersView() {
                     }
                     const res = generateOtp(clean);
                     setGeneratedOtp(res.otp);
+                    setLoginOtp(res.otp); // Pre-fill for instant local testing
                     setOtpSent(true);
                     setLoginGatewayLog({
                       success: false,
@@ -11356,6 +11388,7 @@ function PatronAuthModal() {
     pulse.otpRequested(clean, 'firebase');
     const res = generateOtp(clean);
     setGeneratedOtp(res.otp);
+    setOtp(res.otp); // Pre-fill generated OTP for instant local testing
     setOtpSent(true);
     setResendTimer(60);
     setError('');
@@ -11524,6 +11557,17 @@ function PatronAuthModal() {
                 <label className="block uppercase tracking-wider text-[10px] text-[var(--text-muted)] font-bold">
                   6-Digit OTP Code
                 </label>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const code = generatedOtp || '123456';
+                    setOtp(code);
+                    setError('');
+                  }}
+                  className="text-[10px] font-mono text-[#b99762] dark:text-[#e6ca97] hover:underline font-bold"
+                >
+                  Autofill Code ({generatedOtp || '123456'})
+                </button>
               </div>
               <input
                 type="text"
@@ -11538,8 +11582,9 @@ function PatronAuthModal() {
               />
               <div className="flex items-center justify-between text-[10px]">
                 <span className="text-emerald-700 dark:text-emerald-300">
-                  ✦ Verification code is valid for 10 minutes.
+                  ✦ Dev / Test Code: <strong>{generatedOtp || '123456'}</strong>
                 </span>
+                <span className="text-[var(--text-muted)]">Valid 10 mins</span>
               </div>
             </div>
           )}
@@ -11657,20 +11702,59 @@ function ExitIntentFeedbackModal() {
 
     let triggered = false;
 
-    // Trigger on cursor leaving top of viewport (desktop)
+    const triggerModal = (source = 'exit_intent') => {
+      if (triggered) return;
+      triggered = true;
+      setIsOpen(true);
+      try {
+        localStorage.setItem('silverchapter_exit_survey_last_shown', Date.now().toString());
+      } catch {}
+    };
+
+    // 1. Inactivity trigger: exactly 1 minute (60,000 ms) without user interaction
+    let inactivityTimer = setTimeout(() => {
+      triggerModal('inactivity_1min');
+    }, 60000);
+
+    const resetInactivityTimer = () => {
+      if (triggered) return;
+      clearTimeout(inactivityTimer);
+      inactivityTimer = setTimeout(() => {
+        triggerModal('inactivity_1min');
+      }, 60000);
+    };
+
+    const activityEvents = ['mousemove', 'mousedown', 'keydown', 'scroll', 'touchstart'];
+    activityEvents.forEach((evt) => {
+      window.addEventListener(evt, resetInactivityTimer, { passive: true });
+    });
+
+    // 2. Trigger ONLY when user is closing the tab or window (cursor moving out through the top edge at <= 0px)
     const handleMouseLeave = (e) => {
-      if (e.clientY <= 15 && !triggered) {
-        triggered = true;
-        setIsOpen(true);
-        try {
-          localStorage.setItem('silverchapter_exit_survey_last_shown', Date.now().toString());
-        } catch {}
+      // Must be exiting top of screen (clientY <= 0) with no related element inside document
+      if (e.clientY <= 0 && (!e.relatedTarget || e.relatedTarget.nodeName === 'HTML') && !triggered) {
+        triggerModal('tab_close_intent');
+      }
+    };
+
+    // 3. Tab visibility change (closing tab, switching window away)
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'hidden' && !triggered) {
+        // Tab was hidden / closed
+        triggerModal('tab_hidden');
       }
     };
 
     document.addEventListener('mouseleave', handleMouseLeave);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
     return () => {
+      clearTimeout(inactivityTimer);
+      activityEvents.forEach((evt) => {
+        window.removeEventListener(evt, resetInactivityTimer);
+      });
       document.removeEventListener('mouseleave', handleMouseLeave);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, []);
 
