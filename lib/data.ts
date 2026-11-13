@@ -172,7 +172,7 @@ export const STORE_CONFIG = {
     { title: 'Fine 925 Sterling Silver', desc: 'Crafted from authentic solid 925 sterling silver with enduring purity as our core material.' },
     { title: '14K Gold Vermeil Plating', desc: 'We use thick 14K Gold Vermeil plating layered over solid 925 silver for lasting warmth and luxury.' },
     { title: '30-Day Manufacturing Warranty', desc: 'Covers clasp integrity, stone setting, and craftsmanship defects for complete confidence.' },
-    { title: 'Made to Order Craftsmanship', desc: 'Every creation is handcrafted especially for you (15–20 days crafting + 1–5 days insured shipping).' },
+    { title: 'Made to Order Craftsmanship', desc: 'Every creation is handcrafted especially for you (3–6 days studio crafting + 2–4 days express delivery).' },
   ],
 };
 
@@ -200,8 +200,8 @@ export const OUR_STORY = {
     {
       numeral: 'III',
       title: 'The Made-to-Order Atelier Rhythm',
-      subtitle: '15–20 Days Dedicated Handcrafting',
-      text: 'We reject industrial assembly lines and mass plastic injection casting. When you commission a piece at A Silver Chapter, our master bench jewelers cast, file, bezel-set, and polish your jewellery individually over 15–20 business days. This slow, intentional craft ensures structural perfection, zero porosity, and stones that remain securely anchored for a lifetime.',
+      subtitle: '5–10 Days Dedicated Delivery',
+      text: 'We reject industrial assembly lines and mass plastic injection casting. When you commission a piece at A Silver Chapter, our master bench jewelers cast, file, bezel-set, and polish your jewellery individually over 3–6 business days before swift Blue Dart Air Express dispatch. This intentional craft ensures structural perfection, zero porosity, and stones that remain securely anchored for a lifetime.',
     },
     {
       numeral: 'IV',
@@ -276,11 +276,11 @@ export const BRAND_POLICIES = [
     sections: [
       {
         heading: 'Order Preparation (Made to Order)',
-        text: 'All A SILVER CHAPTER pieces are customised and made to order especially for you. Order preparation and production takes 15–20 business days from the date of successful payment confirmation. During festive seasons, launches, or high-demand periods, preparation time may be slightly longer. If there is a significant delay, we will inform you proactively.',
+        text: 'All A SILVER CHAPTER pieces are customised and made to order especially for you. Order preparation and production takes 3–6 business days from the date of successful payment confirmation, followed by 2–4 business days for insured express air shipping (5–10 business days total delivery). During festive seasons or high-demand periods, preparation time may be slightly longer. If there is a delay, we will inform you proactively.',
       },
       {
         heading: 'Shipping & Delivery',
-        text: 'Once your order is ready, it is dispatched through our trusted courier partners. Shipping time is 1–5 business days across India, depending on your delivery location. You will receive an active tracking link via Email, SMS, or WhatsApp once your order has been dispatched.',
+        text: 'Once your order is ready, it is dispatched through our trusted courier partners (Blue Dart Air Express). Shipping time is 2–4 business days across India, depending on your delivery location. You will receive an active tracking link via Email, SMS, or WhatsApp once your order has been dispatched.',
       },
       {
         heading: 'Important Delivery Information',
@@ -288,7 +288,7 @@ export const BRAND_POLICIES = [
       },
       {
         heading: 'Made-To-Order Notice for Product Pages',
-        text: 'Every A SILVER CHAPTER piece is made especially for you. Kindly allow 15–20 business days for crafting and preparation, followed by 1–5 business days for insured shipping.',
+        text: 'Every A SILVER CHAPTER piece is made especially for you. Kindly allow 5–10 business days for complete handcrafted delivery (3–6 business days studio preparation + 2–4 business days insured express shipping).',
       },
     ],
   },
@@ -533,7 +533,7 @@ export function createOrderTimeline(status: OrderLifecycleStatus, orderDate: str
       status: 'PREPARING',
       label: 'Preparing & Handcrafting in Studio',
       location: 'Foundry & Bench, Delhi Atelier',
-      description: 'Master artisans casting and hand-forging piece in Fine 925 Sterling Silver (15–20 business days).',
+      description: 'Master artisans casting and hand-forging piece in Fine 925 Sterling Silver (3–6 business days).',
     },
     {
       status: 'SHIPPED',

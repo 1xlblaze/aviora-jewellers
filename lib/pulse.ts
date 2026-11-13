@@ -244,6 +244,20 @@ export const pulse = {
   },
 
   /**
+   * Track Exit-Intent Feedback Survey response
+   */
+  exitFeedbackSubmitted(reason: string, notes?: string, cartItemCount?: number, cartTotal?: number) {
+    try {
+      posthog.capture('exit_feedback_submitted', {
+        feedback_reason: reason,
+        feedback_notes: notes || '',
+        cart_item_count: cartItemCount || 0,
+        cart_total: cartTotal || 0,
+      });
+    } catch {}
+  },
+
+  /**
    * Generic custom event pulse
    */
   custom(eventName: string, properties: Record<string, any> = {}) {

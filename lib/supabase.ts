@@ -257,7 +257,7 @@ export async function persistOrderToDb(order: any) {
       tracking_number: trackingNumber,
       bluedart_consignment_no: trackingNumber,
       gst_amount: gstAmount,
-      estimated_delivery: order.estimatedDelivery || '15-20 Business Days Handcrafting + 1-5 Days Express Air',
+      estimated_delivery: order.estimatedDelivery || '5-10 Business Days Handcrafting & Express Delivery',
       items: order.items || [],
       timeline: order.timeline || [],
       otp_verified: Boolean(order.otpVerified),
